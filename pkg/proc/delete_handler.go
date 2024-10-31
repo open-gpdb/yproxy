@@ -84,21 +84,21 @@ func (dh *BasicDeleteHandler) ListGarbageFiles(msg message.DeleteMessage) ([]str
 	}
 	ylogger.Zero.Info().Int("amount", len(objectMetas)).Msg("objects count")
 
-	vi, ei, err := dh.DbInterractor.GetVirtualExpireIndexes(msg.Port)
+	virtualIndexInfo, expireHintInfo, err := dh.DbInterractor.GetVirtualExpireIndexes(msg.Port)
 	if err != nil {
 		ylogger.Zero.Error().AnErr("err", err).Msg("failed to get indexes")
 		return nil, errors.Wrap(err, "could not get virtual and expire indexes")
 	}
 	ylogger.Zero.Info().Msg("recieved virtual index and expire index")
-	ylogger.Zero.Debug().Int("virtual", len(vi)).Msg("vi count")
-	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("ei count")
+	ylogger.Zero.Debug().Int("virtual", len(virtualIndexInfo)).Msg("vi count")
+	ylogger.Zero.Debug().Int("expire hint", len(expireHintInfo)).Msg("ei count")
 
 	filesToDelete := make([]string, 0)
 	for i := 0; i < len(objectMetas); i++ {
 		reworkedName := ReworkFileName(objectMetas[i].Path)
-		lsn, ok := ei[reworkedName]
+		lsn, ok := expireHintInfo[reworkedName]
 		ylogger.Zero.Debug().Uint64("lsn", lsn).Uint64("backup lsn", firstBackupLSN).Msg("comparing lsn")
-		if !vi[reworkedName] && (lsn < firstBackupLSN || !ok) {
+		if !virtualIndexInfo[reworkedName] && (lsn < firstBackupLSN || !ok) {
 			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
 				Bool("file in expire index", ok).
 				Bool("lsn is less than in first backup", lsn < firstBackupLSN).

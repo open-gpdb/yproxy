@@ -31,6 +31,9 @@ type Ei struct {
 	fqnmd5     string
 }
 
+/*
+* Retrieve virtual index info and expire hint index info.
+ */
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port int) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
 	db, err := getDatabase(port)
 	if err != nil {
@@ -44,41 +47,22 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port int) (map[string]b
 	defer conn.Close() //error
 	ylogger.Zero.Debug().Msg("connected to database")
 
-	rows, err := conn.Query(`SELECT reloid, relfileoid, expire_lsn, fqnmd5 FROM yezzey.yezzey_expire_index WHERE expire_lsn != '0/0';`)
+	/*
+	* if yezzey version >= 1.8.1, then
+	* SELECT x_path, expire_lsn FROM yezzey.yezzey_expire_hint;
+	 */
+
+	rows, err := conn.Query(`SELECT x_path FROM yezzey.yezzey_virtual_index;`)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 	}
 	defer rows.Close()
-	ylogger.Zero.Debug().Msg("executed select")
-
-	c := make(map[string]uint64, 0)
-	for rows.Next() {
-		row := Ei{}
-		if err := rows.Scan(&row.reloid, &row.relfileoid, &row.expireLsn, &row.fqnmd5); err != nil {
-			return nil, nil, fmt.Errorf("unable to parse query output %v", err)
-		}
-
-		lsn, err := pgx.ParseLSN(row.expireLsn)
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to parse query output %v", err)
-		}
-
-		ylogger.Zero.Debug().Str("file", fmt.Sprintf("%d_%d_%s_%d_", db.tablespace, db.oid, row.fqnmd5, row.relfileoid)).Msg("added file to ei")
-		c[fmt.Sprintf("%d_%d_%s_%d_", db.tablespace, db.oid, row.fqnmd5, row.relfileoid)] = lsn
-	}
-	ylogger.Zero.Debug().Msg("read 1")
-
-	rows2, err := conn.Query(`SELECT x_path FROM yezzey.yezzey_virtual_index;`)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
-	}
-	defer rows2.Close()
-	ylogger.Zero.Debug().Msg("read 2")
+	ylogger.Zero.Debug().Msg("yezzey virtual index fetched")
 
 	c2 := make(map[string]bool, 0)
-	for rows2.Next() {
+	for rows.Next() {
 		xpath := ""
-		if err := rows2.Scan(&xpath); err != nil {
+		if err := rows.Scan(&xpath); err != nil {
 			return nil, nil, fmt.Errorf("unable to parse query output %v", err)
 		}
 		p1 := strings.Split(xpath, "/")
@@ -92,7 +76,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port int) (map[string]b
 	}
 	ylogger.Zero.Debug().Msg("read 3")
 
-	return c2, c, err
+	return c2, map[string]uint64{}, err
 }
 
 func getDatabase(port int) (DB, error) {
