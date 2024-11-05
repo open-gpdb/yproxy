@@ -48,6 +48,7 @@ func InstanceConfig() *Instance {
 }
 
 func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
+	cfgInstance.VacuumCnf.CheckBackup = true
 	if strings.HasSuffix(file.Name(), ".toml") {
 		_, err := toml.NewDecoder(file).Decode(cfgInstance)
 		return err
