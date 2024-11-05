@@ -50,6 +50,5 @@ func (r *ProtoReader) ReadPacket() (message.MessageType, []byte, error) {
 		return 0, nil, err
 	}
 
-	msgType := message.MessageType(data[0])
-	return msgType, data, nil
+	return message.MessageType(data[0]), data, nil
 }

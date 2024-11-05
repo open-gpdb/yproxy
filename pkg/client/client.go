@@ -1,11 +1,11 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"reflect"
 
+	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
@@ -76,9 +76,7 @@ func NewYClient(c net.Conn) YproxyClient {
 func (y *YClient) ReplyError(err error, msg string) error {
 	ylogger.Zero.Error().Err(err).Msg(msg)
 
-	_, _ = y.Conn.Write([]byte(
-		fmt.Sprintf("%s: %v", msg, err),
-	))
+	_, _ = y.Conn.Write(message.NewErrorMessage(err, msg).Encode())
 	return nil
 }
 

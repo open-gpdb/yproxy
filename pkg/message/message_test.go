@@ -2,6 +2,7 @@ package message_test
 
 import (
 	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -302,4 +303,23 @@ func TestDeleteMsg(t *testing.T) {
 	assert.Equal(uint64(42), msg2.Segnum)
 	assert.True(msg2.Confirm)
 	assert.True(msg2.Garbage)
+}
+
+func TestErrorMsg(t *testing.T) {
+	assert := assert.New(t)
+
+	errString := "could not list objects: NoCredentialProviders: no valid providers in chain."
+	messageString := "Deprecated. For verbose messaging see aws.Config.CredentialsChainVerboseErrors"
+	err := fmt.Errorf("%s", errString)
+
+	msg := message.NewErrorMessage(err, messageString)
+	body := msg.Encode()
+
+	assert.Equal(body[8], byte(message.MessageTypeError))
+
+	msg2 := message.ErrorMessage{}
+	msg2.Decode(body[8:])
+
+	assert.Equal(errString, msg2.Error)
+	assert.Equal(messageString, msg2.Message)
 }

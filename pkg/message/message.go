@@ -23,6 +23,7 @@ const (
 	MessageTypeGool            = MessageType(52)
 	MessageTypePutV2           = MessageType(53)
 	MessageTypeCatV2           = MessageType(54)
+	MessageTypeError           = MessageType(55)
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
@@ -59,6 +60,8 @@ func (m MessageType) String() string {
 		return "COPY"
 	case MessageTypeGool:
 		return "GOOL"
+	case MessageTypeError:
+		return "ERROR"
 	}
 	return "UNKNOWN"
 }
