@@ -116,7 +116,7 @@ func (dh *BasicDeleteHandler) ListGarbageFiles(msg message.DeleteMessage) ([]str
 	}
 
 	//list files in storage
-	ylogger.Zero.Info().Str("path", msg.Name).Msg("going to list path")
+	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
 	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list objects")
