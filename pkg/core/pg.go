@@ -2,6 +2,7 @@ package core
 
 import (
 	"net"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/yezzey-gp/yproxy/pkg/core/parser"
@@ -109,6 +110,28 @@ init:
 					TxStatus: 'I',
 				})
 				conn.Flush()
+			case *parser.KKBCommand:
+				ylogger.Zero.Error().Msg("recieved die command, exiting")
+
+				conn.Send(&pgproto3.RowDescription{
+					Fields: []pgproto3.FieldDescription{
+						{
+							Name:        []byte("row"),
+							DataTypeOID: 25, /* textoid*/
+						},
+					},
+				})
+
+				conn.Send(&pgproto3.DataRow{
+					Values: [][]byte{[]byte("exit")},
+				})
+				conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("EXIT")})
+
+				conn.Send(&pgproto3.ReadyForQuery{
+					TxStatus: 'I',
+				})
+				conn.Flush()
+				os.Exit(2)
 			default:
 				conn.Send(&pgproto3.ErrorResponse{
 					Message: "unknown command",
