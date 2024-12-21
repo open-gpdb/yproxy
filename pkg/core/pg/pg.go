@@ -97,14 +97,7 @@ init:
 				})
 				conn.Flush()
 			case *parser.ShowCommand:
-				var infos []client.YproxyClient
-				if err := p.ClientPoolForeach(func(c client.YproxyClient) error {
-					infos = append(infos, c)
-					return nil
-				}); err != nil {
-					return
-				}
-				_ = ProcessShow(conn, q.Type, infos)
+				_ = ProcessShow(conn, q.Type, p)
 			case *parser.KKBCommand:
 				ylogger.Zero.Error().Msg("recieved die command, exiting")
 
@@ -144,12 +137,21 @@ init:
 	}
 }
 
-func ProcessShow(conn *pgproto3.Backend, s string, infos []client.YproxyClient) error {
+func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool) error {
 	switch s {
 	case "clients":
 		/*
-		* OPType, client_id, xpath, quantilies.
+		* OPType, client_id, byte offset, opstart, xpath.
 		 */
+
+		var infos []client.YproxyClient
+		if err := p.ClientPoolForeach(func(c client.YproxyClient) error {
+			infos = append(infos, c)
+			return nil
+		}); err != nil {
+			return err
+		}
+
 		conn.Send(&pgproto3.RowDescription{
 			Fields: []pgproto3.FieldDescription{
 				{
@@ -186,6 +188,69 @@ func ProcessShow(conn *pgproto3.Backend, s string, infos []client.YproxyClient) 
 					[]byte(info.ExternalFilePath()),
 				},
 			})
+		}
+
+		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("CLIENTS")})
+
+		conn.Send(&pgproto3.ReadyForQuery{
+			TxStatus: 'I',
+		})
+
+		return conn.Flush()
+
+	case "stats":
+		/*
+		* OPType, client_id, xpath, quantilies.
+		 */
+		conn.Send(&pgproto3.RowDescription{
+			Fields: []pgproto3.FieldDescription{
+				{
+					Name:        []byte("opType"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("quantiles_0.5"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("quantiles_0.75"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("quantiles_0.90"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("quantiles_0.99"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("quantiles_0.999"),
+					DataTypeOID: 25, /* textoid */
+				},
+			},
+		})
+
+		quants := []float64{
+			.5,
+			.75,
+			.9,
+			.99,
+			.999,
+		}
+
+		infos := p.Quantile(quants)
+		for _, info := range infos {
+			values := [][]byte{
+				[]byte(info.Op),
+			}
+
+			for _, qs := range info.Q {
+				values = append(values, []byte(fmt.Sprintf("%v", qs)))
+			}
+
+			conn.Send(&pgproto3.DataRow{
+				Values: values})
 		}
 
 		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})

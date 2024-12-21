@@ -16,6 +16,8 @@ type Pool interface {
 	Put(client client.YproxyClient) error
 	Pop(id uint) (bool, error)
 
+	Quantile(q []float64) []QuantInfo
+
 	Shutdown() error
 }
 
@@ -36,6 +38,29 @@ func (c *PoolImpl) Put(client client.YproxyClient) error {
 
 	return nil
 }
+
+type QuantInfo struct {
+	Op string
+	Q  []float64
+}
+
+func (c *PoolImpl) Quantile(q []float64) []QuantInfo {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var ret []QuantInfo
+	for k, v := range c.opSpeed {
+		var Qs []float64
+		for _, qq := range q {
+			Qs = append(Qs, v.Quantile(qq))
+		}
+		ret = append(ret, QuantInfo{
+			Op: k,
+			Q:  Qs,
+		})
+	}
+	return ret
+}
+
 func (c *PoolImpl) Pop(id uint) (bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -45,7 +70,7 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 
 		total := cl.ByteOffset()
 		if total != 0 {
-			timeTotal := time.Now().Sub(cl.OPStart()).Microseconds()
+			timeTotal := time.Now().Sub(cl.OPStart()).Nanoseconds()
 
 			optyp := cl.OPType().String()
 			if c.opSpeed[optyp] == nil {
