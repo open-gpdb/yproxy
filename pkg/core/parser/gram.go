@@ -33,11 +33,13 @@ const SORT = 57354
 const ASC = 57355
 const DESC = 57356
 const GROUP = 57357
-const SCONST = 57358
-const IDENT = 57359
-const ICONST = 57360
-const TEQ = 57361
-const TSEMICOLON = 57362
+const KURT = 57358
+const KOBAIN = 57359
+const SCONST = 57360
+const IDENT = 57361
+const ICONST = 57362
+const TEQ = 57363
+const TSEMICOLON = 57364
 
 var yyToknames = [...]string{
 	"$end",
@@ -55,6 +57,8 @@ var yyToknames = [...]string{
 	"ASC",
 	"DESC",
 	"GROUP",
+	"KURT",
+	"KOBAIN",
 	"SCONST",
 	"IDENT",
 	"ICONST",
@@ -77,39 +81,40 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 10
+const yyLast = 15
 
 var yyAct = [...]int{
-	8, 10, 5, 7, 6, 9, 1, 4, 3, 2,
+	10, 12, 6, 13, 7, 11, 9, 1, 5, 4,
+	3, 2, 0, 0, 8,
 }
 
 var yyPact = [...]int{
-	-2, -1000, -20, -1000, -1000, 0, -16, -1000, -1000, -1000,
-	-1000,
+	-2, -1000, -22, -1000, -1000, -1000, 0, -18, -14, -1000,
+	-1000, -1000, -1000, -1000,
 }
 
 var yyPgo = [...]int{
-	0, 9, 8, 7, 7, 6, 3,
+	0, 11, 10, 9, 8, 8, 7, 6,
 }
 
 var yyR1 = [...]int{
-	0, 5, 6, 6, 4, 4, 1, 1, 1, 2,
-	3,
+	0, 6, 7, 7, 5, 5, 1, 1, 1, 1,
+	2, 3, 4,
 }
 
 var yyR2 = [...]int{
-	0, 2, 1, 0, 1, 1, 1, 1, 0, 2,
-	2,
+	0, 2, 1, 0, 1, 1, 1, 1, 1, 0,
+	2, 2, 2,
 }
 
 var yyChk = [...]int{
-	-1000, -5, -1, -2, -3, 4, 6, -6, 20, 5,
-	17,
+	-1000, -6, -1, -2, -3, -4, 4, 6, 16, -7,
+	22, 5, 19, 17,
 }
 
 var yyDef = [...]int{
-	8, -2, 3, 6, 7, 0, 0, 1, 2, 9,
-	10,
+	9, -2, 3, 6, 7, 8, 0, 0, 0, 1,
+	2, 10, 11, 12,
 }
 
 var yyTok1 = [...]int{
@@ -118,7 +123,8 @@ var yyTok1 = [...]int{
 
 var yyTok2 = [...]int{
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14, 15, 16, 17, 18, 19, 20,
+	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+	22,
 }
 
 var yyTok3 = [...]int{
@@ -464,57 +470,69 @@ yydefault:
 
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:60
+//line gram.y:63
 		{
 		}
 	case 3:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:61
+//line gram.y:64
 		{
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:65
+//line gram.y:68
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:66
+//line gram.y:69
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:72
+//line gram.y:75
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 7:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:75
+//line gram.y:78
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 8:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:80
+		{
+			setParseTree(yylex, yyDollar[1].node)
+		}
+	case 9:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:77
+//line gram.y:82
 		{
 			yyVAL.node = nil
 		}
-	case 9:
+	case 10:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:80
+//line gram.y:85
 		{
 			yyVAL.node = &SayHelloCommand{}
 		}
-	case 10:
+	case 11:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:84
+//line gram.y:89
 		{
 			yyVAL.node = &ShowCommand{
 				Type: yyDollar[2].str,
 			}
+		}
+	case 12:
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line gram.y:97
+		{
+			yyVAL.node = &KKBCommand{}
 		}
 	}
 	goto yystack /* stack new state and value */

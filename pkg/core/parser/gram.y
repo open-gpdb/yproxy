@@ -25,6 +25,7 @@ func NewYpParser() YpParser {
 %type <node> command
 
 %type<node> say_hello_command show_command
+%type<node> kurt_kobain_command
 
 %type<str> reversed_keyword
 
@@ -38,6 +39,9 @@ func NewYpParser() YpParser {
 /* pseudo-sql */
 %token<str> SELECT FROM WHERE ORDER BY SORT ASC DESC GROUP
 
+/* misc */
+%token<str> KURT KOBAIN
+
 // same for terminals
 %token <str> SCONST IDENT
 %token <int> ICONST
@@ -47,7 +51,6 @@ func NewYpParser() YpParser {
 
 /* ';' != */
 %token<str> TSEMICOLON 
-
 
 %start any_command
 
@@ -74,6 +77,8 @@ command:
     } |
     show_command {
         setParseTree(yylex, $1)
+    } | kurt_kobain_command {
+        setParseTree(yylex, $1)
     } | /* nothing */ { $$ = nil }
 
 say_hello_command:
@@ -84,6 +89,13 @@ show_command:
     SHOW IDENT {
         $$ = &ShowCommand{
             Type: $2,
+        }
+    }
+    ;
+
+kurt_kobain_command:
+    KURT KOBAIN {
+        $$ = &KKBCommand{
         }
     }
     ;

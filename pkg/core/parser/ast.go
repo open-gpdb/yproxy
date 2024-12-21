@@ -12,3 +12,7 @@ type ShowCommand struct {
 	Node
 	Type string
 }
+
+type KKBCommand struct {
+	Node
+}
