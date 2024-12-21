@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"time"
 
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -14,8 +15,9 @@ type YproxyClient interface {
 	ReplyError(err error, msg string) error
 	GetRW() io.ReadWriteCloser
 
-	SetOPType(optype byte)
-	OPType() byte
+	SetOPType(optype message.MessageType)
+	OPType() message.MessageType
+	OPStart() time.Time
 
 	SetExternalFilePath(path string)
 	ExternalFilePath() string
@@ -24,9 +26,10 @@ type YproxyClient interface {
 }
 
 type YClient struct {
-	Conn net.Conn
-	op   byte
-	path string
+	Conn    net.Conn
+	op      message.MessageType
+	opstart time.Time
+	path    string
 }
 
 // ExternalFilePath implements YproxyClient.
@@ -40,13 +43,18 @@ func (y *YClient) SetExternalFilePath(path string) {
 }
 
 // OPType implements YproxyClient.
-func (y *YClient) OPType() byte {
+func (y *YClient) OPType() message.MessageType {
 	return y.op
 }
 
+func (y *YClient) OPStart() time.Time {
+	return y.opstart
+}
+
 // SetOPType implements YproxyClient.
-func (y *YClient) SetOPType(optype byte) {
+func (y *YClient) SetOPType(optype message.MessageType) {
 	y.op = optype
+	y.opstart = time.Now()
 }
 
 // Close implements YproxyClient.

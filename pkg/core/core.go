@@ -12,6 +12,7 @@ import (
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/clientpool"
+	"github.com/yezzey-gp/yproxy/pkg/core/pg"
 	"github.com/yezzey-gp/yproxy/pkg/crypt"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
@@ -110,7 +111,9 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			return err
 		}
 
-		i.DispatchServer(psqlListener, PostgresIface)
+		i.DispatchServer(psqlListener, func(c net.Conn) {
+			pg.PostgresIface(c, i.pool)
+		})
 	}
 
 	listener, err := net.Listen("unix", instanceCnf.SocketPath)

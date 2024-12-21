@@ -418,7 +418,7 @@ func ProcConn(s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyCl
 
 	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("recieved client request")
 
-	ycl.SetOPType(byte(tp))
+	ycl.SetOPType(tp)
 
 	switch tp {
 	case message.MessageTypeCat:
@@ -512,7 +512,7 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 
 	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("recieved client request")
 
-	ycl.SetOPType(byte(tp))
+	ycl.SetOPType(tp)
 
 	msg := message.GoolMessage{}
 	msg.Decode(body)
