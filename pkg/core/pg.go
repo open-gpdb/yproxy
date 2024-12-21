@@ -90,6 +90,25 @@ init:
 					TxStatus: 'I',
 				})
 				conn.Flush()
+			case *parser.ShowCommand:
+				conn.Send(&pgproto3.RowDescription{
+					Fields: []pgproto3.FieldDescription{
+						{
+							Name:        []byte("row"),
+							DataTypeOID: 25, /* textoid*/
+						},
+					},
+				})
+
+				conn.Send(&pgproto3.DataRow{
+					Values: [][]byte{[]byte("here will be stats")},
+				})
+				conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})
+
+				conn.Send(&pgproto3.ReadyForQuery{
+					TxStatus: 'I',
+				})
+				conn.Flush()
 			default:
 				conn.Send(&pgproto3.ErrorResponse{
 					Message: "unknown command",
