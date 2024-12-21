@@ -17,6 +17,7 @@ unittest:
 
 mockgen:
 	mockgen -source=pkg/proc/yrreader.go -destination=pkg/mock/proc/yrreader.go -package=mock
+	mockgen -source=pkg/client/client.go -destination=pkg/mock/client/client.go -package=mock
 	mockgen -source=pkg/database/database.go -destination=pkg/mock/database.go -package=mock
 	mockgen -source=pkg/backups/backups.go -destination=pkg/mock/backups.go -package=mock
 	mockgen -source=pkg/storage/storage.go -destination=pkg/mock/storage.go -package=mock

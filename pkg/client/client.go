@@ -19,6 +19,10 @@ type YproxyClient interface {
 	OPType() message.MessageType
 	OPStart() time.Time
 
+	/* Read/Write progress */
+	SetByteOffset(int64)
+	ByteOffset() int64
+
 	SetExternalFilePath(path string)
 	ExternalFilePath() string
 
@@ -30,6 +34,17 @@ type YClient struct {
 	op      message.MessageType
 	opstart time.Time
 	path    string
+
+	progress int64
+}
+
+// ByteOffset implements YproxyClient.
+func (y *YClient) ByteOffset() int64 {
+	return y.progress
+}
+
+func (y *YClient) SetByteOffset(n int64) {
+	y.progress = n
 }
 
 // ExternalFilePath implements YproxyClient.

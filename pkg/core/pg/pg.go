@@ -161,11 +161,15 @@ func ProcessShow(conn *pgproto3.Backend, s string, infos []client.YproxyClient) 
 					DataTypeOID: 25, /* textoid */
 				},
 				{
-					Name:        []byte("xpath"),
+					Name:        []byte("byte offset"),
 					DataTypeOID: 25, /* textoid */
 				},
 				{
 					Name:        []byte("opstart"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("xpath"),
 					DataTypeOID: 25, /* textoid */
 				},
 			},
@@ -177,9 +181,9 @@ func ProcessShow(conn *pgproto3.Backend, s string, infos []client.YproxyClient) 
 				Values: [][]byte{
 					[]byte(info.OPType().String()),
 					[]byte(fmt.Sprintf("%d", info.ID())),
-					[]byte(info.ExternalFilePath()),
-
+					[]byte(fmt.Sprintf("%d", info.ByteOffset())),
 					[]byte(fmt.Sprintf("%v", info.OPStart())),
+					[]byte(info.ExternalFilePath()),
 				},
 			})
 		}

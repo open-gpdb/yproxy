@@ -26,7 +26,7 @@ func ProcessCatExtended(
 
 	ycl.SetExternalFilePath(name)
 
-	yr := NewYRetryReader(NewRestartReader(s, name, settings))
+	yr := NewYRetryReader(NewRestartReader(s, name, settings), ycl)
 
 	var contentReader io.Reader
 	contentReader = yr
@@ -258,8 +258,8 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				continue
 			}
 
-			//get reader
-			readerFromOldBucket := NewYRetryReader(NewRestartReader(oldStorage, path, nil))
+			/* get reader */
+			readerFromOldBucket := NewYRetryReader(NewRestartReader(oldStorage, path, nil), ycl)
 			var fromReader io.Reader
 			fromReader = readerFromOldBucket
 			defer readerFromOldBucket.Close()
@@ -279,7 +279,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				}
 			}
 
-			//reencrypt
+			/* re-encrypt */
 			readerEncrypt, writerEncrypt := io.Pipe()
 
 			go func() {
