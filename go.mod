@@ -37,6 +37,7 @@ require (
 )
 
 require (
+	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/mock v1.6.0
