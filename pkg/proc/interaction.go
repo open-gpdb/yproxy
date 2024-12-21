@@ -13,6 +13,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/database"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/object"
+	"github.com/yezzey-gp/yproxy/pkg/proc/yio"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -26,7 +27,7 @@ func ProcessCatExtended(
 
 	ycl.SetExternalFilePath(name)
 
-	yr := NewYRetryReader(NewRestartReader(s, name, settings), ycl)
+	yr := yio.NewYRetryReader(yio.NewRestartReader(s, name, settings), ycl)
 
 	var contentReader io.Reader
 	contentReader = yr
@@ -259,7 +260,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 			}
 
 			/* get reader */
-			readerFromOldBucket := NewYRetryReader(NewRestartReader(oldStorage, path, nil), ycl)
+			readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 			var fromReader io.Reader
 			fromReader = readerFromOldBucket
 			defer readerFromOldBucket.Close()

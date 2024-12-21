@@ -1,4 +1,4 @@
-package proc_test
+package yio_test
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	mockcl "github.com/yezzey-gp/yproxy/pkg/mock/client"
-	mock "github.com/yezzey-gp/yproxy/pkg/mock/proc"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
+	mockio "github.com/yezzey-gp/yproxy/pkg/mock/proc/yio"
+	"github.com/yezzey-gp/yproxy/pkg/proc/yio"
 	"go.uber.org/mock/gomock"
 )
 
@@ -16,11 +16,11 @@ func TestYproxyRetryReaderEmpty(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	rr := mock.NewMockRestartReader(ctrl)
+	rr := mockio.NewMockRestartReader(ctrl)
 
 	ycl := mockcl.NewMockYproxyClient(ctrl)
 
-	yr := proc.NewYRetryReader(rr, ycl)
+	yr := yio.NewYRetryReader(rr, ycl)
 
 	buf := []byte{1, 233, 45}
 
@@ -39,10 +39,10 @@ func TestYproxyRetryReaderSimpleRead(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	rr := mock.NewMockRestartReader(ctrl)
+	rr := mockio.NewMockRestartReader(ctrl)
 
 	ycl := mockcl.NewMockYproxyClient(ctrl)
-	yr := proc.NewYRetryReader(rr, ycl)
+	yr := yio.NewYRetryReader(rr, ycl)
 
 	ycl.EXPECT().SetByteOffset(int64(3)).Times(1)
 
@@ -78,10 +78,10 @@ func TestYproxyRetryReaderSimpleReadRetry(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	rr := mock.NewMockRestartReader(ctrl)
+	rr := mockio.NewMockRestartReader(ctrl)
 
 	ycl := mockcl.NewMockYproxyClient(ctrl)
-	yr := proc.NewYRetryReader(rr, ycl)
+	yr := yio.NewYRetryReader(rr, ycl)
 
 	ycl.EXPECT().SetByteOffset(int64(3)).Times(1)
 
