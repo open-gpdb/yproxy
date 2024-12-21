@@ -1,6 +1,7 @@
 package clientpool
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/yezzey-gp/yproxy/pkg/client"
@@ -35,14 +36,15 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var err error
 	cl, ok := c.pool[id]
 	if ok {
-		err = cl.Close()
 		delete(c.pool, id)
+		/* be conservative */
+		_ = cl.Close()
+		return true, nil
 	}
 
-	return ok, err
+	return ok, fmt.Errorf("failed to find client %d connection", id)
 }
 
 func (c *PoolImpl) Shutdown() error {
