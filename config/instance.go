@@ -65,6 +65,7 @@ func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
 const (
 	DefaultStorageConcurrency = 100
 	DefaultStatPort           = 7432
+	DefaultPsqlPort           = 8432
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -76,6 +77,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.StatPort == 0 {
 		cfgInstance.StatPort = DefaultStatPort
+	}
+	if cfgInstance.PsqlPort == 0 {
+		cfgInstance.PsqlPort = DefaultPsqlPort
 	}
 }
 

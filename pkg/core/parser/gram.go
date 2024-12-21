@@ -23,11 +23,21 @@ type yySymType struct {
 
 const SAY = 57346
 const HELLO = 57347
-const SCONST = 57348
-const IDENT = 57349
-const ICONST = 57350
-const TEQ = 57351
-const TSEMICOLON = 57352
+const SHOW = 57348
+const SELECT = 57349
+const FROM = 57350
+const WHERE = 57351
+const ORDER = 57352
+const BY = 57353
+const SORT = 57354
+const ASC = 57355
+const DESC = 57356
+const GROUP = 57357
+const SCONST = 57358
+const IDENT = 57359
+const ICONST = 57360
+const TEQ = 57361
+const TSEMICOLON = 57362
 
 var yyToknames = [...]string{
 	"$end",
@@ -35,12 +45,23 @@ var yyToknames = [...]string{
 	"$unk",
 	"SAY",
 	"HELLO",
+	"SHOW",
+	"SELECT",
+	"FROM",
+	"WHERE",
+	"ORDER",
+	"BY",
+	"SORT",
+	"ASC",
+	"DESC",
+	"GROUP",
 	"SCONST",
 	"IDENT",
 	"ICONST",
 	"TEQ",
 	"TSEMICOLON",
 }
+
 var yyStatenames = [...]string{}
 
 const yyEofCode = 1
@@ -56,44 +77,50 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 7
+const yyLast = 10
 
 var yyAct = [...]int{
-
-	6, 7, 4, 5, 1, 3, 2,
+	8, 10, 5, 7, 6, 9, 1, 4, 3, 2,
 }
+
 var yyPact = [...]int{
-
-	-2, -1000, -10, -1000, -4, -1000, -1000, -1000,
+	-2, -1000, -20, -1000, -1000, 0, -16, -1000, -1000, -1000,
+	-1000,
 }
+
 var yyPgo = [...]int{
-
-	0, 6, 5, 5, 4, 3,
+	0, 9, 8, 7, 7, 6, 3,
 }
+
 var yyR1 = [...]int{
-
-	0, 4, 5, 5, 3, 3, 1, 1, 2,
+	0, 5, 6, 6, 4, 4, 1, 1, 1, 2,
+	3,
 }
+
 var yyR2 = [...]int{
-
-	0, 2, 1, 0, 1, 1, 1, 0, 2,
+	0, 2, 1, 0, 1, 1, 1, 1, 0, 2,
+	2,
 }
+
 var yyChk = [...]int{
-
-	-1000, -4, -1, -2, 4, -5, 10, 5,
+	-1000, -5, -1, -2, -3, 4, 6, -6, 20, 5,
+	17,
 }
+
 var yyDef = [...]int{
-
-	7, -2, 3, 6, 0, 1, 2, 8,
+	8, -2, 3, 6, 7, 0, 0, 1, 2, 9,
+	10,
 }
-var yyTok1 = [...]int{
 
+var yyTok1 = [...]int{
 	1,
 }
-var yyTok2 = [...]int{
 
-	2, 3, 4, 5, 6, 7, 8, 9, 10,
+var yyTok2 = [...]int{
+	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	12, 13, 14, 15, 16, 17, 18, 19, 20,
 }
+
 var yyTok3 = [...]int{
 	0,
 }
@@ -437,43 +464,57 @@ yydefault:
 
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:55
+//line gram.y:60
 		{
 		}
 	case 3:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:56
+//line gram.y:61
 		{
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:60
+//line gram.y:65
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:61
+//line gram.y:66
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:67
+//line gram.y:72
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 7:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:75
+		{
+			setParseTree(yylex, yyDollar[1].node)
+		}
+	case 8:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:69
+//line gram.y:77
 		{
 			yyVAL.node = nil
 		}
-	case 8:
+	case 9:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:72
+//line gram.y:80
 		{
 			yyVAL.node = &SayHelloCommand{}
+		}
+	case 10:
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line gram.y:84
+		{
+			yyVAL.node = &ShowCommand{
+				Type: yyDollar[2].str,
+			}
 		}
 	}
 	goto yystack /* stack new state and value */

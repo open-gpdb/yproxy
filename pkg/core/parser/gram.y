@@ -24,14 +24,19 @@ func NewYpParser() YpParser {
 // CMDS
 %type <node> command
 
-%type<node> say_hello_command
+%type<node> say_hello_command show_command
 
 %type<str> reversed_keyword
 
 
-
 /* basic words */
 %token<str> SAY HELLO
+
+/* stats */
+%token<str> SHOW
+
+/* pseudo-sql */
+%token<str> SELECT FROM WHERE ORDER BY SORT ASC DESC GROUP
 
 // same for terminals
 %token <str> SCONST IDENT
@@ -66,8 +71,19 @@ command:
     say_hello_command
     {
         setParseTree(yylex, $1)
+    } |
+    show_command {
+        setParseTree(yylex, $1)
     } | /* nothing */ { $$ = nil }
 
 say_hello_command:
     SAY HELLO { $$ = &SayHelloCommand{} } 
+    ;
+
+show_command:
+    SHOW IDENT {
+        $$ = &ShowCommand{
+            Type: $2,
+        }
+    }
     ;
