@@ -7,3 +7,8 @@ type Node interface {
 type SayHelloCommand struct {
 	Node
 }
+
+type ShowCommand struct {
+	Node
+	Type string
+}

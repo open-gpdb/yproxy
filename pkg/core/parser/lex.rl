@@ -98,6 +98,7 @@ func (lex *Lexer) Lex(lval *yySymType) int {
 
             /SAY/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = SAY; fbreak;};
             /HELLO/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = HELLO; fbreak;};
+            /SHOW/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = SHOW; fbreak;};
 
             qidentifier      => { lval.str = string(lex.data[lex.ts + 1:lex.te - 1]); tok = IDENT; fbreak;};
             identifier      => { lval.str = string(lex.data[lex.ts:lex.te]); tok = IDENT; fbreak;};

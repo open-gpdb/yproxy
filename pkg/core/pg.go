@@ -86,14 +86,18 @@ init:
 				})
 				conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("YPROXYHELLO")})
 
-				conn.Send(&pgproto3.ReadyForQuery{})
+				conn.Send(&pgproto3.ReadyForQuery{
+					TxStatus: 'I',
+				})
 				conn.Flush()
 			default:
 				conn.Send(&pgproto3.ErrorResponse{
 					Message: "unknown command",
 				})
 
-				conn.Send(&pgproto3.ReadyForQuery{})
+				conn.Send(&pgproto3.ReadyForQuery{
+					TxStatus: 'I',
+				})
 				conn.Flush()
 			}
 
