@@ -1,15 +1,18 @@
-package core
+package pg
 
 import (
+	"fmt"
 	"net"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgproto3"
+	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/clientpool"
 	"github.com/yezzey-gp/yproxy/pkg/core/parser"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
-func PostgresIface(cl net.Conn) {
+func PostgresIface(cl net.Conn, p clientpool.Pool) {
 	defer cl.Close()
 
 	conn := pgproto3.NewBackend(cl, cl)
@@ -41,7 +44,9 @@ init:
 	/* send aut ok */
 	conn.Send(&pgproto3.AuthenticationOk{})
 	conn.Flush()
-	conn.Send(&pgproto3.ReadyForQuery{})
+	conn.Send(&pgproto3.ReadyForQuery{
+		TxStatus: 'I',
+	})
 	conn.Flush()
 
 	/* main cycle */
@@ -71,7 +76,7 @@ init:
 
 			ylogger.Zero.Info().Interface("node", node).Msg("parsed nodetree")
 
-			switch node.(type) {
+			switch q := node.(type) {
 			case *parser.SayHelloCommand:
 				conn.Send(&pgproto3.RowDescription{
 					Fields: []pgproto3.FieldDescription{
@@ -92,24 +97,14 @@ init:
 				})
 				conn.Flush()
 			case *parser.ShowCommand:
-				conn.Send(&pgproto3.RowDescription{
-					Fields: []pgproto3.FieldDescription{
-						{
-							Name:        []byte("row"),
-							DataTypeOID: 25, /* textoid*/
-						},
-					},
-				})
-
-				conn.Send(&pgproto3.DataRow{
-					Values: [][]byte{[]byte("here will be stats")},
-				})
-				conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})
-
-				conn.Send(&pgproto3.ReadyForQuery{
-					TxStatus: 'I',
-				})
-				conn.Flush()
+				var infos []client.YproxyClient
+				if err := p.ClientPoolForeach(func(c client.YproxyClient) error {
+					infos = append(infos, c)
+					return nil
+				}); err != nil {
+					return
+				}
+				_ = ProcessShow(conn, q.Type, infos)
 			case *parser.KKBCommand:
 				ylogger.Zero.Error().Msg("recieved die command, exiting")
 
@@ -146,5 +141,65 @@ init:
 		default:
 			ylogger.Zero.Error().Interface("msg", q).Msg("unssuported message type")
 		}
+	}
+}
+
+func ProcessShow(conn *pgproto3.Backend, s string, infos []client.YproxyClient) error {
+	switch s {
+	case "clients":
+		/*
+		* OPType, client_id, xpath, quantilies.
+		 */
+		conn.Send(&pgproto3.RowDescription{
+			Fields: []pgproto3.FieldDescription{
+				{
+					Name:        []byte("opType"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("client_id"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("xpath"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("opstart"),
+					DataTypeOID: 25, /* textoid */
+				},
+			},
+		})
+
+		for _, info := range infos {
+
+			conn.Send(&pgproto3.DataRow{
+				Values: [][]byte{
+					[]byte(info.OPType().String()),
+					[]byte(fmt.Sprintf("%d", info.ID())),
+					[]byte(info.ExternalFilePath()),
+
+					[]byte(fmt.Sprintf("%v", info.OPStart())),
+				},
+			})
+		}
+
+		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})
+
+		conn.Send(&pgproto3.ReadyForQuery{
+			TxStatus: 'I',
+		})
+
+		return conn.Flush()
+	default:
+
+		conn.Send(&pgproto3.ErrorResponse{
+			Message: "unrecognized SHOW type",
+		})
+		conn.Send(&pgproto3.ReadyForQuery{
+			TxStatus: 'I',
+		})
+
+		return conn.Flush()
 	}
 }
