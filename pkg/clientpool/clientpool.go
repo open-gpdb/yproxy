@@ -3,7 +3,9 @@ package clientpool
 import (
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/caio/go-tdigest"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
@@ -20,6 +22,8 @@ type Pool interface {
 type PoolImpl struct {
 	mu   sync.Mutex
 	pool map[uint]client.YproxyClient
+	/* optype -> speed quantiles */
+	opSpeed map[string]*tdigest.TDigest
 }
 
 var _ Pool = &PoolImpl{}
@@ -38,6 +42,19 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 
 	cl, ok := c.pool[id]
 	if ok {
+
+		total := cl.ByteOffset()
+		if total != 0 {
+			timeTotal := time.Now().Sub(cl.OPStart()).Microseconds()
+
+			optyp := cl.OPType().String()
+			if c.opSpeed[optyp] == nil {
+				c.opSpeed[optyp], _ = tdigest.New()
+			}
+
+			c.opSpeed[optyp].Add(float64(total) / float64(timeTotal))
+		}
+
 		delete(c.pool, id)
 		/* be conservative */
 		_ = cl.Close()
@@ -77,7 +94,8 @@ func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) 
 
 func NewClientPool() Pool {
 	return &PoolImpl{
-		pool: map[uint]client.YproxyClient{},
-		mu:   sync.Mutex{},
+		pool:    map[uint]client.YproxyClient{},
+		mu:      sync.Mutex{},
+		opSpeed: map[string]*tdigest.TDigest{},
 	}
 }
