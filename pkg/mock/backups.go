@@ -19,6 +19,7 @@ import (
 type MockBackupInterractor struct {
 	ctrl     *gomock.Controller
 	recorder *MockBackupInterractorMockRecorder
+	isgomock struct{}
 }
 
 // MockBackupInterractorMockRecorder is the mock recorder for MockBackupInterractor.

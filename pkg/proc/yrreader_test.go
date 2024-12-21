@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	mockcl "github.com/yezzey-gp/yproxy/pkg/mock/client"
 	mock "github.com/yezzey-gp/yproxy/pkg/mock/proc"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
 	"go.uber.org/mock/gomock"
@@ -17,7 +18,9 @@ func TestYproxyRetryReaderEmpty(t *testing.T) {
 
 	rr := mock.NewMockRestartReader(ctrl)
 
-	yr := proc.NewYRetryReader(rr)
+	ycl := mockcl.NewMockYproxyClient(ctrl)
+
+	yr := proc.NewYRetryReader(rr, ycl)
 
 	buf := []byte{1, 233, 45}
 
@@ -38,7 +41,10 @@ func TestYproxyRetryReaderSimpleRead(t *testing.T) {
 
 	rr := mock.NewMockRestartReader(ctrl)
 
-	yr := proc.NewYRetryReader(rr)
+	ycl := mockcl.NewMockYproxyClient(ctrl)
+	yr := proc.NewYRetryReader(rr, ycl)
+
+	ycl.EXPECT().SetByteOffset(int64(3)).Times(1)
 
 	buf := []byte{0, 0, 0}
 
@@ -74,7 +80,12 @@ func TestYproxyRetryReaderSimpleReadRetry(t *testing.T) {
 
 	rr := mock.NewMockRestartReader(ctrl)
 
-	yr := proc.NewYRetryReader(rr)
+	ycl := mockcl.NewMockYproxyClient(ctrl)
+	yr := proc.NewYRetryReader(rr, ycl)
+
+	ycl.EXPECT().SetByteOffset(int64(3)).Times(1)
+
+	ycl.EXPECT().SetByteOffset(int64(6)).Times(1)
 
 	buf := []byte{0, 0, 0}
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -68,6 +69,8 @@ type YproxyRetryReader struct {
 	io.ReadCloser
 	underlying RestartReader
 
+	selfCl client.YproxyClient
+
 	offsetReached int64
 	retryLimit    int
 	needReacquire bool
@@ -121,6 +124,8 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 		} else {
 			y.offsetReached += int64(n)
 
+			y.selfCl.SetByteOffset(y.offsetReached)
+
 			return n, err
 		}
 	}
@@ -131,10 +136,11 @@ const (
 	defaultRetryLimit = 100
 )
 
-func NewYRetryReader(r RestartReader) io.ReadCloser {
+func NewYRetryReader(r RestartReader, selfCl client.YproxyClient) io.ReadCloser {
 	return &YproxyRetryReader{
 		underlying:    r,
 		retryLimit:    defaultRetryLimit,
+		selfCl:        selfCl,
 		offsetReached: 0,
 		needReacquire: true, /* do initial storage request */
 	}
