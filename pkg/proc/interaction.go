@@ -38,7 +38,6 @@ func ProcessCatExtended(
 		if cr == nil {
 			err := fmt.Errorf("failed to decrypt object, decrypter not configured")
 			_ = ycl.ReplyError(err, "cat failed")
-			ycl.Close()
 			return err
 		}
 		ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
@@ -74,6 +73,8 @@ func ProcessPutExtended(
 	var w io.WriteCloser
 	r, w := io.Pipe()
 
+	w = yio.NewYproxyWriter(w, ycl)
+
 	defer r.Close()
 	defer w.Close()
 
@@ -87,7 +88,7 @@ func ProcessPutExtended(
 		if encrypt {
 			if cr == nil {
 				_ = ycl.ReplyError(fmt.Errorf("failed to encrypt, crypter not configured"), "connection aborted")
-				ycl.Close()
+
 				return
 			}
 
@@ -95,8 +96,6 @@ func ProcessPutExtended(
 			ww, err = cr.Encrypt(w)
 			if err != nil {
 				_ = ycl.ReplyError(err, "failed to encrypt")
-
-				ycl.Close()
 				return
 			}
 		} else {
