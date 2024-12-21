@@ -102,6 +102,22 @@ func ProcessPutExtended(
 			ylogger.Zero.Debug().Str("path", name).Msg("omit encryption for upload chunks")
 		}
 
+		defer func() {
+			if err := ww.Close(); err != nil {
+				_ = ycl.ReplyError(err, "failed to close connection")
+				return
+			}
+
+			if encrypt {
+				if err := w.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close connection")
+					return
+				}
+			}
+
+			ylogger.Zero.Debug().Msg("closing msg writer")
+		}()
+
 		for {
 			tp, body, err := pr.ReadPacket()
 			if err != nil {
@@ -128,20 +144,8 @@ func ProcessPutExtended(
 			case message.MessageTypeCommandComplete:
 				msg := message.CommandCompleteMessage{}
 				msg.Decode(body)
-
-				if err := ww.Close(); err != nil {
-					_ = ycl.ReplyError(err, "failed to close connection")
-					return
-				}
-
-				if encrypt {
-					if err := w.Close(); err != nil {
-						ylogger.Zero.Error().Err(err).Msg("failed to close connection")
-						return
-					}
-				}
-
-				ylogger.Zero.Debug().Msg("closing msg writer")
+				return
+			default:
 				return
 			}
 		}
