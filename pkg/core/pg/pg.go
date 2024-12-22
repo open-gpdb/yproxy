@@ -270,11 +270,7 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 					DataTypeOID: 25, /* textoid */
 				},
 				{
-					Name:        []byte("used external storage connections"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("connection limit"),
+					Name:        []byte("storage concurrency"),
 					DataTypeOID: 25, /* textoid */
 				},
 			},
@@ -284,7 +280,6 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 			Values: [][]byte{
 				[]byte(fmt.Sprintf("%v", instanceStart)),
 				[]byte(fmt.Sprintf("%v", config.InstanceConfig().StorageCnf.StorageConcurrency)),
-				[]byte("todo"),
 			},
 		})
 
