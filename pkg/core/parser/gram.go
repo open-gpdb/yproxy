@@ -35,11 +35,13 @@ const DESC = 57356
 const GROUP = 57357
 const KURT = 57358
 const KOBAIN = 57359
-const SCONST = 57360
-const IDENT = 57361
-const ICONST = 57362
-const TEQ = 57363
-const TSEMICOLON = 57364
+const STOP = 57360
+const SYSTEM = 57361
+const SCONST = 57362
+const IDENT = 57363
+const ICONST = 57364
+const TEQ = 57365
+const TSEMICOLON = 57366
 
 var yyToknames = [...]string{
 	"$end",
@@ -59,6 +61,8 @@ var yyToknames = [...]string{
 	"GROUP",
 	"KURT",
 	"KOBAIN",
+	"STOP",
+	"SYSTEM",
 	"SCONST",
 	"IDENT",
 	"ICONST",
@@ -81,40 +85,40 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 15
+const yyLast = 17
 
 var yyAct = [...]int{
-	10, 12, 6, 13, 7, 11, 9, 1, 5, 4,
-	3, 2, 0, 0, 8,
+	11, 13, 6, 14, 7, 15, 12, 10, 1, 5,
+	4, 3, 2, 0, 9, 0, 8,
 }
 
 var yyPact = [...]int{
-	-2, -1000, -22, -1000, -1000, -1000, 0, -18, -14, -1000,
-	-1000, -1000, -1000, -1000,
+	-2, -1000, -24, -1000, -1000, -1000, 1, -20, -16, -12,
+	-1000, -1000, -1000, -1000, -1000, -1000,
 }
 
 var yyPgo = [...]int{
-	0, 11, 10, 9, 8, 8, 7, 6,
+	0, 12, 11, 10, 9, 9, 8, 7,
 }
 
 var yyR1 = [...]int{
 	0, 6, 7, 7, 5, 5, 1, 1, 1, 1,
-	2, 3, 4,
+	2, 3, 4, 4,
 }
 
 var yyR2 = [...]int{
 	0, 2, 1, 0, 1, 1, 1, 1, 1, 0,
-	2, 2, 2,
+	2, 2, 2, 2,
 }
 
 var yyChk = [...]int{
-	-1000, -6, -1, -2, -3, -4, 4, 6, 16, -7,
-	22, 5, 19, 17,
+	-1000, -6, -1, -2, -3, -4, 4, 6, 18, 16,
+	-7, 24, 5, 21, 19, 17,
 }
 
 var yyDef = [...]int{
-	9, -2, 3, 6, 7, 8, 0, 0, 0, 1,
-	2, 10, 11, 12,
+	9, -2, 3, 6, 7, 8, 0, 0, 0, 0,
+	1, 2, 10, 11, 12, 13,
 }
 
 var yyTok1 = [...]int{
@@ -124,7 +128,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-	22,
+	22, 23, 24,
 }
 
 var yyTok3 = [...]int{
@@ -531,6 +535,12 @@ yydefault:
 	case 12:
 		yyDollar = yyS[yypt-2 : yypt+1]
 //line gram.y:97
+		{
+			yyVAL.node = &KKBCommand{}
+		}
+	case 13:
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line gram.y:100
 		{
 			yyVAL.node = &KKBCommand{}
 		}

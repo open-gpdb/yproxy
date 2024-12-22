@@ -103,6 +103,9 @@ func (lex *Lexer) Lex(lval *yySymType) int {
             /KURT/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = KURT; fbreak;};
             /KOBAIN/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = KOBAIN; fbreak;};
 
+            /STOP/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = STOP; fbreak;};
+            /SYSTEM/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = SYSTEM; fbreak;};
+
             qidentifier      => { lval.str = string(lex.data[lex.ts + 1:lex.te - 1]); tok = IDENT; fbreak;};
             identifier      => { lval.str = string(lex.data[lex.ts:lex.te]); tok = IDENT; fbreak;};
             sconst      => { lval.str = string(lex.data[lex.ts + 1:lex.te - 1]); tok = SCONST; fbreak;};

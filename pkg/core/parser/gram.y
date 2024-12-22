@@ -40,7 +40,7 @@ func NewYpParser() YpParser {
 %token<str> SELECT FROM WHERE ORDER BY SORT ASC DESC GROUP
 
 /* misc */
-%token<str> KURT KOBAIN
+%token<str> KURT KOBAIN STOP SYSTEM
 
 // same for terminals
 %token <str> SCONST IDENT
@@ -94,7 +94,10 @@ show_command:
     ;
 
 kurt_kobain_command:
-    KURT KOBAIN {
+    STOP SYSTEM {
+        $$ = &KKBCommand{
+        }
+    } | KURT KOBAIN {
         $$ = &KKBCommand{
         }
     }
