@@ -139,6 +139,35 @@ init:
 	}
 }
 
+func quantToString(ct int) string {
+	switch ct {
+	case 0:
+		return "< 1 MB"
+	case 1:
+		return "< 16 MB"
+	case 2:
+		return ">= 16 MB"
+	default:
+		return ""
+	}
+}
+
+func reportQuants(conn *pgproto3.Backend, qs []clientpool.QuantInfo, ct int) {
+	for _, info := range qs {
+		values := [][]byte{
+			[]byte(info.Op),
+			[]byte(quantToString(ct)),
+		}
+
+		for _, qs := range info.Q {
+			values = append(values, []byte(fmt.Sprintf("%v", qs)))
+		}
+
+		conn.Send(&pgproto3.DataRow{
+			Values: values})
+	}
+}
+
 func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceStart time.Time) error {
 	switch s {
 	case "clients":
@@ -204,36 +233,12 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 		/*
 		* OPType, client_id, xpath, quantilies.
 		 */
-		conn.Send(&pgproto3.RowDescription{
-			Fields: []pgproto3.FieldDescription{
-				{
-					Name:        []byte("opType"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("quantiles_0.5"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("quantiles_0.75"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("quantiles_0.90"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("quantiles_0.99"),
-					DataTypeOID: 25, /* textoid */
-				},
-				{
-					Name:        []byte("quantiles_0.999"),
-					DataTypeOID: 25, /* textoid */
-				},
-			},
-		})
 
 		quants := []float64{
+			.001,
+			.01,
+			.1,
+			.25,
 			.5,
 			.75,
 			.9,
@@ -241,18 +246,30 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 			.999,
 		}
 
-		infos := p.Quantile(quants)
-		for _, info := range infos {
-			values := [][]byte{
-				[]byte(info.Op),
-			}
+		fields := []pgproto3.FieldDescription{
+			{
+				Name:        []byte("opType"),
+				DataTypeOID: 25, /* textoid */
+			},
+			{
+				Name:        []byte("size category"),
+				DataTypeOID: 25, /* textoid */
+			},
+		}
 
-			for _, qs := range info.Q {
-				values = append(values, []byte(fmt.Sprintf("%v", qs)))
-			}
+		for _, q := range quants {
+			fields = append(fields, pgproto3.FieldDescription{
+				Name:        []byte(fmt.Sprintf("quantiles_%v", q)),
+				DataTypeOID: 25, /* textoid */
+			})
+		}
 
-			conn.Send(&pgproto3.DataRow{
-				Values: values})
+		conn.Send(&pgproto3.RowDescription{
+			Fields: fields,
+		})
+
+		for ct := 0; ct < 3; ct++ {
+			reportQuants(conn, p.Quantile(ct, quants), ct)
 		}
 
 		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})

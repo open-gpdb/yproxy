@@ -16,7 +16,7 @@ type Pool interface {
 	Put(client client.YproxyClient) error
 	Pop(id uint) (bool, error)
 
-	Quantile(q []float64) []QuantInfo
+	Quantile(ct int, q []float64) []QuantInfo
 
 	Shutdown() error
 }
@@ -24,11 +24,21 @@ type Pool interface {
 type PoolImpl struct {
 	mu   sync.Mutex
 	pool map[uint]client.YproxyClient
-	/* optype -> speed quantiles */
-	opSpeed map[string]*tdigest.TDigest
+	/* size category -> optype -> speed quantiles */
+	opSpeed map[int]map[string]*tdigest.TDigest
 }
 
 var _ Pool = &PoolImpl{}
+
+func SizeToCat(sz int64) int {
+	if sz < 1024*1024 {
+		return 0
+	}
+	if sz < 16*1024*1024 {
+		return 1
+	}
+	return 2
+}
 
 func (c *PoolImpl) Put(client client.YproxyClient) error {
 	c.mu.Lock()
@@ -44,11 +54,11 @@ type QuantInfo struct {
 	Q  []float64
 }
 
-func (c *PoolImpl) Quantile(q []float64) []QuantInfo {
+func (c *PoolImpl) Quantile(ct int, q []float64) []QuantInfo {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var ret []QuantInfo
-	for k, v := range c.opSpeed {
+	for k, v := range c.opSpeed[ct] {
 		var Qs []float64
 		for _, qq := range q {
 			Qs = append(Qs, v.Quantile(qq))
@@ -69,15 +79,16 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 	if ok {
 
 		total := cl.ByteOffset()
-		if total != 0 {
+		if total > 0 {
+			ct := SizeToCat(total)
 			timeTotal := time.Now().Sub(cl.OPStart()).Nanoseconds()
 
 			optyp := cl.OPType().String()
-			if c.opSpeed[optyp] == nil {
-				c.opSpeed[optyp], _ = tdigest.New()
+			if c.opSpeed[ct][optyp] == nil {
+				c.opSpeed[ct][optyp], _ = tdigest.New()
 			}
 
-			c.opSpeed[optyp].Add(float64(total) / float64(timeTotal))
+			c.opSpeed[ct][optyp].Add(float64(total) / float64(timeTotal))
 		}
 
 		delete(c.pool, id)
@@ -118,8 +129,12 @@ func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) 
 
 func NewClientPool() Pool {
 	return &PoolImpl{
-		pool:    map[uint]client.YproxyClient{},
-		mu:      sync.Mutex{},
-		opSpeed: map[string]*tdigest.TDigest{},
+		pool: map[uint]client.YproxyClient{},
+		mu:   sync.Mutex{},
+		opSpeed: map[int]map[string]*tdigest.TDigest{
+			0: map[string]*tdigest.TDigest{},
+			1: map[string]*tdigest.TDigest{},
+			2: map[string]*tdigest.TDigest{},
+		},
 	}
 }
