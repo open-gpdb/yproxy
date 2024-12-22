@@ -51,7 +51,7 @@ func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
 			bucketMap: buildBucketMapFromCnf(cnf),
 		}, nil
 	default:
-		return nil, fmt.Errorf("wrong storage type " + cnf.StorageType)
+		return nil, fmt.Errorf("wrong storage type %s", cnf.StorageType)
 	}
 }
 

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/aws-sdk-go/aws"
@@ -17,12 +18,19 @@ import (
 
 type SessionPool interface {
 	GetSession(ctx context.Context) (*s3.S3, error)
+	StorageUsedConcurrency() int
 }
 
 type S3SessionPool struct {
 	cnf *config.Storage
 
-	sem *semaphore.Weighted
+	usedConnections atomic.Int32
+	sem             *semaphore.Weighted
+}
+
+// StorageUsedConcurrency implements SessionPool.
+func (sp *S3SessionPool) StorageUsedConcurrency() int {
+	return int(sp.usedConnections.Load())
 }
 
 func NewSessionPool(cnf *config.Storage) SessionPool {
@@ -64,7 +72,11 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 
 func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
 	s.sem.Acquire(ctx, 1)
-	defer s.sem.Release(1)
+	s.usedConnections.Add(1)
+	defer func() {
+		s.sem.Release(1)
+		s.usedConnections.Add(-1)
+	}()
 
 	sess, err := s.createSession()
 	if err != nil {
