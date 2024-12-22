@@ -152,7 +152,7 @@ func ProcessPutExtended(
 	}()
 
 	for _, s := range settings {
-		ylogger.Zero.Debug().Str("name", name).Str("name", s.Name).Str("value", s.Value).Msg("offloading setting")
+		ylogger.Zero.Debug().Bool("encypt", encrypt).Str("name", name).Str("name", s.Name).Str("value", s.Value).Msg("offloading setting")
 	}
 
 	/* Should go after reader dispatch! */
