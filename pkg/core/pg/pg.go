@@ -121,6 +121,8 @@ init:
 					TxStatus: 'I',
 				})
 				conn.Flush()
+				/* TDB: remove this kostyl */
+				time.Sleep(5)
 				os.Exit(2)
 			default:
 				conn.Send(&pgproto3.ErrorResponse{
