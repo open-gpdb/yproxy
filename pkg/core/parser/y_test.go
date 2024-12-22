@@ -37,6 +37,11 @@ func TestParse(t *testing.T) {
 			},
 			err: nil,
 		},
+		{
+			query: `STOP SYSTEM`,
+			exp:   &parser.KKBCommand{},
+			err:   nil,
+		},
 	} {
 		tmp, err := parser.Parse(tt.query)
 
