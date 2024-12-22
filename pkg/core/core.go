@@ -23,11 +23,14 @@ import (
 
 type Instance struct {
 	pool clientpool.Pool
+
+	startTs time.Time
 }
 
 func NewInstance() *Instance {
 	return &Instance{
-		pool: clientpool.NewClientPool(),
+		pool:    clientpool.NewClientPool(),
+		startTs: time.Now(),
 	}
 }
 
@@ -112,7 +115,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		}
 
 		i.DispatchServer(psqlListener, func(c net.Conn) {
-			pg.PostgresIface(c, i.pool)
+			pg.PostgresIface(c, i.pool, i.startTs)
 		})
 	}
 

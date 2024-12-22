@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
+	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/clientpool"
 	"github.com/yezzey-gp/yproxy/pkg/core/parser"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
-func PostgresIface(cl net.Conn, p clientpool.Pool) {
+func PostgresIface(cl net.Conn, p clientpool.Pool, instanceStart time.Time) {
 	defer cl.Close()
 
 	conn := pgproto3.NewBackend(cl, cl)
@@ -97,7 +99,7 @@ init:
 				})
 				conn.Flush()
 			case *parser.ShowCommand:
-				_ = ProcessShow(conn, q.Type, p)
+				_ = ProcessShow(conn, q.Type, p, instanceStart)
 			case *parser.KKBCommand:
 				ylogger.Zero.Error().Msg("recieved die command, exiting")
 
@@ -137,7 +139,7 @@ init:
 	}
 }
 
-func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool) error {
+func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceStart time.Time) error {
 	switch s {
 	case "clients":
 		/*
@@ -252,6 +254,39 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool) error {
 			conn.Send(&pgproto3.DataRow{
 				Values: values})
 		}
+
+		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})
+
+		conn.Send(&pgproto3.ReadyForQuery{
+			TxStatus: 'I',
+		})
+
+		return conn.Flush()
+	case "system":
+		conn.Send(&pgproto3.RowDescription{
+			Fields: []pgproto3.FieldDescription{
+				{
+					Name:        []byte("start time"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("used external storage connections"),
+					DataTypeOID: 25, /* textoid */
+				},
+				{
+					Name:        []byte("connection limit"),
+					DataTypeOID: 25, /* textoid */
+				},
+			},
+		})
+
+		conn.Send(&pgproto3.DataRow{
+			Values: [][]byte{
+				[]byte(fmt.Sprintf("%v", instanceStart)),
+				[]byte(fmt.Sprintf("%v", config.InstanceConfig().StorageCnf.StorageConcurrency)),
+				[]byte("todo"),
+			},
+		})
 
 		conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("STATS")})
 

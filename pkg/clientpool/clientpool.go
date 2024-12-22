@@ -104,7 +104,6 @@ func (c *PoolImpl) Shutdown() error {
 	return nil
 }
 func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) error {
-
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
