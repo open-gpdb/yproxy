@@ -44,6 +44,12 @@ init:
 	}
 
 	/* send aut ok */
+	conn.Send(&pgproto3.AuthenticationCleartextPassword{})
+	conn.Flush()
+	_, err := conn.Receive()
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("failed to complete AUTH")
+	}
 	conn.Send(&pgproto3.AuthenticationOk{})
 	conn.Flush()
 	conn.Send(&pgproto3.ReadyForQuery{
