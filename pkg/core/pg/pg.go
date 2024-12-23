@@ -122,7 +122,7 @@ init:
 				})
 				conn.Flush()
 				/* TDB: remove this kostyl */
-				time.Sleep(5)
+				time.Sleep(time.Second * 5)
 				os.Exit(2)
 			default:
 				conn.Send(&pgproto3.ErrorResponse{
@@ -281,7 +281,7 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 		})
 
 		return conn.Flush()
-	case "system":
+	case "stat_system":
 		conn.Send(&pgproto3.RowDescription{
 			Fields: []pgproto3.FieldDescription{
 				{
