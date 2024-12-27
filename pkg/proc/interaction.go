@@ -250,17 +250,17 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 	var my sync.Mutex
 
-	sem := semaphore.NewWeighted(200)
-
 	var failed []*object.ObjectInfo
 	retryCount := 0
 	for len(objectMetas) > 0 && retryCount < 10 {
 		retryCount++
 
+		sem := semaphore.NewWeighted(200)
+
 		for i := 0; i < len(objectMetas); i++ {
+			sem.Acquire(context.TODO(), 1)
 
 			go func(i int) {
-				sem.Acquire(context.TODO(), 1)
 				defer sem.Release(1)
 
 				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
@@ -274,6 +274,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 					return
 				}
 
+				ylogger.Zero.Debug().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 				/* get reader */
 				readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 				var fromReader io.Reader
