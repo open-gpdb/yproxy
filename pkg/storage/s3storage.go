@@ -169,7 +169,7 @@ func (s *S3StorageInteractor) ListPath(prefix string) ([]*object.ObjectInfo, err
 
 		out, err := sess.ListObjectsV2(input)
 		if err != nil {
-			fmt.Printf("list error: %v\n", err)
+			ylogger.Zero.Debug().Err(err).Msg("failed to list prefix")
 			return nil, err
 		}
 

@@ -226,11 +226,11 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
-	//list objects
+	/* list objects */
 	objectMetas, err := oldStorage.ListPath(msg.Name)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to compelete request")
-		return nil
+		return err
 	}
 
 	dbInterractor := &database.DatabaseHandler{}
