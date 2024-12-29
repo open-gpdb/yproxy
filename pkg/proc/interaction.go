@@ -266,8 +266,8 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
 				continue
 			}
-			if size, ok := copiedSizes[objectMetas[i].Path]; ok && size == objectMetas[i].Size {
-				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("already copied, skipping...")
+			if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
+				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
 				continue
 			}
 
