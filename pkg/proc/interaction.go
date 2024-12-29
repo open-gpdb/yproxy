@@ -257,7 +257,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 		sem := semaphore.NewWeighted(200)
 
-		for i := 0; i < len(objectMetas); i++ {
+		for i := range len(objectMetas) {
 			sem.Acquire(context.TODO(), 1)
 
 			go func(i int) {
@@ -266,15 +266,15 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
 				reworked := path
 				if _, ok := vi[reworked]; !ok {
-					ylogger.Zero.Debug().Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
+					ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
 					return
 				}
 				if size, ok := copiedSizes[objectMetas[i].Path]; ok && size == objectMetas[i].Size {
-					ylogger.Zero.Debug().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("already copied, skipping...")
+					ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("already copied, skipping...")
 					return
 				}
 
-				ylogger.Zero.Debug().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+				ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 				/* get reader */
 				readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 				var fromReader io.Reader
@@ -363,8 +363,10 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 		ylogger.Zero.Error().Int("failed files count", len(objectMetas)).Msg("failed to upload some files")
 		ylogger.Zero.Error().Any("failed files", objectMetas).Msg("failed to upload some files")
 
-		// _ = ycl.ReplyError(err, "failed to copy some files")
-		// return nil
+		err := fmt.Errorf("failed to copy some files")
+
+		_ = ycl.ReplyError(err, "failed files")
+		return err
 	}
 
 	if _, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
