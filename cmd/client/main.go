@@ -349,6 +349,9 @@ func init() {
 	putCmd.PersistentFlags().BoolVarP(&encrypt, "encrypt", "e", false, "encrypt external object before put")
 	putCmd.PersistentFlags().StringVarP(&storageClass, "storage-class", "s", "STANDARD", "storage class for message upload")
 	putCmd.PersistentFlags().StringVarP(&tableSpace, "tablespace", "t", tablespace.DefaultTableSpace, "storage class for message upload")
+
+	putCmd.PersistentFlags().Int64VarP(&multipartChunksize, "multipart-chunk-size", "", int64(64*1024*1024), "S3 chunk size for multipart upload")
+	putCmd.PersistentFlags().BoolVarP(&multipartUpload, "multipart-upload", "", true, "S3 multipart or single part upload")
 	rootCmd.AddCommand(putCmd)
 
 	rootCmd.AddCommand(listCmd)
