@@ -257,6 +257,8 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 		sem := semaphore.NewWeighted(200)
 
+		wg := sync.WaitGroup{}
+
 		for i := range len(objectMetas) {
 			path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
 			reworked := path
@@ -270,9 +272,11 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 			}
 
 			sem.Acquire(context.TODO(), 1)
+			wg.Add(1)
 
 			go func(i int) {
 				defer sem.Release(1)
+				defer wg.Done()
 
 				ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 				/* get reader */
@@ -352,6 +356,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				}
 			}(i)
 		}
+		wg.Wait()
 		objectMetas = failed
 		fmt.Printf("failed files count: %d\n", len(objectMetas))
 		failed = make([]*object.ObjectInfo, 0)
