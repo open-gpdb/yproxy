@@ -258,21 +258,21 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 		sem := semaphore.NewWeighted(200)
 
 		for i := range len(objectMetas) {
+			path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
+			reworked := path
+			if _, ok := vi[reworked]; !ok {
+				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
+				continue
+			}
+			if size, ok := copiedSizes[objectMetas[i].Path]; ok && size == objectMetas[i].Size {
+				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("already copied, skipping...")
+				continue
+			}
+
 			sem.Acquire(context.TODO(), 1)
 
 			go func(i int) {
 				defer sem.Release(1)
-
-				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
-				reworked := path
-				if _, ok := vi[reworked]; !ok {
-					ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
-					return
-				}
-				if size, ok := copiedSizes[objectMetas[i].Path]; ok && size == objectMetas[i].Size {
-					ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("already copied, skipping...")
-					return
-				}
 
 				ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 				/* get reader */
