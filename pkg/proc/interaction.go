@@ -278,7 +278,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				defer sem.Release(1)
 				defer wg.Done()
 
-				ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 				/* get reader */
 				readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 				var fromReader io.Reader
@@ -358,12 +358,12 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 		}
 		wg.Wait()
 		objectMetas = failed
-		fmt.Printf("failed files count: %d\n", len(objectMetas))
+		ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
 		failed = make([]*object.ObjectInfo, 0)
 	}
 
 	if len(objectMetas) > 0 {
-		fmt.Printf("failed files count: %d\n", len(objectMetas))
+		ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
 		fmt.Printf("failed files: %v\n", objectMetas)
 		ylogger.Zero.Error().Int("failed files count", len(objectMetas)).Msg("failed to upload some files")
 		ylogger.Zero.Error().Any("failed files", objectMetas).Msg("failed to upload some files")

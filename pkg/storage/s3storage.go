@@ -176,12 +176,12 @@ func (s *S3StorageInteractor) ListPath(prefix string) ([]*object.ObjectInfo, err
 		for _, obj := range out.Contents {
 			path := *obj.Key
 
-			ylogger.Zero.Debug().Str("path", path).Msg("listing file")
-
 			cPath, ok := strings.CutPrefix(path, s.cnf.StoragePrefix)
 			if !ok {
+				ylogger.Zero.Debug().Str("path", path).Msg("skipping file")
 				continue
 			}
+			ylogger.Zero.Debug().Str("path", path).Msg("appending file")
 			metas = append(metas, &object.ObjectInfo{
 				Path: "/" + cPath,
 				Size: *obj.Size,
