@@ -13,17 +13,19 @@ type CopyMessage struct {
 	Name       string
 	OldCfgPath string
 	Port       uint64
+	Confirm    bool
 }
 
 var _ ProtoMessage = &CopyMessage{}
 
-func NewCopyMessage(name, oldCfgPath string, encrypt, decrypt bool, port uint64) *CopyMessage {
+func NewCopyMessage(name, oldCfgPath string, encrypt, decrypt, confirm bool, port uint64) *CopyMessage {
 	return &CopyMessage{
 		Name:       name,
 		Encrypt:    encrypt,
 		Decrypt:    decrypt,
 		OldCfgPath: oldCfgPath,
 		Port:       port,
+		Confirm:    confirm,
 	}
 }
 
@@ -58,6 +60,12 @@ func (message *CopyMessage) Encode() []byte {
 	binary.BigEndian.PutUint64(port, uint64(message.Port))
 	encodedMessage = append(encodedMessage, port...)
 
+	if message.Confirm {
+		encodedMessage = append(encodedMessage, 1)
+	} else {
+		encodedMessage = append(encodedMessage, 0)
+	}
+
 	binary.BigEndian.PutUint64(byteLen, uint64(len(encodedMessage)+8))
 	fmt.Printf("send: %v\n", MessageType(encodedMessage[0]))
 	ylogger.Zero.Debug().Str("object-path", MessageType(encodedMessage[0]).String()).Msg("decrypt object")
@@ -77,4 +85,9 @@ func (encodedMessage *CopyMessage) Decode(data []byte) {
 	oldConfLen := binary.BigEndian.Uint64(data[12+nameLen : 12+nameLen+8])
 	encodedMessage.OldCfgPath = string(data[12+nameLen+8 : 12+nameLen+8+oldConfLen])
 	encodedMessage.Port = binary.BigEndian.Uint64(data[12+nameLen+8+oldConfLen : 12+nameLen+8+oldConfLen+8])
+
+	ind := 12 + nameLen + 8 + oldConfLen + 8
+	if data[ind] == 1 {
+		encodedMessage.Confirm = true
+	}
 }
