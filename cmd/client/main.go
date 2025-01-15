@@ -81,7 +81,7 @@ func catFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute copy command")
 	ylogger.Zero.Info().Str("name", args[0]).Msg("copy")
-	msg := message.NewCopyMessage(args[0], oldCfgPath, encrypt, decrypt, segmentPort).Encode()
+	msg := message.NewCopyMessage(args[0], oldCfgPath, encrypt, decrypt, confirm, segmentPort).Encode()
 	_, err := con.Write(msg)
 	if err != nil {
 		return err
@@ -344,6 +344,7 @@ func init() {
 	copyCmd.PersistentFlags().BoolVarP(&encrypt, "encrypt", "e", false, "encrypt external object before put")
 	copyCmd.PersistentFlags().StringVarP(&oldCfgPath, "old-config", "", "/etc/yproxy/yproxy.yaml", "path to old yproxy config file")
 	copyCmd.PersistentFlags().Uint64VarP(&segmentPort, "port", "p", 6000, "port that segment is listening on")
+	copyCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm copy")
 	rootCmd.AddCommand(copyCmd)
 
 	putCmd.PersistentFlags().BoolVarP(&encrypt, "encrypt", "e", false, "encrypt external object before put")

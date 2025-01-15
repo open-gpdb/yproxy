@@ -272,7 +272,7 @@ func TestListMsg(t *testing.T) {
 func TestCopyMsg(t *testing.T) {
 	assert := assert.New(t)
 
-	msg := message.NewCopyMessage("myname/mynextname", "myoldcfg/path", true, true, 5432)
+	msg := message.NewCopyMessage("myname/mynextname", "myoldcfg/path", true, true, true, 5432)
 	body := msg.Encode()
 
 	assert.Equal(body[8], byte(message.MessageTypeCopy))
@@ -285,6 +285,7 @@ func TestCopyMsg(t *testing.T) {
 	assert.True(msg2.Decrypt)
 	assert.True(msg2.Encrypt)
 	assert.Equal(uint64(5432), msg2.Port)
+	assert.True(msg2.Confirm)
 }
 
 func TestDeleteMsg(t *testing.T) {

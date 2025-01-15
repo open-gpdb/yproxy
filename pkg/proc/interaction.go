@@ -271,6 +271,12 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				continue
 			}
 
+			ylogger.Zero.Info().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("will be copied")
+
+			if !msg.Confirm {
+				continue
+			}
+
 			sem.Acquire(context.TODO(), 1)
 			wg.Add(1)
 
@@ -378,8 +384,11 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 		_ = ycl.ReplyError(err, "failed to upload")
 		return err
 	}
-	fmt.Println("Copy finished successfully")
-	ylogger.Zero.Info().Msg("Copy finished successfully")
+	if msg.Confirm {
+		ylogger.Zero.Info().Msg("Copy finished successfully")
+	} else {
+		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
+	}
 	return nil
 }
 func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteractor, ycl client.YproxyClient, cnf *config.Vacuum) error {

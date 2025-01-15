@@ -39,6 +39,13 @@ func (dh *BasicDeleteHandler) HandleDeleteGarbage(msg message.DeleteMessage) err
 	}
 	ylogger.Zero.Info().Int("amount", len(uploads)).Msg("multipart uploads will be aborted")
 
+	for _, file := range fileList {
+		ylogger.Zero.Info().Str("file", file).Msg("file will be deleted")
+	}
+	for _, upload := range uploads {
+		ylogger.Zero.Info().Str("uploadId", upload).Msg("upload will be aborted")
+	}
+
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
 		return nil
 	}
