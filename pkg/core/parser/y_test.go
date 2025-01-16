@@ -42,6 +42,17 @@ func TestParse(t *testing.T) {
 			exp:   &parser.KKBCommand{},
 			err:   nil,
 		},
+		{
+			query: `COPY '/prefix' WITH (CONFIG '/etc/yproxy/old_config.yaml', PORT 6002)`,
+			exp: &parser.CopyCommand{
+				Path: "/prefix",
+				Options: []parser.Node{
+					&parser.Option{Name: "CONFIG", Arg: &parser.AExprSConst{Value: "/etc/yproxy/old_config.yaml"}},
+					&parser.Option{Name: "PORT", Arg: &parser.AExprIConst{Value: 6002}},
+				},
+			},
+			err: nil,
+		},
 	} {
 		tmp, err := parser.Parse(tt.query)
 

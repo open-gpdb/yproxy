@@ -213,7 +213,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 	ycl.SetExternalFilePath(msg.Name)
 
-	//get config for old bucket
+	// get config for old bucket
 	instanceCnf, err := config.ReadInstanceConfig(msg.OldCfgPath)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to compelete request")
@@ -226,26 +226,13 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
-	/* list objects */
-	objectMetas, err := oldStorage.ListPath(msg.Name)
-	if err != nil {
-		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to compelete request")
-		return err
-	}
-
-	dbInterractor := &database.DatabaseHandler{}
-	vi, _, err := dbInterractor.GetVirtualExpireIndexes(msg.Port)
+	objectMetas, _, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
 	if err != nil {
 		return err
 	}
 
-	copied, err := s.ListPath(msg.Name)
-	if err != nil {
-		return err
-	}
-	copiedSizes := make(map[string]int64)
-	for _, c := range copied {
-		copiedSizes[c.Path] = c.Size
+	if !msg.Confirm {
+		return nil
 	}
 
 	var my sync.Mutex
@@ -261,21 +248,6 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 		for i := range len(objectMetas) {
 			path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
-			reworked := path
-			if _, ok := vi[reworked]; !ok {
-				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
-				continue
-			}
-			if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
-				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
-				continue
-			}
-
-			ylogger.Zero.Info().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("will be copied")
-
-			if !msg.Confirm {
-				continue
-			}
 
 			sem.Acquire(context.TODO(), 1)
 			wg.Add(1)
@@ -568,4 +540,51 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 		_ = ycl.ReplyError(err, "failed to gool")
 	}
 	return nil
+}
+
+func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
+	/* list objects */
+	objectMetas, err := src.ListPath(prefix)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not list objects: %s", err)
+	}
+
+	dbInterractor := &database.DatabaseHandler{}
+	vi, _, err := dbInterractor.GetVirtualExpireIndexes(port)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	copied, err := dst.ListPath(prefix)
+	if err != nil {
+		return nil, nil, err
+	}
+	copiedSizes := make(map[string]int64)
+	for _, c := range copied {
+		copiedSizes[c.Path] = c.Size
+	}
+
+	toCopy := []*object.ObjectInfo{}
+	skipped := []*object.ObjectInfo{}
+
+	for i := range len(objectMetas) {
+		path := strings.TrimPrefix(objectMetas[i].Path, oldPrefix)
+		reworked := path
+		if _, ok := vi[reworked]; !ok {
+			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
+			skipped = append(skipped, objectMetas[i])
+			continue
+		}
+		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
+			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
+			skipped = append(skipped, objectMetas[i])
+			continue
+		}
+
+		ylogger.Zero.Info().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("will be copied")
+
+		toCopy = append(toCopy, objectMetas[i])
+	}
+
+	return toCopy, skipped, nil
 }
