@@ -2,8 +2,10 @@ package proc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 
@@ -19,6 +21,10 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"golang.org/x/sync/semaphore"
+)
+
+const (
+	copySrcBucketCachePath = "/tmp/YPROXY_COPY_SRC_BUCKET_CACHE"
 )
 
 func ProcessCatExtended(
@@ -543,10 +549,18 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 }
 
 func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
-	/* list objects */
-	objectMetas, err := src.ListPath(prefix)
+	objectMetas, err := readCache()
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not list objects: %s", err)
+		ylogger.Zero.Debug().Msg("cache was not found, listing from source bucket")
+		// cache on fs does not exist
+		/* list objects */
+		objectMetas, err = src.ListPath(prefix)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not list objects: %s", err)
+		}
+		_ = putInCache(objectMetas)
+	} else {
+		ylogger.Zero.Debug().Int("files count", len(objectMetas)).Msg("read source bucket from cache")
 	}
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -587,4 +601,31 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 	}
 
 	return toCopy, skipped, nil
+}
+
+func putInCache(objs []*object.ObjectInfo) error {
+	content, err := json.Marshal(objs)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(copySrcBucketCachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(content)
+	return err
+}
+
+func readCache() ([]*object.ObjectInfo, error) {
+	f, err := os.Open(copySrcBucketCachePath)
+	if err != nil {
+		return nil, err
+	}
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	var objs []*object.ObjectInfo
+	err = json.Unmarshal(content, &objs)
+	return objs, err
 }
