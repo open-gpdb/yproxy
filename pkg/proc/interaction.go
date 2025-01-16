@@ -222,14 +222,13 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	config.EmbedDefaults(&instanceCnf)
 	oldStorage, err := storage.NewStorage(&instanceCnf.StorageCnf)
 	if err != nil {
-		return nil
+		return err
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
 	objectMetas, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
 	if err != nil {
-		_ = ycl.ReplyError(err, "failed to list files to copy")
-		return nil
+		return err
 	}
 
 	if !msg.Confirm {
