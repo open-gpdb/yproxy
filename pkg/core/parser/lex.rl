@@ -100,6 +100,9 @@ func (lex *Lexer) Lex(lval *yySymType) int {
             /HELLO/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = HELLO; fbreak;};
             /SHOW/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = SHOW; fbreak;};
 
+            /COPY/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = COPY; fbreak;};
+            /WITH/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = WITH; fbreak;};
+
             /KURT/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = KURT; fbreak;};
             /KOBAIN/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = KOBAIN; fbreak;};
 
@@ -111,6 +114,12 @@ func (lex *Lexer) Lex(lval *yySymType) int {
             sconst      => { lval.str = string(lex.data[lex.ts + 1:lex.te - 1]); tok = SCONST; fbreak;};
 
             '=' => { lval.str = string(lex.data[lex.ts:lex.te]); tok = TEQ; fbreak;};
+            '(' => { lval.str = string(lex.data[lex.ts:lex.te]); tok = TOPENBR; fbreak;};
+            ')' => { lval.str = string(lex.data[lex.ts:lex.te]); tok = TCLOSEBR; fbreak;};
+            ',' => { lval.str = string(lex.data[lex.ts:lex.te]); tok = TCOMMA; fbreak;};
+
+            /true/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = TRUE_P; fbreak;};
+            /false/i => { lval.str = string(lex.data[lex.ts:lex.te]); tok = FALSE_P; fbreak;};
 
         *|;
 

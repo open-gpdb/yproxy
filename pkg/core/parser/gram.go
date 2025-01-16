@@ -15,33 +15,42 @@ func NewYpParser() YpParser {
 
 //line gram.y:15
 type yySymType struct {
-	yys  int
-	str  string
-	int  int
-	node Node
+	yys      int
+	str      string
+	int      int
+	node     Node
+	nodeList []Node
+	bool     bool
 }
 
 const SAY = 57346
 const HELLO = 57347
 const SHOW = 57348
-const SELECT = 57349
-const FROM = 57350
-const WHERE = 57351
-const ORDER = 57352
-const BY = 57353
-const SORT = 57354
-const ASC = 57355
-const DESC = 57356
-const GROUP = 57357
-const KURT = 57358
-const KOBAIN = 57359
-const STOP = 57360
-const SYSTEM = 57361
-const SCONST = 57362
-const IDENT = 57363
-const ICONST = 57364
-const TEQ = 57365
-const TSEMICOLON = 57366
+const COPY = 57349
+const WITH = 57350
+const TOPENBR = 57351
+const TCLOSEBR = 57352
+const TCOMMA = 57353
+const FALSE_P = 57354
+const TRUE_P = 57355
+const SELECT = 57356
+const FROM = 57357
+const WHERE = 57358
+const ORDER = 57359
+const BY = 57360
+const SORT = 57361
+const ASC = 57362
+const DESC = 57363
+const GROUP = 57364
+const KURT = 57365
+const KOBAIN = 57366
+const STOP = 57367
+const SYSTEM = 57368
+const SCONST = 57369
+const IDENT = 57370
+const ICONST = 57371
+const TEQ = 57372
+const TSEMICOLON = 57373
 
 var yyToknames = [...]string{
 	"$end",
@@ -50,6 +59,13 @@ var yyToknames = [...]string{
 	"SAY",
 	"HELLO",
 	"SHOW",
+	"COPY",
+	"WITH",
+	"TOPENBR",
+	"TCLOSEBR",
+	"TCOMMA",
+	"FALSE_P",
+	"TRUE_P",
 	"SELECT",
 	"FROM",
 	"WHERE",
@@ -77,7 +93,7 @@ const yyErrCode = 2
 const yyInitialStackSize = 16
 
 //line yacctab:1
-var yyExca = [...]int{
+var yyExca = [...]int8{
 	-1, 1,
 	1, -1,
 	-2, 0,
@@ -85,53 +101,64 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 17
+const yyLast = 37
 
-var yyAct = [...]int{
-	11, 13, 6, 14, 7, 15, 12, 10, 1, 5,
-	4, 3, 2, 0, 9, 0, 8,
+var yyAct = [...]int8{
+	33, 32, 13, 7, 25, 8, 11, 15, 23, 18,
+	16, 17, 26, 27, 21, 31, 19, 30, 14, 12,
+	1, 22, 10, 20, 9, 24, 29, 28, 5, 6,
+	4, 3, 2, 0, 0, 0, 34,
 }
 
-var yyPact = [...]int{
-	-2, -1000, -24, -1000, -1000, -1000, 1, -20, -16, -12,
-	-1000, -1000, -1000, -1000, -1000, -1000,
+var yyPact = [...]int16{
+	-1, -1000, -29, -1000, -1000, -1000, -1000, 13, -21, -16,
+	-13, -18, -1000, -1000, -1000, -1000, -1000, -1000, 8, 5,
+	-1000, -24, 2, -1000, -12, -1000, -1000, -24, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000,
 }
 
-var yyPgo = [...]int{
-	0, 12, 11, 10, 9, 9, 8, 7,
+var yyPgo = [...]int8{
+	0, 32, 31, 30, 29, 28, 28, 8, 27, 26,
+	25, 23, 21, 20, 19,
 }
 
-var yyR1 = [...]int{
-	0, 6, 7, 7, 5, 5, 1, 1, 1, 1,
-	2, 3, 4, 4,
+var yyR1 = [...]int8{
+	0, 13, 14, 14, 6, 6, 1, 1, 1, 1,
+	1, 2, 3, 4, 11, 12, 12, 7, 8, 8,
+	8, 8, 9, 9, 10, 5, 5,
 }
 
-var yyR2 = [...]int{
-	0, 2, 1, 0, 1, 1, 1, 1, 1, 0,
-	2, 2, 2, 2,
+var yyR2 = [...]int8{
+	0, 2, 1, 0, 1, 1, 1, 1, 1, 1,
+	0, 2, 2, 4, 3, 1, 3, 2, 1, 1,
+	1, 0, 1, 1, 1, 2, 2,
 }
 
-var yyChk = [...]int{
-	-1000, -6, -1, -2, -3, -4, 4, 6, 18, 16,
-	-7, 24, 5, 21, 19, 17,
+var yyChk = [...]int16{
+	-1000, -13, -1, -2, -3, -5, -4, 4, 6, 25,
+	23, 7, -14, 31, 5, 28, 26, 24, 27, 8,
+	-11, 9, -12, -7, -10, 28, 10, 11, -8, -9,
+	29, 27, 13, 12, -7,
 }
 
-var yyDef = [...]int{
-	9, -2, 3, 6, 7, 8, 0, 0, 0, 0,
-	1, 2, 10, 11, 12, 13,
+var yyDef = [...]int8{
+	10, -2, 3, 6, 7, 8, 9, 0, 0, 0,
+	0, 0, 1, 2, 11, 12, 25, 26, 0, 0,
+	13, 0, 0, 15, 21, 24, 14, 0, 17, 18,
+	19, 20, 22, 23, 16,
 }
 
-var yyTok1 = [...]int{
+var yyTok1 = [...]int8{
 	1,
 }
 
-var yyTok2 = [...]int{
+var yyTok2 = [...]int8{
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-	22, 23, 24,
+	22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
 }
 
-var yyTok3 = [...]int{
+var yyTok3 = [...]int8{
 	0,
 }
 
@@ -213,9 +240,9 @@ func yyErrorMessage(state, lookAhead int) string {
 	expected := make([]int, 0, 4)
 
 	// Look for shiftable tokens.
-	base := yyPact[state]
+	base := int(yyPact[state])
 	for tok := TOKSTART; tok-1 < len(yyToknames); tok++ {
-		if n := base + tok; n >= 0 && n < yyLast && yyChk[yyAct[n]] == tok {
+		if n := base + tok; n >= 0 && n < yyLast && int(yyChk[int(yyAct[n])]) == tok {
 			if len(expected) == cap(expected) {
 				return res
 			}
@@ -225,13 +252,13 @@ func yyErrorMessage(state, lookAhead int) string {
 
 	if yyDef[state] == -2 {
 		i := 0
-		for yyExca[i] != -1 || yyExca[i+1] != state {
+		for yyExca[i] != -1 || int(yyExca[i+1]) != state {
 			i += 2
 		}
 
 		// Look for tokens that we accept or reduce.
 		for i += 2; yyExca[i] >= 0; i += 2 {
-			tok := yyExca[i]
+			tok := int(yyExca[i])
 			if tok < TOKSTART || yyExca[i+1] == 0 {
 				continue
 			}
@@ -262,30 +289,30 @@ func yylex1(lex yyLexer, lval *yySymType) (char, token int) {
 	token = 0
 	char = lex.Lex(lval)
 	if char <= 0 {
-		token = yyTok1[0]
+		token = int(yyTok1[0])
 		goto out
 	}
 	if char < len(yyTok1) {
-		token = yyTok1[char]
+		token = int(yyTok1[char])
 		goto out
 	}
 	if char >= yyPrivate {
 		if char < yyPrivate+len(yyTok2) {
-			token = yyTok2[char-yyPrivate]
+			token = int(yyTok2[char-yyPrivate])
 			goto out
 		}
 	}
 	for i := 0; i < len(yyTok3); i += 2 {
-		token = yyTok3[i+0]
+		token = int(yyTok3[i+0])
 		if token == char {
-			token = yyTok3[i+1]
+			token = int(yyTok3[i+1])
 			goto out
 		}
 	}
 
 out:
 	if token == 0 {
-		token = yyTok2[1] /* unknown char */
+		token = int(yyTok2[1]) /* unknown char */
 	}
 	if yyDebug >= 3 {
 		__yyfmt__.Printf("lex %s(%d)\n", yyTokname(token), uint(char))
@@ -340,7 +367,7 @@ yystack:
 	yyS[yyp].yys = yystate
 
 yynewstate:
-	yyn = yyPact[yystate]
+	yyn = int(yyPact[yystate])
 	if yyn <= yyFlag {
 		goto yydefault /* simple state */
 	}
@@ -351,8 +378,8 @@ yynewstate:
 	if yyn < 0 || yyn >= yyLast {
 		goto yydefault
 	}
-	yyn = yyAct[yyn]
-	if yyChk[yyn] == yytoken { /* valid shift */
+	yyn = int(yyAct[yyn])
+	if int(yyChk[yyn]) == yytoken { /* valid shift */
 		yyrcvr.char = -1
 		yytoken = -1
 		yyVAL = yyrcvr.lval
@@ -365,7 +392,7 @@ yynewstate:
 
 yydefault:
 	/* default state action */
-	yyn = yyDef[yystate]
+	yyn = int(yyDef[yystate])
 	if yyn == -2 {
 		if yyrcvr.char < 0 {
 			yyrcvr.char, yytoken = yylex1(yylex, &yyrcvr.lval)
@@ -374,18 +401,18 @@ yydefault:
 		/* look through exception table */
 		xi := 0
 		for {
-			if yyExca[xi+0] == -1 && yyExca[xi+1] == yystate {
+			if yyExca[xi+0] == -1 && int(yyExca[xi+1]) == yystate {
 				break
 			}
 			xi += 2
 		}
 		for xi += 2; ; xi += 2 {
-			yyn = yyExca[xi+0]
+			yyn = int(yyExca[xi+0])
 			if yyn < 0 || yyn == yytoken {
 				break
 			}
 		}
-		yyn = yyExca[xi+1]
+		yyn = int(yyExca[xi+1])
 		if yyn < 0 {
 			goto ret0
 		}
@@ -407,10 +434,10 @@ yydefault:
 
 			/* find a state where "error" is a legal shift action */
 			for yyp >= 0 {
-				yyn = yyPact[yyS[yyp].yys] + yyErrCode
+				yyn = int(yyPact[yyS[yyp].yys]) + yyErrCode
 				if yyn >= 0 && yyn < yyLast {
-					yystate = yyAct[yyn] /* simulate a shift of "error" */
-					if yyChk[yystate] == yyErrCode {
+					yystate = int(yyAct[yyn]) /* simulate a shift of "error" */
+					if int(yyChk[yystate]) == yyErrCode {
 						goto yystack
 					}
 				}
@@ -446,7 +473,7 @@ yydefault:
 	yypt := yyp
 	_ = yypt // guard against "declared and not used"
 
-	yyp -= yyR2[yyn]
+	yyp -= int(yyR2[yyn])
 	// yyp is now the index of $0. Perform the default action. Iff the
 	// reduced production is ε, $1 is possibly out of range.
 	if yyp+1 >= len(yyS) {
@@ -457,16 +484,16 @@ yydefault:
 	yyVAL = yyS[yyp+1]
 
 	/* consult goto table to find next state */
-	yyn = yyR1[yyn]
-	yyg := yyPgo[yyn]
+	yyn = int(yyR1[yyn])
+	yyg := int(yyPgo[yyn])
 	yyj := yyg + yyS[yyp].yys + 1
 
 	if yyj >= yyLast {
-		yystate = yyAct[yyg]
+		yystate = int(yyAct[yyg])
 	} else {
-		yystate = yyAct[yyj]
-		if yyChk[yystate] != -yyn {
-			yystate = yyAct[yyg]
+		yystate = int(yyAct[yyj])
+		if int(yyChk[yystate]) != -yyn {
+			yystate = int(yyAct[yyg])
 		}
 	}
 	// dummy call; replaced with literal code
@@ -474,73 +501,156 @@ yydefault:
 
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:63
+//line gram.y:74
 		{
 		}
 	case 3:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:64
+//line gram.y:75
 		{
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:68
+//line gram.y:79
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:69
+//line gram.y:80
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:75
+//line gram.y:86
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 7:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:78
+//line gram.y:89
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:80
+//line gram.y:92
 		{
 			setParseTree(yylex, yyDollar[1].node)
 		}
 	case 9:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:95
+		{
+			setParseTree(yylex, yyDollar[1].node)
+		}
+	case 10:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line gram.y:82
+//line gram.y:97
 		{
 			yyVAL.node = nil
 		}
-	case 10:
+	case 11:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:85
+//line gram.y:100
 		{
 			yyVAL.node = &SayHelloCommand{}
 		}
-	case 11:
+	case 12:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:89
+//line gram.y:104
 		{
 			yyVAL.node = &ShowCommand{
 				Type: yyDollar[2].str,
 			}
 		}
-	case 12:
+	case 13:
+		yyDollar = yyS[yypt-4 : yypt+1]
+//line gram.y:112
+		{
+			yyVAL.node = &CopyCommand{
+				Path:    yyDollar[2].str,
+				Options: yyDollar[4].nodeList,
+			}
+		}
+	case 14:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line gram.y:120
+		{
+			yyVAL.nodeList = yyDollar[2].nodeList
+		}
+	case 15:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:124
+		{
+			yyVAL.nodeList = []Node{yyDollar[1].node}
+		}
+	case 16:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line gram.y:128
+		{
+			yyVAL.nodeList = append(yyDollar[1].nodeList, yyDollar[3].node)
+		}
+	case 17:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:97
+//line gram.y:135
+		{
+			yyVAL.node = &Option{
+				Name: yyDollar[1].str,
+				Arg:  yyDollar[2].node,
+			}
+		}
+	case 18:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:144
+		{
+			yyVAL.node = &AExprBConst{Value: yyDollar[1].bool}
+		}
+	case 19:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:145
+		{
+			yyVAL.node = &AExprIConst{Value: yyDollar[1].int}
+		}
+	case 20:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:146
+		{
+			yyVAL.node = &AExprSConst{Value: yyDollar[1].str}
+		}
+	case 21:
+		yyDollar = yyS[yypt-0 : yypt+1]
+//line gram.y:147
+		{
+		}
+	case 22:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:151
+		{
+			yyVAL.bool = true
+		}
+	case 23:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:152
+		{
+			yyVAL.bool = false
+		}
+	case 24:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line gram.y:157
+		{
+			yyVAL.str = yyDollar[1].str
+		}
+	case 25:
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line gram.y:161
 		{
 			yyVAL.node = &KKBCommand{}
 		}
-	case 13:
+	case 26:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line gram.y:100
+//line gram.y:164
 		{
 			yyVAL.node = &KKBCommand{}
 		}

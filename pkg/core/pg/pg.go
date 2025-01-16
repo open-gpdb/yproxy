@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -11,10 +12,12 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/clientpool"
 	"github.com/yezzey-gp/yproxy/pkg/core/parser"
+	"github.com/yezzey-gp/yproxy/pkg/proc"
+	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
-func PostgresIface(cl net.Conn, p clientpool.Pool, instanceStart time.Time) {
+func PostgresIface(cl net.Conn, p clientpool.Pool, instanceStart time.Time, s storage.StorageInteractor) {
 	defer cl.Close()
 
 	conn := pgproto3.NewBackend(cl, cl)
@@ -75,7 +78,7 @@ init:
 
 			if err != nil {
 				conn.Send(&pgproto3.ErrorResponse{
-					Message: "failed to parse query",
+					Message: fmt.Sprintf("failed to parse query: %v", err),
 				})
 				conn.Send(&pgproto3.ReadyForQuery{})
 				conn.Flush()
@@ -106,6 +109,25 @@ init:
 				conn.Flush()
 			case *parser.ShowCommand:
 				_ = ProcessShow(conn, q.Type, p, instanceStart)
+			case *parser.CopyCommand:
+				port := 6000
+				oldCfgPath := "/etc/yproxy/yproxy.yaml"
+				for _, optNode := range q.Options {
+					opt := optNode.(*parser.Option)
+					switch strings.ToLower(opt.Name) {
+					case "config":
+						oldCfgPath = opt.Arg.(*parser.AExprSConst).Value
+					case "port":
+						port = opt.Arg.(*parser.AExprIConst).Value
+					}
+				}
+				_ = ProcessCopy(conn, q.Path, uint64(port), oldCfgPath, s)
+				conn.Send(&pgproto3.CommandComplete{CommandTag: []byte("COPY")})
+
+				conn.Send(&pgproto3.ReadyForQuery{
+					TxStatus: 'I',
+				})
+				conn.Flush()
 			case *parser.KKBCommand:
 				ylogger.Zero.Error().Msg("recieved die command, exiting")
 
@@ -326,4 +348,47 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 
 		return conn.Flush()
 	}
+}
+
+func ProcessCopy(conn *pgproto3.Backend, prefix string, port uint64, oldCfgPath string, s storage.StorageInteractor) error {
+	conn.Send(&pgproto3.RowDescription{
+		Fields: []pgproto3.FieldDescription{
+			{
+				Name:        []byte("path"),
+				DataTypeOID: 25, /* textoid*/
+			},
+			{
+				Name:        []byte("size"),
+				DataTypeOID: 25, /* textoid */
+			},
+		},
+	})
+
+	// get config for old bucket
+	instanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
+	if err != nil {
+		return nil
+	}
+	config.EmbedDefaults(&instanceCnf)
+
+	oldStorage, err := storage.NewStorage(&instanceCnf.StorageCnf)
+	if err != nil {
+		return err
+	}
+
+	objects, err := proc.ListFilesToCopy(prefix, port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
+	if err != nil {
+		return err
+	}
+
+	for _, obj := range objects {
+		conn.Send(&pgproto3.DataRow{
+			Values: [][]byte{
+				[]byte(obj.Path),
+				[]byte(fmt.Sprintf("%d", obj.Size)),
+			},
+		})
+	}
+
+	return err
 }

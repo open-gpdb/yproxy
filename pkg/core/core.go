@@ -107,6 +107,13 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		})
 	}
 
+	s, err := storage.NewStorage(
+		&instanceCnf.StorageCnf,
+	)
+	if err != nil {
+		return err
+	}
+
 	if instanceCnf.PsqlPort != 0 {
 		psqlListener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", instanceCnf.PsqlPort))
 		if err != nil {
@@ -115,7 +122,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		}
 
 		i.DispatchServer(psqlListener, func(c net.Conn) {
-			pg.PostgresIface(c, i.pool, i.startTs)
+			pg.PostgresIface(c, i.pool, i.startTs, s)
 		})
 	}
 
@@ -125,12 +132,6 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		return err
 	}
 
-	s, err := storage.NewStorage(
-		&instanceCnf.StorageCnf,
-	)
-	if err != nil {
-		return err
-	}
 	var cr crypt.Crypter = nil
 	if instanceCnf.CryptoCnf.GPGKeyPath != "" {
 		cr, err = crypt.NewCrypto(&instanceCnf.CryptoCnf)
