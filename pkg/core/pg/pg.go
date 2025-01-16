@@ -361,6 +361,10 @@ func ProcessCopy(conn *pgproto3.Backend, prefix string, port uint64, oldCfgPath 
 				Name:        []byte("size"),
 				DataTypeOID: 25, /* textoid */
 			},
+			{
+				Name:        []byte("skipped"),
+				DataTypeOID: 16, /* bool */
+			},
 		},
 	})
 
@@ -376,7 +380,7 @@ func ProcessCopy(conn *pgproto3.Backend, prefix string, port uint64, oldCfgPath 
 		return err
 	}
 
-	objects, err := proc.ListFilesToCopy(prefix, port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
+	objects, skipped, err := proc.ListFilesToCopy(prefix, port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
 	if err != nil {
 		return err
 	}
@@ -386,6 +390,17 @@ func ProcessCopy(conn *pgproto3.Backend, prefix string, port uint64, oldCfgPath 
 			Values: [][]byte{
 				[]byte(obj.Path),
 				[]byte(fmt.Sprintf("%d", obj.Size)),
+				{'f'},
+			},
+		})
+	}
+
+	for _, obj := range skipped {
+		conn.Send(&pgproto3.DataRow{
+			Values: [][]byte{
+				[]byte(obj.Path),
+				[]byte(fmt.Sprintf("%d", obj.Size)),
+				{'t'},
 			},
 		})
 	}

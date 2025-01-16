@@ -226,7 +226,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
-	objectMetas, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
+	objectMetas, _, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
 	if err != nil {
 		return err
 	}
@@ -542,22 +542,22 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 	return nil
 }
 
-func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, error) {
+func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
 	/* list objects */
 	objectMetas, err := src.ListPath(prefix)
 	if err != nil {
-		return nil, fmt.Errorf("could not list objects: %s", err)
+		return nil, nil, fmt.Errorf("could not list objects: %s", err)
 	}
 
 	dbInterractor := &database.DatabaseHandler{}
 	vi, _, err := dbInterractor.GetVirtualExpireIndexes(port)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	copied, err := dst.ListPath(prefix)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	copiedSizes := make(map[string]int64)
 	for _, c := range copied {
@@ -565,16 +565,19 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 	}
 
 	toCopy := []*object.ObjectInfo{}
+	skipped := []*object.ObjectInfo{}
 
 	for i := range len(objectMetas) {
 		path := strings.TrimPrefix(objectMetas[i].Path, oldPrefix)
 		reworked := path
 		if _, ok := vi[reworked]; !ok {
 			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
+			skipped = append(skipped, objectMetas[i])
 			continue
 		}
 		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
 			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
+			skipped = append(skipped, objectMetas[i])
 			continue
 		}
 
@@ -583,5 +586,5 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 		toCopy = append(toCopy, objectMetas[i])
 	}
 
-	return toCopy, nil
+	return toCopy, skipped, nil
 }
