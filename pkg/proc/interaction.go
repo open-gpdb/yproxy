@@ -364,6 +364,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	if msg.Confirm {
 		ylogger.Zero.Info().Msg("Copy finished successfully")
+		_ = clearCache()
 	} else {
 		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
 	}
@@ -628,4 +629,8 @@ func readCache() ([]*object.ObjectInfo, error) {
 	var objs []*object.ObjectInfo
 	err = json.Unmarshal(content, &objs)
 	return objs, err
+}
+
+func clearCache() error {
+	return os.Remove(copySrcBucketCachePath)
 }
