@@ -23,10 +23,6 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const (
-	copySrcBucketCachePath = "/tmp/YPROXY_COPY_SRC_BUCKET_CACHE"
-)
-
 func ProcessCatExtended(
 	s storage.StorageInteractor,
 	pr *ProtoReader,
@@ -553,15 +549,11 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 	objectMetas, err := readCache()
 	if err != nil {
 		ylogger.Zero.Debug().Msg("cache was not found, listing from source bucket")
-		// cache on fs does not exist
-		/* list objects */
 		objectMetas, err = src.ListPath(prefix)
 		if err != nil {
 			return nil, nil, fmt.Errorf("could not list objects: %s", err)
 		}
 		_ = putInCache(objectMetas)
-	} else {
-		ylogger.Zero.Debug().Int("files count", len(objectMetas)).Msg("read source bucket from cache")
 	}
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -605,11 +597,16 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 }
 
 func putInCache(objs []*object.ObjectInfo) error {
+	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	if cachePath == "" {
+		return fmt.Errorf("cache path is not specified")
+	}
+
 	content, err := json.Marshal(objs)
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(copySrcBucketCachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	f, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -618,7 +615,12 @@ func putInCache(objs []*object.ObjectInfo) error {
 }
 
 func readCache() ([]*object.ObjectInfo, error) {
-	f, err := os.Open(copySrcBucketCachePath)
+	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	if cachePath == "" {
+		return nil, fmt.Errorf("cache path is not specified")
+	}
+
+	f, err := os.Open(cachePath)
 	if err != nil {
 		return nil, err
 	}
@@ -632,5 +634,10 @@ func readCache() ([]*object.ObjectInfo, error) {
 }
 
 func clearCache() error {
-	return os.Remove(copySrcBucketCachePath)
+	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	if cachePath == "" {
+		return fmt.Errorf("cache path is not specified")
+	}
+
+	return os.Remove(cachePath)
 }
