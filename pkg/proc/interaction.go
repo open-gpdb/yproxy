@@ -597,7 +597,7 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 }
 
 func putInCache(objs []*object.ObjectInfo) error {
-	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
 	if cachePath == "" {
 		return fmt.Errorf("cache path is not specified")
 	}
@@ -615,7 +615,7 @@ func putInCache(objs []*object.ObjectInfo) error {
 }
 
 func readCache() ([]*object.ObjectInfo, error) {
-	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
 	if cachePath == "" {
 		return nil, fmt.Errorf("cache path is not specified")
 	}
@@ -634,7 +634,7 @@ func readCache() ([]*object.ObjectInfo, error) {
 }
 
 func clearCache() error {
-	cachePath := config.InstanceConfig().ProxyCnf.CopySrcBucketCachePath
+	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
 	if cachePath == "" {
 		return fmt.Errorf("cache path is not specified")
 	}
