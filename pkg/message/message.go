@@ -27,6 +27,9 @@ const (
 	MessageTypePutV3           = MessageType(56)
 	MessageTypePutComplete     = MessageType(57)
 
+	MessageCollectObsolette = MessageType(64)
+	MessageDeleteObsolette  = MessageType(65)
+
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
 
@@ -68,6 +71,10 @@ func (m MessageType) String() string {
 		return "GOOL"
 	case MessageTypeError:
 		return "ERROR"
+	case MessageCollectObsolette:
+		return "COLLECT OBSOLETTE"
+	case MessageDeleteObsolette:
+		return "DELETE OBSOLETTE"
 	}
 	return "UNKNOWN"
 }
