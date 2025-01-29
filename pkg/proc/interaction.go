@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -502,6 +503,101 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 
 	return nil
 }
+func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+
+	dh := database.DatabaseHandler{}
+	indexes_lsn, err := dh.GetNextLSN(msg.Port, msg.DBName)
+	if err != nil {
+		return err
+	}
+	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	if err != nil {
+		return err
+	}
+	curr_lsn, err := dh.GetNextLSN(msg.Port, msg.DBName)
+	if err != nil {
+		return err
+	}
+	for str, v := range vi {
+		if v {
+			continue
+		}
+
+		_, ok := ei[str]
+		if ok {
+			continue
+		}
+		splitted := strings.Split(str, "_")
+		if len(splitted) == 0 {
+			// print error w string (maybe never be)
+			// TODO PRINT + RET ERROR
+		}
+		file_lsn, err := strconv.ParseUint(splitted[len(splitted)-1], 10, 64)
+		if err != nil {
+			// print cannot convert str to int
+			// TODO PRINT
+			continue
+		}
+		if file_lsn > indexes_lsn {
+			// Too new
+			continue
+		}
+		// add to expire index
+		err = dh.AddToExpireIndex(msg.Port, msg.DBName, str, curr_lsn)
+		if err != nil {
+			// TODO PRINT
+			continue
+		}
+
+	}
+	return nil
+}
+
+func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+	bh := &backups.StorageBackupInteractor{}
+
+	dh := database.DatabaseHandler{}
+	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	if err != nil {
+		return err
+	}
+	first_backup_oid, err := bh.GetFirstLSN(msg.Segnum)
+	if err != nil {
+		return err
+	}
+	if first_backup_oid == ^uint64(0) {
+		return fmt.Errorf("wal-g required for consistent deleting")
+	}
+	for str, v := range ei {
+		if v >= first_backup_oid {
+			continue
+		}
+		if vi[str] {
+			//BIG WARNING  BIG WARNING BIG WARNING BIG WARNING
+			// make error if error comes fix bug
+			// TODO PRINT + RET ERROR
+			continue
+		}
+
+		// delete file
+
+		err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
+		if err != nil {
+			// problem when deleting
+			// will delete next time
+			// TODO PRINT
+			continue
+		}
+		err = s.MoveObject(str, "trash/"+str)
+		if err != nil {
+			// unanable to delete file
+			// if file exists then ok if else ok
+			// TODO PRINT
+			continue
+		}
+	}
+	return nil
+}
 
 func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 
@@ -633,6 +729,19 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 
 	case message.MessageTypeGool:
 		return ProcMotion(s, cr, ycl)
+
+	case message.MessageCollectObsolette:
+		msg := message.CollectObsoletteMessage{}
+		msg.Decode(body)
+		if err := ProcessCollectObsolette(msg, s, ycl); err != nil {
+			return err
+		}
+	case message.MessageDeleteObsolette:
+		msg := message.DeleteObsoletteMessage{}
+		msg.Decode(body)
+		if err := ProcessDeleteObsolette(msg, s, ycl); err != nil {
+			return err
+		}
 
 	default:
 		ylogger.Zero.Error().Any("type", tp).Msg("unknown message type")
