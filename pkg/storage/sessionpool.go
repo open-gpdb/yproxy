@@ -2,12 +2,18 @@ package storage
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/aws/credentials"
 	"github.com/yezzey-gp/aws-sdk-go/aws/defaults"
+	"github.com/yezzey-gp/aws-sdk-go/aws/request"
 	"github.com/yezzey-gp/aws-sdk-go/aws/session"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
 	"github.com/yezzey-gp/yproxy/config"
@@ -63,11 +69,48 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 	})
 
 	s.Config.WithRegion(sp.cnf.StorageRegion)
+	s.Config.S3ForcePathStyle = aws.Bool(true)
 
 	s.Config.WithEndpoint(sp.cnf.StorageEndpoint)
 
+	if sp.cnf.EndpointSourceHost != "" {
+		s.Handlers.Validate.PushBack(func(request *request.Request) {
+			endpoint, err := requestEndpoint(sp.cnf.EndpointSourceHost, sp.cnf.EndpointSourcePort)
+			if err == nil {
+				ylogger.Zero.Debug().Str("endpoint", endpoint).Msg("using requested endpoint")
+				host := strings.TrimPrefix(*s.Config.Endpoint, "https://")
+				request.HTTPRequest.Host = host
+				request.HTTPRequest.Header.Add("Host", host)
+				request.HTTPRequest.URL.Host = endpoint
+				request.HTTPRequest.URL.Scheme = "http"
+			} else {
+				ylogger.Zero.Debug().Str("endpoint", *s.Config.Endpoint).Msg("using default endpoint")
+			}
+		})
+	}
+
 	s.Config.WithCredentials(newCredentials)
 	return s, err
+}
+
+func requestEndpoint(endpointSource, port string) (string, error) {
+	ylogger.Zero.Debug().Str("source host", endpointSource).Msg("requesting storage endpoint")
+	resp, err := http.Get(endpointSource)
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("failed to get S3 endpoint")
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != 200 {
+		ylogger.Zero.Error().Int("status code", resp.StatusCode).Msg("endpoint source bad status code")
+		return "", fmt.Errorf("endpoint source bad status code %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("error reading endpoint source reply")
+		return "", err
+	}
+	return net.JoinHostPort(string(body), port), err
 }
 
 func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {

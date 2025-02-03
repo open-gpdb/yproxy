@@ -46,7 +46,7 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 
 	bucket, ok := s.bucketMap[tableSpace]
 	if !ok {
-		err := fmt.Errorf("failed to match tablespace %s to s3 bucket.", tableSpace)
+		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 
 	bucket, ok := s.bucketMap[tableSpace]
 	if !ok {
-		err := fmt.Errorf("failed to match tablespace %s to s3 bucket.", tableSpace)
+		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)
 		return err
 	}
