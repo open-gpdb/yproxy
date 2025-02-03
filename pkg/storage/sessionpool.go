@@ -6,12 +6,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/aws/credentials"
 	"github.com/yezzey-gp/aws-sdk-go/aws/defaults"
+	"github.com/yezzey-gp/aws-sdk-go/aws/request"
 	"github.com/yezzey-gp/aws-sdk-go/aws/session"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
 	"github.com/yezzey-gp/yproxy/config"
@@ -67,18 +69,25 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 	})
 
 	s.Config.WithRegion(sp.cnf.StorageRegion)
+	s.Config.WithLogLevel(aws.LogDebug)
 
-	endpoint := sp.cnf.StorageEndpoint
+	s.Config.WithEndpoint(sp.cnf.StorageEndpoint)
 
 	if sp.cnf.EndpointSourceHost != "" {
-		newEndpoint, err := requestEndpoint(sp.cnf.EndpointSourceHost, sp.cnf.EndpointSourcePort)
-		if err == nil {
-			ylogger.Zero.Debug().Str("endpoint", newEndpoint).Msg("using requested endpoint")
-			endpoint = newEndpoint
-		}
+		s.Handlers.Validate.PushBack(func(request *request.Request) {
+			endpoint, err := requestEndpoint(sp.cnf.EndpointSourceHost, sp.cnf.EndpointSourcePort)
+			if err == nil {
+				ylogger.Zero.Debug().Str("endpoint", endpoint).Msg("using requested endpoint")
+				host := strings.TrimPrefix(*s.Config.Endpoint, "https://")
+				request.HTTPRequest.Host = host
+				request.HTTPRequest.Header.Add("Host", host)
+				request.HTTPRequest.URL.Host = endpoint
+				request.HTTPRequest.URL.Scheme = "http"
+			} else {
+				ylogger.Zero.Debug().Str("endpoint", *s.Config.Endpoint).Msg("using default endpoint")
+			}
+		})
 	}
-
-	s.Config.WithEndpoint(endpoint)
 
 	s.Config.WithCredentials(newCredentials)
 	return s, err
