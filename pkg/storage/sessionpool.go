@@ -69,7 +69,7 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 	})
 
 	s.Config.WithRegion(sp.cnf.StorageRegion)
-	s.Config.WithLogLevel(aws.LogDebug)
+	s.Config.S3ForcePathStyle = aws.Bool(true)
 
 	s.Config.WithEndpoint(sp.cnf.StorageEndpoint)
 
