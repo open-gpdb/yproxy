@@ -1,5 +1,7 @@
 package config
 
+import "net/url"
+
 type Crypto struct {
 	GPGKeyId   string `json:"gpg_key_id" toml:"gpg_key_id" yaml:"gpg_key_id"`
 	GPGKeyPath string `json:"gpg_key_path" toml:"gpg_key_path" yaml:"gpg_key_path"`
@@ -24,4 +26,9 @@ type Storage struct {
 
 	EndpointSourceHost string `json:"storage_endpoint_source_host" toml:"storage_endpoint_source_host" yaml:"storage_endpoint_source_host"`
 	EndpointSourcePort string `json:"storage_endpoint_source_port" toml:"storage_endpoint_source_port" yaml:"storage_endpoint_source_port"`
+}
+
+func (s Storage) ID() string {
+	id, _ := url.JoinPath(s.StorageEndpoint, s.StorageBucket, s.StoragePrefix)
+	return id
 }
