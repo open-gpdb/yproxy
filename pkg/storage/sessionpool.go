@@ -73,6 +73,7 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 	if sp.cnf.EndpointSourceHost != "" {
 		newEndpoint, err := requestEndpoint(sp.cnf.EndpointSourceHost, sp.cnf.EndpointSourcePort)
 		if err == nil {
+			ylogger.Zero.Debug().Str("endpoint", newEndpoint).Msg("using requested endpoint")
 			endpoint = newEndpoint
 		}
 	}
@@ -84,6 +85,7 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 }
 
 func requestEndpoint(endpointSource, port string) (string, error) {
+	ylogger.Zero.Debug().Str("source host", endpointSource).Msg("requesting storage endpoint")
 	resp, err := http.Get(endpointSource)
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("failed to get S3 endpoint")
