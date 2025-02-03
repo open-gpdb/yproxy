@@ -2,6 +2,10 @@ package storage
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -64,10 +68,38 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 
 	s.Config.WithRegion(sp.cnf.StorageRegion)
 
-	s.Config.WithEndpoint(sp.cnf.StorageEndpoint)
+	endpoint := sp.cnf.StorageEndpoint
+
+	if sp.cnf.EndpointSourceHost != "" {
+		newEndpoint, err := requestEndpoint(sp.cnf.EndpointSourceHost, sp.cnf.EndpointSourcePort)
+		if err == nil {
+			endpoint = newEndpoint
+		}
+	}
+
+	s.Config.WithEndpoint(endpoint)
 
 	s.Config.WithCredentials(newCredentials)
 	return s, err
+}
+
+func requestEndpoint(endpointSource, port string) (string, error) {
+	resp, err := http.Get(endpointSource)
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("failed to get S3 endpoint")
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != 200 {
+		ylogger.Zero.Error().Int("status code", resp.StatusCode).Msg("endpoint source bad status code")
+		return "", fmt.Errorf("endpoint source bad status code %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("error reading endpoint source reply")
+		return "", err
+	}
+	return net.JoinHostPort(string(body), port), err
 }
 
 func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
