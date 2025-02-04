@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
@@ -332,6 +333,11 @@ func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, e
 	return out, nil
 }
 
+type cacheEntry struct {
+	Objects []*object.ObjectInfo `json:"objects"`
+	Time    time.Time            `json:"time"`
+}
+
 func putInCache(storageId string, objs []*object.ObjectInfo) error {
 	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
 	if cachePath == "" {
@@ -348,14 +354,17 @@ func putInCache(storageId string, objs []*object.ObjectInfo) error {
 		return err
 	}
 
-	cache := map[string][]*object.ObjectInfo{}
+	cache := map[string]cacheEntry{}
 	if len(content) != 0 {
 		if err := json.Unmarshal(content, &cache); err != nil {
 			return err
 		}
 	}
 
-	cache[storageId] = objs
+	cache[storageId] = cacheEntry{
+		Objects: objs,
+		Time:    time.Now(),
+	}
 
 	content, err = json.Marshal(cache)
 	if err != nil {
@@ -382,7 +391,7 @@ func readCache(cfg config.Storage, prefix string) ([]*object.ObjectInfo, error) 
 	if err != nil {
 		return nil, err
 	}
-	var objs map[string][]*object.ObjectInfo
+	objs := map[string]cacheEntry{}
 	if err := json.Unmarshal(content, &objs); err != nil {
 		return nil, err
 	}
@@ -391,22 +400,16 @@ func readCache(cfg config.Storage, prefix string) ([]*object.ObjectInfo, error) 
 	if !exists {
 		return nil, fmt.Errorf("no cache for storage %s", cfg.ID())
 	}
+	if storageFiles.Time.Before(time.Now().Add(-24 * time.Hour)) {
+		return nil, fmt.Errorf("cache for storage %s has expirted", cfg.ID())
+	}
 
 	res := make([]*object.ObjectInfo, 0, len(objs))
-	for _, obj := range storageFiles {
+	for _, obj := range storageFiles.Objects {
 		if strings.HasPrefix(obj.Path, prefix) {
 			res = append(res, obj)
 		}
 	}
 
 	return res, err
-}
-
-func clearCache() error {
-	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
-	if cachePath == "" {
-		return fmt.Errorf("cache path is not specified")
-	}
-
-	return os.Remove(cachePath)
 }
