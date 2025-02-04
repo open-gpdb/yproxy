@@ -370,7 +370,14 @@ func putInCache(storageId string, objs []*object.ObjectInfo) error {
 	if err != nil {
 		return err
 	}
-	_ = f.Truncate(0)
+	err = f.Truncate(0)
+	if err != nil {
+		return err
+	}
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return err
+	}
 	_, err = f.Write(content)
 	return err
 }
