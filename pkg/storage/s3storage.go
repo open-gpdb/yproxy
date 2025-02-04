@@ -3,12 +3,15 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
@@ -149,7 +152,15 @@ func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffse
 	return err
 }
 
-func (s *S3StorageInteractor) ListPath(prefix string) ([]*object.ObjectInfo, error) {
+func (s *S3StorageInteractor) ListPath(prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+	if useCache {
+		objectMetas, err := readCache(*s.cnf, prefix)
+		if err == nil {
+			return objectMetas, nil
+		}
+		ylogger.Zero.Debug().Msg("cache was not found, listing from source bucket")
+	}
+
 	sess, err := s.pool.GetSession(context.TODO())
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -194,6 +205,14 @@ func (s *S3StorageInteractor) ListPath(prefix string) ([]*object.ObjectInfo, err
 
 		continuationToken = out.NextContinuationToken
 	}
+
+	if useCache {
+		err = putInCache(s.cnf.ID(), metas)
+		if err != nil {
+			ylogger.Zero.Debug().Err(err).Msg("failed to put objects in cache")
+		}
+	}
+
 	return metas, nil
 }
 
@@ -312,4 +331,85 @@ func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, e
 		}
 	}
 	return out, nil
+}
+
+type cacheEntry struct {
+	Objects []*object.ObjectInfo `json:"objects"`
+	Time    time.Time            `json:"time"`
+}
+
+func putInCache(storageId string, objs []*object.ObjectInfo) error {
+	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
+	if cachePath == "" {
+		return fmt.Errorf("cache path is not specified")
+	}
+
+	f, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	cache := map[string]cacheEntry{}
+	if len(content) != 0 {
+		if err := json.Unmarshal(content, &cache); err != nil {
+			return err
+		}
+	}
+
+	cache[storageId] = cacheEntry{
+		Objects: objs,
+		Time:    time.Now(),
+	}
+
+	content, err = json.Marshal(cache)
+	if err != nil {
+		return err
+	}
+	_ = f.Truncate(0)
+	_, err = f.Write(content)
+	return err
+}
+
+func readCache(cfg config.Storage, prefix string) ([]*object.ObjectInfo, error) {
+	prefix = path.Join("/", cfg.StoragePrefix, prefix)
+	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
+	if cachePath == "" {
+		return nil, fmt.Errorf("cache path is not specified")
+	}
+
+	f, err := os.Open(cachePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	objs := map[string]cacheEntry{}
+	if err := json.Unmarshal(content, &objs); err != nil {
+		return nil, err
+	}
+
+	storageFiles, exists := objs[cfg.ID()]
+	if !exists {
+		return nil, fmt.Errorf("no cache for storage %s", cfg.ID())
+	}
+	if storageFiles.Time.Before(time.Now().Add(-24 * time.Hour)) {
+		return nil, fmt.Errorf("cache for storage %s has expirted", cfg.ID())
+	}
+
+	res := make([]*object.ObjectInfo, 0, len(objs))
+	for _, obj := range storageFiles.Objects {
+		if strings.HasPrefix(obj.Path, prefix) {
+			res = append(res, obj)
+		}
+	}
+
+	return res, err
 }

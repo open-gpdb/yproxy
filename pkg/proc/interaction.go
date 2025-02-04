@@ -2,10 +2,8 @@ package proc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"sync"
 
@@ -183,7 +181,7 @@ func ProcessPutExtended(
 func ProcessListExtended(msg message.ListMessage, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(msg.Prefix)
 
-	objectMetas, err := s.ListPath(msg.Prefix)
+	objectMetas, err := s.ListPath(msg.Prefix, true)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to complete request")
 
@@ -228,7 +226,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
-	objectMetas, _, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf.StoragePrefix, oldStorage, s)
+	objectMetas, _, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
 		return err
 	}
@@ -360,7 +358,6 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	if msg.Confirm {
 		ylogger.Zero.Info().Msg("Copy finished successfully")
-		_ = clearCache()
 	} else {
 		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
 	}
@@ -545,15 +542,10 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 	return nil
 }
 
-func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
-	objectMetas, err := readCache()
+func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
+	objectMetas, err := src.ListPath(prefix, true)
 	if err != nil {
-		ylogger.Zero.Debug().Msg("cache was not found, listing from source bucket")
-		objectMetas, err = src.ListPath(prefix)
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not list objects: %s", err)
-		}
-		_ = putInCache(objectMetas)
+		return nil, nil, err
 	}
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -562,7 +554,7 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 		return nil, nil, err
 	}
 
-	copied, err := dst.ListPath(prefix)
+	copied, err := dst.ListPath(prefix, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -575,7 +567,7 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 	skipped := []*object.ObjectInfo{}
 
 	for i := range len(objectMetas) {
-		path := strings.TrimPrefix(objectMetas[i].Path, oldPrefix)
+		path := strings.TrimPrefix(objectMetas[i].Path, cfg.StoragePrefix)
 		reworked := path
 		if _, ok := vi[reworked]; !ok {
 			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
@@ -594,50 +586,4 @@ func ListFilesToCopy(prefix string, port uint64, oldPrefix string, src storage.S
 	}
 
 	return toCopy, skipped, nil
-}
-
-func putInCache(objs []*object.ObjectInfo) error {
-	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
-	if cachePath == "" {
-		return fmt.Errorf("cache path is not specified")
-	}
-
-	content, err := json.Marshal(objs)
-	if err != nil {
-		return err
-	}
-	f, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(content)
-	return err
-}
-
-func readCache() ([]*object.ObjectInfo, error) {
-	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
-	if cachePath == "" {
-		return nil, fmt.Errorf("cache path is not specified")
-	}
-
-	f, err := os.Open(cachePath)
-	if err != nil {
-		return nil, err
-	}
-	content, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-	var objs []*object.ObjectInfo
-	err = json.Unmarshal(content, &objs)
-	return objs, err
-}
-
-func clearCache() error {
-	cachePath := config.InstanceConfig().ProxyCnf.BucketCachePath
-	if cachePath == "" {
-		return fmt.Errorf("cache path is not specified")
-	}
-
-	return os.Remove(cachePath)
 }
