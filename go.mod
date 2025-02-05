@@ -8,16 +8,18 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/jarcoal/httpmock v1.3.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/yezzey-gp/aws-sdk-go v0.1.0
+	go.uber.org/mock v0.4.0
 	golang.org/x/sync v0.10.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require golang.org/x/text v0.14.0 // indirect
+require golang.org/x/text v0.21.0 // indirect
 
 require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
@@ -30,25 +32,17 @@ require (
 )
 
 require (
-	github.com/bool64/shared v0.1.5 // indirect
-	github.com/iancoleman/orderedmap v0.2.0 // indirect
-	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/swaggest/assertjson v1.7.0 // indirect
-	github.com/yudai/gojsondiff v1.0.0 // indirect
-	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
-	go.nhat.io/matcher/v2 v2.0.0 // indirect
-	go.nhat.io/wait v0.1.0 // indirect
-	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
+	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/tools v0.28.0 // indirect
+	gonum.org/v1/gonum v0.15.1 // indirect
 )
 
 require (
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/mock v1.6.0
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -56,6 +50,5 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	go.nhat.io/httpmock v0.11.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

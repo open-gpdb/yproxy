@@ -82,7 +82,7 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 				request.HTTPRequest.Host = host
 				request.HTTPRequest.Header.Add("Host", host)
 				request.HTTPRequest.URL.Host = endpoint
-				request.HTTPRequest.URL.Scheme = "http"
+				request.HTTPRequest.URL.Scheme = sp.cnf.EndpointSourceScheme
 			} else {
 				ylogger.Zero.Debug().Str("endpoint", *s.Config.Endpoint).Msg("using default endpoint")
 			}
