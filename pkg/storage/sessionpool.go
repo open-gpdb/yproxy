@@ -110,7 +110,10 @@ func requestEndpoint(endpointSource, port string) (string, error) {
 		ylogger.Zero.Error().Err(err).Msg("error reading endpoint source reply")
 		return "", err
 	}
-	return net.JoinHostPort(string(body), port), err
+	if port != "" {
+		return net.JoinHostPort(string(body), port), err
+	}
+	return string(body), err
 }
 
 func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
