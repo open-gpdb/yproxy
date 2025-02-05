@@ -66,6 +66,8 @@ const (
 	DefaultStorageConcurrency = 100
 	DefaultStatPort           = 7432
 	DefaultPsqlPort           = 8432
+
+	DefaultEndpointSourceScheme = "https"
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -80,6 +82,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.PsqlPort == 0 {
 		cfgInstance.PsqlPort = DefaultPsqlPort
+	}
+	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
+		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
 	}
 }
 
