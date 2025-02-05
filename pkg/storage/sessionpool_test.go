@@ -47,3 +47,76 @@ func TestEndpointSourceHTTP(t *testing.T) {
 	assert.Equal(1, info["GET http://endpoint_source/get_proxy"])
 	assert.Equal(1, info["GET http://storage.proxy/bucket/key"])
 }
+
+func TestEndpointSourceHTTPS(t *testing.T) {
+	assert := assert.New(t)
+
+	httpmock.Activate()
+
+	httpmock.RegisterResponder("GET", "https://endpoint_source/get_proxy",
+		httpmock.NewStringResponder(200, "storage.proxy"))
+
+	httpmock.RegisterResponder("GET", "https://storage.proxy/bucket/key",
+		httpmock.NewStringResponder(200, ""))
+
+	pool := storage.NewSessionPool(&config.Storage{
+		StorageEndpoint:      "storage.mock",
+		EndpointSourceHost:   "https://endpoint_source/get_proxy",
+		EndpointSourceScheme: "https",
+		AccessKeyId:          "mock_access_key",
+		SecretAccessKey:      "mock_secret_key",
+
+		StorageRegion: "us-east-1",
+
+		StorageConcurrency: 1,
+	})
+
+	sess, err := pool.GetSession(context.TODO())
+	assert.NoError(err)
+	_, err = sess.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String("bucket"),
+		Key:    aws.String("key"),
+	})
+	assert.NoError(err)
+
+	info := httpmock.GetCallCountInfo()
+	assert.Equal(1, info["GET https://endpoint_source/get_proxy"])
+	assert.Equal(1, info["GET https://storage.proxy/bucket/key"])
+}
+
+func TestEndpointSourceSetPort(t *testing.T) {
+	assert := assert.New(t)
+
+	httpmock.Activate()
+
+	httpmock.RegisterResponder("GET", "https://endpoint_source/get_proxy",
+		httpmock.NewStringResponder(200, "storage.proxy"))
+
+	httpmock.RegisterResponder("GET", "https://storage.proxy:8080/bucket/key",
+		httpmock.NewStringResponder(200, ""))
+
+	pool := storage.NewSessionPool(&config.Storage{
+		StorageEndpoint:      "storage.mock",
+		EndpointSourceHost:   "https://endpoint_source/get_proxy",
+		EndpointSourcePort:   "8080",
+		EndpointSourceScheme: "https",
+		AccessKeyId:          "mock_access_key",
+		SecretAccessKey:      "mock_secret_key",
+
+		StorageRegion: "us-east-1",
+
+		StorageConcurrency: 1,
+	})
+
+	sess, err := pool.GetSession(context.TODO())
+	assert.NoError(err)
+	_, err = sess.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String("bucket"),
+		Key:    aws.String("key"),
+	})
+	assert.NoError(err)
+
+	info := httpmock.GetCallCountInfo()
+	assert.Equal(1, info["GET https://endpoint_source/get_proxy"])
+	assert.Equal(1, info["GET https://storage.proxy:8080/bucket/key"])
+}
