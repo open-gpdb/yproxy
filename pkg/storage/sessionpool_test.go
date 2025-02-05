@@ -2,33 +2,33 @@ package storage_test
 
 import (
 	"context"
-	"strings"
 	"testing"
 
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"go.nhat.io/httpmock"
 )
 
-func TestEndpointSource(t *testing.T) {
+func TestEndpointSourceHTTP(t *testing.T) {
 	assert := assert.New(t)
 
-	proxy := httpmock.New(func(s *httpmock.Server) {
-		s.ExpectGet("/bucket/key")
-	})(t)
+	httpmock.Activate()
 
-	endpointSource := httpmock.New(func(s *httpmock.Server) {
-		s.ExpectGet("/endpoint").Return(strings.TrimPrefix(proxy.URL(), "http://"))
-	})(t)
+	httpmock.RegisterResponder("GET", "http://endpoint_source/get_proxy",
+		httpmock.NewStringResponder(200, "storage.proxy"))
+
+	httpmock.RegisterResponder("GET", "http://storage.proxy/bucket/key",
+		httpmock.NewStringResponder(200, ""))
 
 	pool := storage.NewSessionPool(&config.Storage{
-		StorageEndpoint:    "storage.mock",
-		EndpointSourceHost: endpointSource.URL() + "/endpoint",
-		AccessKeyId:        "mock_access_key",
-		SecretAccessKey:    "mock_secret_key",
+		StorageEndpoint:      "storage.mock",
+		EndpointSourceHost:   "http://endpoint_source/get_proxy",
+		EndpointSourceScheme: "http",
+		AccessKeyId:          "mock_access_key",
+		SecretAccessKey:      "mock_secret_key",
 
 		StorageRegion: "us-east-1",
 
@@ -42,4 +42,8 @@ func TestEndpointSource(t *testing.T) {
 		Key:    aws.String("key"),
 	})
 	assert.NoError(err)
+
+	info := httpmock.GetCallCountInfo()
+	assert.Equal(1, info["GET http://endpoint_source/get_proxy"])
+	assert.Equal(1, info["GET http://storage.proxy/bucket/key"])
 }
