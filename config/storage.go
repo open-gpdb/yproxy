@@ -24,8 +24,9 @@ type Storage struct {
 	// File storage default s3. Available: s3, fs
 	StorageType string `json:"storage_type" toml:"storage_type" yaml:"storage_type"`
 
-	EndpointSourceHost string `json:"storage_endpoint_source_host" toml:"storage_endpoint_source_host" yaml:"storage_endpoint_source_host"`
-	EndpointSourcePort string `json:"storage_endpoint_source_port" toml:"storage_endpoint_source_port" yaml:"storage_endpoint_source_port"`
+	EndpointSourceHost   string `json:"storage_endpoint_source_host" toml:"storage_endpoint_source_host" yaml:"storage_endpoint_source_host"`
+	EndpointSourcePort   string `json:"storage_endpoint_source_port" toml:"storage_endpoint_source_port" yaml:"storage_endpoint_source_port"`
+	EndpointSourceScheme string `json:"storage_endpoint_source_scheme" toml:"storage_endpoint_source_scheme" yaml:"storage_endpoint_source_scheme"`
 }
 
 func (s Storage) ID() string {
