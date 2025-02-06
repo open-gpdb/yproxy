@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -504,12 +503,7 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 	return nil
 }
 func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
-
 	dh := database.DatabaseHandler{}
-	indexes_lsn, err := dh.GetNextLSN(msg.Port, msg.DBName)
-	if err != nil {
-		return err
-	}
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
 	if err != nil {
 		return err
@@ -518,32 +512,26 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 	if err != nil {
 		return err
 	}
-	for str, v := range vi {
-		if v {
+	files, err := s.ListPath(msg.Message)
+	if err != nil {
+		return err
+	}
+	for _, v := range files {
+		not_obs, ok := vi[v.Path]
+
+		if ok || not_obs {
 			continue
 		}
 
-		_, ok := ei[str]
+		_, ok = ei[v.Path]
 		if ok {
 			continue
 		}
-		splitted := strings.Split(str, "_")
-		if len(splitted) == 0 {
-			// print error w string (maybe never be)
-			// TODO PRINT + RET ERROR
-		}
-		file_lsn, err := strconv.ParseUint(splitted[len(splitted)-1], 10, 64)
-		if err != nil {
-			// print cannot convert str to int
-			// TODO PRINT
-			continue
-		}
-		if file_lsn > indexes_lsn {
-			// Too new
+		if !strings.HasPrefix(v.Path, msg.Message) {
 			continue
 		}
 		// add to expire index
-		err = dh.AddToExpireIndex(msg.Port, msg.DBName, str, curr_lsn)
+		err = dh.AddToExpireIndex(msg.Port, msg.DBName, v.Path, curr_lsn)
 		if err != nil {
 			// TODO PRINT
 			continue
@@ -581,6 +569,8 @@ func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.Storag
 
 		// delete file
 
+		// TODO check has prefix msg.Message
+
 		err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
 		if err != nil {
 			// problem when deleting
@@ -588,6 +578,8 @@ func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.Storag
 			// TODO PRINT
 			continue
 		}
+
+		// TODO make deletion if crazy_drop
 		err = s.MoveObject(str, "trash/"+str)
 		if err != nil {
 			// unanable to delete file
