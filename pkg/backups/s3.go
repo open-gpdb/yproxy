@@ -15,7 +15,7 @@ type S3BackupInteractor struct {
 
 // get lsn of the oldest backup
 func (b *S3BackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
-	objects, err := b.Storage.ListPath(fmt.Sprintf("segments_005/seg%d/basebackups_005/", seg))
+	objects, err := b.Storage.ListPath(fmt.Sprintf("segments_005/seg%d/basebackups_005/", seg), true)
 	if err != nil {
 		return 0, err
 	}
