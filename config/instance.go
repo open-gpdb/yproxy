@@ -12,8 +12,9 @@ import (
 )
 
 type Instance struct {
-	StorageCnf Storage `json:"storage" toml:"storage" yaml:"storage"`
-	ProxyCnf   Proxy   `json:"proxy" toml:"proxy" yaml:"proxy"`
+	StorageCnf       Storage `json:"storage" toml:"storage" yaml:"storage"`
+	BackupStorageCnf Storage `json:"backup_storage" toml:"backup_storage" yaml:"backup_storage"`
+	ProxyCnf         Proxy   `json:"proxy" toml:"proxy" yaml:"proxy"`
 
 	CryptoCnf Crypto `json:"crypto" toml:"crypto" yaml:"crypto"`
 
@@ -76,6 +77,12 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.StorageCnf.StorageConcurrency == 0 {
 		cfgInstance.StorageCnf.StorageConcurrency = DefaultStorageConcurrency
+	}
+	if cfgInstance.BackupStorageCnf.StorageType == "" {
+		cfgInstance.BackupStorageCnf.StorageType = "s3"
+	}
+	if cfgInstance.BackupStorageCnf.StorageConcurrency == 0 {
+		cfgInstance.BackupStorageCnf.StorageConcurrency = DefaultStorageConcurrency
 	}
 	if cfgInstance.StatPort == 0 {
 		cfgInstance.StatPort = DefaultStatPort
