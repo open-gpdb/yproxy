@@ -45,7 +45,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 
 	/* Todo: check that yezzey version >= 1.8.1 */
 	if true { //yezzey version >=1.8.4 or didnt works
-		rows, err := conn.Query(`SELECT x_path, expire_lsn FROM yezzey.yezzey_expire_hint;`)
+		rows, err := conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
 		if err != nil {
 			return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 		}
@@ -166,7 +166,7 @@ func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, fi
 		defer conn.Close() //error
 		ylogger.Zero.Debug().Msg("connected to database")
 
-		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (x_path, expire_lsn) VALUES (%s , %d);`, filename, lsn)
+		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (x_path, lsn) VALUES (%s , %d);`, filename, lsn)
 		if err != nil {
 			return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
 		}

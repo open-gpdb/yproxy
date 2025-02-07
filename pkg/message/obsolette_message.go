@@ -1,6 +1,7 @@
 package message
 
 import (
+	"bytes"
 	"encoding/binary"
 )
 
@@ -52,10 +53,12 @@ func (c *CollectObsoletteMessage) Encode() []byte {
 }
 
 func (c *CollectObsoletteMessage) Decode(data []byte) {
-	errorLen := binary.BigEndian.Uint64(data[4:12])
-	c.DBName = string(data[12 : 12+errorLen])
-	messageLen := binary.BigEndian.Uint64(data[12+errorLen : 12+errorLen+8])
-	c.Message = string(data[12+errorLen+8 : 12+errorLen+8+messageLen])
+	c.Segnum = binary.BigEndian.Uint64(data[4:12])
+	c.Port = binary.BigEndian.Uint64(data[12:20])
+	n := bytes.IndexByte(data[20:], 0)
+
+	c.DBName = string(data[20 : 20+n])
+	c.Message = string(data[20+n:])
 }
 
 func NewDeleteObsoletteMessage(dbname string, msg string) *DeleteObsoletteMessage {
@@ -89,8 +92,10 @@ func (c *DeleteObsoletteMessage) Encode() []byte {
 }
 
 func (c *DeleteObsoletteMessage) Decode(data []byte) {
-	errorLen := binary.BigEndian.Uint64(data[4:12])
-	c.DBName = string(data[12 : 12+errorLen])
-	messageLen := binary.BigEndian.Uint64(data[12+errorLen : 12+errorLen+8])
-	c.Message = string(data[12+errorLen+8 : 12+errorLen+8+messageLen])
+	c.Segnum = binary.BigEndian.Uint64(data[4:12])
+	c.Port = binary.BigEndian.Uint64(data[12:20])
+	n := bytes.IndexByte(data[20:], 0)
+
+	c.DBName = string(data[20 : 20+n])
+	c.Message = string(data[20+n:])
 }
