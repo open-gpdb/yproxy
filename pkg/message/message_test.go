@@ -117,6 +117,71 @@ func TestPutV2Msg(t *testing.T) {
 	}
 }
 
+func TestPutMsgV3(t *testing.T) {
+	assert := assert.New(t)
+
+	type tcase struct {
+		name     string
+		encrypt  bool
+		err      error
+		settings []settings.StorageSettings
+	}
+
+	for _, tt := range []tcase{
+		{
+			"nam1",
+			true,
+			nil,
+			[]settings.StorageSettings{
+				{
+					Name:  "a",
+					Value: "b",
+				},
+				{
+					Name:  "cdsdsd",
+					Value: "ds",
+				},
+			},
+		},
+	} {
+
+		msg := message.NewPutMessageV3(tt.name, tt.encrypt, tt.settings)
+		body := msg.Encode()
+
+		msg2 := message.PutMessageV3{}
+
+		msg2.Decode(body[8:])
+
+		assert.Equal(msg.Name, msg2.Name)
+		assert.Equal(msg.Encrypt, msg2.Encrypt)
+		assert.Equal(msg.Settings, msg2.Settings)
+	}
+}
+
+func TestPutCompleteMsg(t *testing.T) {
+	assert := assert.New(t)
+
+	type tcase struct {
+		keyVersion uint16
+	}
+
+	for _, tt := range []tcase{
+		{
+			1,
+		},
+	} {
+
+		msg := message.NewPutCompleteMessage(tt.keyVersion)
+		body := msg.Encode()
+
+		msg2 := message.PutCompleteMessage{}
+
+		msg2.Decode(body[8:])
+
+		assert.Equal(msg.KeyVersion, msg2.KeyVersion)
+	}
+}
+
 func TestCatMsgV2(t *testing.T) {
 	assert := assert.New(t)
 
