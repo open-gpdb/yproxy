@@ -6,11 +6,6 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 )
 
-const StorageClassSetting = "StorageClass"
-const TableSpaceSetting = "TableSpace"
-const MultipartChunksize = "MultipartChunksize"
-const MultipartUpload = "MultipartUpload"
-
 type PutMessageV3 struct {
 	Encrypt bool
 	Name    string
