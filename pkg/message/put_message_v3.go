@@ -6,26 +6,26 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 )
 
-type PutMessageV2 struct {
+type PutMessageV3 struct {
 	Encrypt bool
 	Name    string
 
 	Settings []settings.StorageSettings
 }
 
-var _ ProtoMessage = &PutMessageV2{}
+var _ ProtoMessage = &PutMessageV3{}
 
-func NewPutMessageV2(name string, encrypt bool, settings []settings.StorageSettings) *PutMessageV2 {
-	return &PutMessageV2{
+func NewPutMessageV3(name string, encrypt bool, settings []settings.StorageSettings) *PutMessageV3 {
+	return &PutMessageV3{
 		Name:     name,
 		Encrypt:  encrypt,
 		Settings: settings,
 	}
 }
 
-func (c *PutMessageV2) Encode() []byte {
+func (c *PutMessageV3) Encode() []byte {
 	bt := []byte{
-		byte(MessageTypePutV2),
+		byte(MessageTypePutV3),
 		0,
 		0,
 		0,
@@ -60,7 +60,7 @@ func (c *PutMessageV2) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *PutMessageV2) Decode(body []byte) {
+func (c *PutMessageV3) Decode(body []byte) {
 	if body[1] == byte(EncryptMessage) {
 		c.Encrypt = true
 	}
