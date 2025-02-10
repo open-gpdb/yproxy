@@ -24,6 +24,8 @@ const (
 	MessageTypePutV2           = MessageType(53)
 	MessageTypeCatV2           = MessageType(54)
 	MessageTypeError           = MessageType(55)
+	MessageTypePutV3           = MessageType(56)
+	MessageTypePutComplete     = MessageType(57)
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
@@ -44,6 +46,10 @@ func (m MessageType) String() string {
 		return "PUT"
 	case MessageTypePutV2:
 		return "PUTV2"
+	case MessageTypePutV3:
+		return "PUTV3"
+	case MessageTypePutComplete:
+		return "PUTCOMPLETE"
 	case MessageTypeCommandComplete:
 		return "COMMAND COMPLETE"
 	case MessageTypeReadyForQuery:

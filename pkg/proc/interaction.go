@@ -68,7 +68,8 @@ func ProcessPutExtended(
 	s storage.StorageInteractor,
 	pr *ProtoReader,
 	name string,
-	encrypt bool, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient) error {
+	encrypt bool, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient,
+	replyKV bool) error {
 
 	ycl.SetExternalFilePath(name)
 
@@ -158,9 +159,7 @@ func ProcessPutExtended(
 	}
 
 	/* Should go after reader dispatch! */
-	err := s.PutFileToDest(name, r, settings)
-
-	if err != nil {
+	if err := s.PutFileToDest(name, r, settings); err != nil {
 		_ = ycl.ReplyError(err, "failed to upload")
 
 		return err
@@ -168,9 +167,15 @@ func ProcessPutExtended(
 
 	wg.Wait()
 
-	_, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode())
+	if replyKV {
+		if _, err := ycl.GetRW().Write(message.NewPutCompleteMessage(1).Encode()); err != nil {
+			_ = ycl.ReplyError(err, "failed to upload")
 
-	if err != nil {
+			return err
+		}
+	}
+
+	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
 		_ = ycl.ReplyError(err, "failed to upload")
 
 		return err
@@ -463,7 +468,7 @@ func ProcConn(s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyCl
 		msg := message.PutMessage{}
 		msg.Decode(body)
 
-		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, nil, cr, ycl); err != nil {
+		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, nil, cr, ycl, false); err != nil {
 			return err
 		}
 
@@ -472,7 +477,15 @@ func ProcConn(s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyCl
 		msg := message.PutMessageV2{}
 		msg.Decode(body)
 
-		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl); err != nil {
+		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, false); err != nil {
+			return err
+		}
+
+	case message.MessageTypePutV3:
+		msg := message.PutMessageV3{}
+		msg.Decode(body)
+
+		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, true); err != nil {
 			return err
 		}
 
