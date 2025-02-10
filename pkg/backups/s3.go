@@ -9,12 +9,12 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 )
 
-type S3BackupInteractor struct {
+type StorageBackupInteractor struct {
 	Storage storage.StorageInteractor
 }
 
 // get lsn of the oldest backup
-func (b *S3BackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
+func (b *StorageBackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
 	objects, err := b.Storage.ListPath(fmt.Sprintf("segments_005/seg%d/basebackups_005/", seg), true)
 	if err != nil {
 		return 0, err

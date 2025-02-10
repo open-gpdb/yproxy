@@ -367,7 +367,7 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 	ycl.SetExternalFilePath(msg.Name)
 
 	dbInterractor := &database.DatabaseHandler{}
-	backupHandler := &backups.S3BackupInteractor{Storage: bs}
+	backupHandler := &backups.StorageBackupInteractor{Storage: bs}
 
 	var dh = &BasicDeleteHandler{
 		StorageInterractor: s,
