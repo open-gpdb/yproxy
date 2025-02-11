@@ -114,6 +114,11 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		return err
 	}
 
+	bs, err := storage.NewStorage(&instanceCnf.BackupStorageCnf)
+	if err != nil {
+		return err
+	}
+
 	if instanceCnf.PsqlPort != 0 {
 		psqlListener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", instanceCnf.PsqlPort))
 		if err != nil {
@@ -141,7 +146,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		defer clConn.Close()
 		ycl := client.NewYClient(clConn)
 		i.pool.Put(ycl)
-		if err := proc.ProcConn(s, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
+		if err := proc.ProcConn(s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("got error serving client")
 		}
 		_, err := i.pool.Pop(ycl.ID())
