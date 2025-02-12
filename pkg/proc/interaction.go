@@ -154,6 +154,7 @@ func ProcessPutExtended(
 		}
 	}()
 
+	ylogger.Zero.Debug().Bool("replyKV", replyKV).Msg("func params")
 	for _, s := range settings {
 		ylogger.Zero.Debug().Bool("encypt", encrypt).Str("name", name).Str("name", s.Name).Str("value", s.Value).Msg("offloading setting")
 	}
