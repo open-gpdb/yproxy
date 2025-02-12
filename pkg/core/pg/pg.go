@@ -129,7 +129,7 @@ init:
 				})
 				conn.Flush()
 			case *parser.KKBCommand:
-				ylogger.Zero.Error().Msg("recieved die command, exiting")
+				ylogger.Zero.Error().Msg("received die command, exiting")
 
 				conn.Send(&pgproto3.RowDescription{
 					Fields: []pgproto3.FieldDescription{

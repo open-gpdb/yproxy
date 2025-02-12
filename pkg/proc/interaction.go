@@ -128,7 +128,7 @@ func ProcessPutExtended(
 				return
 			}
 
-			ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("recieved client request")
+			ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("received client request")
 
 			switch tp {
 			case message.MessageTypeCopyData:
@@ -436,7 +436,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		return err
 	}
 
-	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("recieved client request")
+	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("received client request")
 
 	ycl.SetOPType(tp)
 
@@ -536,14 +536,14 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 		return err
 	}
 
-	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("recieved client request")
+	ylogger.Zero.Debug().Str("msg-type", tp.String()).Msg("received client request")
 
 	ycl.SetOPType(tp)
 
 	msg := message.GoolMessage{}
 	msg.Decode(body)
 
-	ylogger.Zero.Info().Msg("recieved client gool succ")
+	ylogger.Zero.Info().Msg("received client gool succ")
 
 	_, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode())
 	if err != nil {

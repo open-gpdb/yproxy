@@ -32,7 +32,7 @@ func (database *DatabaseHandler) populateIndex() {
 
 }
 func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtualIndex *map[string]bool, expireIndex *map[string]uint64) error {
-	ylogger.Zero.Debug().Str("database name", db.name).Msg("recieved database")
+	ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
 	conn, err := connectToDatabase(port, db.name)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func getDatabase(port uint64) ([]DB, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	ylogger.Zero.Debug().Msg("recieved db list")
+	ylogger.Zero.Debug().Msg("received db list")
 
 	for rows.Next() {
 		row := DB{}
