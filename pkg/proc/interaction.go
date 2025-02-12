@@ -168,7 +168,9 @@ func ProcessPutExtended(
 	wg.Wait()
 
 	if replyKV {
-		if _, err := ycl.GetRW().Write(message.NewPutCompleteMessage(1).Encode()); err != nil {
+		msg := message.NewPutCompleteMessage(1).Encode()
+		ylogger.Zero.Debug().Bytes("msg", msg).Msg("sending put complete")
+		if _, err := ycl.GetRW().Write(msg); err != nil {
 			_ = ycl.ReplyError(err, "failed to upload")
 
 			return err
