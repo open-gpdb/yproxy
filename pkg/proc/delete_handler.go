@@ -135,7 +135,7 @@ func (dh *BasicDeleteHandler) ListGarbageFiles(msg message.DeleteMessage) ([]str
 		ylogger.Zero.Error().AnErr("err", err).Msg("failed to get indexes")
 		return nil, errors.Wrap(err, "could not get virtual and expire indexes")
 	}
-	ylogger.Zero.Info().Msg("recieved virtual index and expire index")
+	ylogger.Zero.Info().Msg("received virtual index and expire index")
 	ylogger.Zero.Debug().Int("virtual", len(vi)).Msg("virtual index match count")
 	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("exprire index match count")
 
