@@ -506,34 +506,41 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 	dh := database.DatabaseHandler{}
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
 	if err != nil {
+		_ = ycl.ReplyError(err, "failed get virtual expire indexes")
 		return err
 	}
 	curr_lsn, err := dh.GetNextLSN(msg.Port, msg.DBName)
 	if err != nil {
+		_ = ycl.ReplyError(err, "failed get min lsn")
 		return err
 	}
+
 	files, err := s.ListPath(msg.Message)
+	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
 	if err != nil {
+		_ = ycl.ReplyError(err, "failed list path")
+
 		return err
 	}
 	for _, v := range files {
 		not_obs, ok := vi[v.Path]
+		if !ok || not_obs {
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in virtual index, skiped")
 
-		if ok || not_obs {
 			continue
 		}
 
 		_, ok = ei[v.Path]
 		if ok {
-			continue
-		}
-		if !strings.HasPrefix(v.Path, msg.Message) {
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in expire index, skiped")
+
 			continue
 		}
 		// add to expire index
+		ylogger.Zero.Debug().Str("file name", v.Path).Msg("added to ei")
 		err = dh.AddToExpireIndex(msg.Port, msg.DBName, v.Path, curr_lsn)
 		if err != nil {
-			// TODO PRINT
+			_ = ycl.ReplyError(err, "error while adding to ei")
 			continue
 		}
 
