@@ -15,6 +15,7 @@ import (
 )
 
 // Storage prefix uses as path to folder.
+// WARNING "/path/to/folder" dont work
 // "/path/to/folder/" + "path/to/file.txt"
 type FileStorageInteractor struct {
 	StorageInteractor
