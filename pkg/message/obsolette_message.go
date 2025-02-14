@@ -56,9 +56,8 @@ func (c *CollectObsoletteMessage) Decode(data []byte) {
 	c.Segnum = binary.BigEndian.Uint64(data[4:12])
 	c.Port = binary.BigEndian.Uint64(data[12:20])
 	n := bytes.IndexByte(data[20:], 0)
-
 	c.DBName = string(data[20 : 20+n])
-	c.Message = string(data[20+n:])
+	c.Message = string(data[20+n+1 : len(data)-1])
 }
 
 func NewDeleteObsoletteMessage(dbname string, msg string) *DeleteObsoletteMessage {
@@ -97,5 +96,5 @@ func (c *DeleteObsoletteMessage) Decode(data []byte) {
 	n := bytes.IndexByte(data[20:], 0)
 
 	c.DBName = string(data[20 : 20+n])
-	c.Message = string(data[20+n:])
+	c.Message = string(data[20+n+1 : len(data)-1])
 }
