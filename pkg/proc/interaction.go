@@ -515,7 +515,7 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 		return err
 	}
 
-	files, err := s.ListPath(msg.Message)
+	files, err := s.ListPath(msg.Message, true)
 	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed list path")
