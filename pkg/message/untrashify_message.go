@@ -4,30 +4,27 @@ import (
 	"encoding/binary"
 )
 
-type DeleteMessage struct { //seg port
-	Name      string
-	Port      uint64
-	Segnum    uint64
-	Confirm   bool
-	Garbage   bool
-	CrazyDrop bool
+type UntrashifyMessage struct { //seg port
+	Name    string
+	Port    uint64
+	Segnum  uint64
+	Confirm bool
 }
 
-var _ ProtoMessage = &DeleteMessage{}
+var _ ProtoMessage = &UntrashifyMessage{}
 
-func NewDeleteMessage(name string, port uint64, seg uint64, confirm bool, garbage bool) *DeleteMessage {
-	return &DeleteMessage{
+func NewUntrashifyMessage(name string, port uint64, seg uint64, confirm bool) *UntrashifyMessage {
+	return &UntrashifyMessage{
 		Name:    name,
 		Port:    port,
 		Segnum:  seg,
 		Confirm: confirm,
-		Garbage: garbage,
 	}
 }
 
-func (c *DeleteMessage) Encode() []byte {
+func (c *UntrashifyMessage) Encode() []byte {
 	bt := []byte{
-		byte(MessageTypeDelete),
+		byte(MessageTypeUntrashify),
 		0,
 		0,
 		0,
@@ -35,12 +32,6 @@ func (c *DeleteMessage) Encode() []byte {
 
 	if c.Confirm {
 		bt[1] = 1
-	}
-	if c.Garbage {
-		bt[2] = 1
-	}
-	if c.CrazyDrop {
-		bt[3] = 1
 	}
 
 	bt = append(bt, []byte(c.Name)...)
@@ -60,15 +51,9 @@ func (c *DeleteMessage) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *DeleteMessage) Decode(body []byte) {
+func (c *UntrashifyMessage) Decode(body []byte) {
 	if body[1] == 1 {
 		c.Confirm = true
-	}
-	if body[2] == 1 {
-		c.Garbage = true
-	}
-	if body[3] == 1 {
-		c.CrazyDrop = true
 	}
 	c.Name, _ = GetCstring(body[4:])
 	c.Port = binary.BigEndian.Uint64(body[len(body)-16 : len(body)-8])

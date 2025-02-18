@@ -371,13 +371,14 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	ylogger.Zero.Info().Msg("Copy finished successfully")
 	return nil
 }
+
 func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient, cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(msg.Name)
 
 	dbInterractor := &database.DatabaseHandler{}
 	backupHandler := &backups.StorageBackupInteractor{Storage: bs}
 
-	var dh = &BasicDeleteHandler{
+	var dh = &BasicGarbageMgr{
 		StorageInterractor: s,
 		DbInterractor:      dbInterractor,
 		BackupInterractor:  backupHandler,
@@ -429,6 +430,45 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 
 	return nil
 }
+
+func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient) error {
+	ycl.SetExternalFilePath(msg.Name)
+
+	dbInterractor := &database.DatabaseHandler{}
+	backupHandler := &backups.StorageBackupInteractor{Storage: bs}
+
+	var dh = &BasicGarbageMgr{
+		StorageInterractor: s,
+		DbInterractor:      dbInterractor,
+		BackupInterractor:  backupHandler,
+		Cnf:                &config.Vacuum{},
+	}
+
+	ylogger.Zero.Debug().
+		Str("Name", msg.Name).
+		Uint64("port", msg.Port).
+		Uint64("segment", msg.Segnum).
+		Bool("confirm", msg.Confirm).Msg("requested to perform untrashify")
+
+	if err := dh.HandleUntrasifyFile(msg); err != nil {
+		_ = ycl.ReplyError(err, "failed to upload")
+		return err
+	}
+
+	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
+		_ = ycl.ReplyError(err, "failed to upload")
+		return err
+	}
+
+	if !msg.Confirm {
+		ylogger.Zero.Warn().Msg("It was a dry-run, nothing was deleted")
+	} else {
+		ylogger.Zero.Info().Msg("Untrashify garbage successfully")
+	}
+
+	return nil
+}
+
 func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 
 	defer func() {
@@ -513,6 +553,15 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		msg := message.DeleteMessage{}
 		msg.Decode(body)
 		err := ProcessDeleteExtended(msg, s, bs, ycl, cnf)
+		if err != nil {
+			return err
+		}
+
+	case message.MessageTypeUntrashify:
+		//recieve message
+		msg := message.UntrashifyMessage{}
+		msg.Decode(body)
+		err := ProcessUntrashify(msg, s, bs, ycl)
 		if err != nil {
 			return err
 		}
