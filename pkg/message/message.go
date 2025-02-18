@@ -9,6 +9,8 @@ type MessageType byte
 
 type RequestEncryption byte
 
+type KEKUsage byte
+
 const (
 	MessageTypeCat             = MessageType(42)
 	MessageTypePut             = MessageType(43)
@@ -26,12 +28,16 @@ const (
 	MessageTypeError           = MessageType(55)
 	MessageTypePutV3           = MessageType(56)
 	MessageTypePutComplete     = MessageType(57)
+	MessageTypeCatV3           = MessageType(58)
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
 
 	EncryptMessage   = RequestEncryption(1)
 	NoEncryptMessage = RequestEncryption(0)
+
+	UseKEK   = KEKUsage(1)
+	NoUseKEK = KEKUsage(0)
 
 	ExtendedMesssage = byte(1)
 )
