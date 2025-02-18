@@ -188,6 +188,7 @@ func TestCatMsgV2(t *testing.T) {
 	type tcase struct {
 		name    string
 		decrypt bool
+		kek     bool
 		off     uint64
 
 		settings []settings.StorageSettings
@@ -197,6 +198,7 @@ func TestCatMsgV2(t *testing.T) {
 	for _, tt := range []tcase{
 		{
 			"nam1",
+			true,
 			true,
 			0,
 			[]settings.StorageSettings{
@@ -214,6 +216,41 @@ func TestCatMsgV2(t *testing.T) {
 		{
 			"nam1",
 			true,
+			true,
+			10,
+			[]settings.StorageSettings{
+				{
+					Name:  "a",
+					Value: "b",
+				},
+				{
+					Name:  "cdsdsd",
+					Value: "ds",
+				},
+			},
+			nil,
+		},
+		{
+			"nam1",
+			true,
+			false,
+			0,
+			[]settings.StorageSettings{
+				{
+					Name:  "a",
+					Value: "b",
+				},
+				{
+					Name:  "cdsdsd",
+					Value: "ds",
+				},
+			},
+			nil,
+		},
+		{
+			"nam1",
+			true,
+			false,
 			10,
 			[]settings.StorageSettings{
 				{
@@ -229,7 +266,7 @@ func TestCatMsgV2(t *testing.T) {
 		},
 	} {
 
-		msg := message.NewCatMessageV2(tt.name, tt.decrypt, tt.off, tt.settings)
+		msg := message.NewCatMessageV2(tt.name, tt.decrypt, tt.kek, tt.off, tt.settings)
 		body := msg.Encode()
 
 		msg2 := message.CatMessageV2{}
@@ -238,6 +275,7 @@ func TestCatMsgV2(t *testing.T) {
 
 		assert.Equal(msg.Name, msg2.Name)
 		assert.Equal(msg.Decrypt, msg2.Decrypt)
+		assert.Equal(msg.KEK, msg2.KEK)
 		assert.Equal(msg.StartOffset, msg2.StartOffset)
 		assert.Equal(msg.Settings, msg2.Settings)
 	}
