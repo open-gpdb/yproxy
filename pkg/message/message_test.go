@@ -243,6 +243,71 @@ func TestCatMsgV2(t *testing.T) {
 	}
 }
 
+func TestCatMsgV3(t *testing.T) {
+	assert := assert.New(t)
+
+	type tcase struct {
+		name    string
+		decrypt bool
+		kek     bool
+		off     uint64
+
+		settings []settings.StorageSettings
+		err      error
+	}
+
+	for _, tt := range []tcase{
+		{
+			"nam1",
+			true,
+			true,
+			0,
+			[]settings.StorageSettings{
+				{
+					Name:  "a",
+					Value: "b",
+				},
+				{
+					Name:  "cdsdsd",
+					Value: "ds",
+				},
+			},
+			nil,
+		},
+		{
+			"nam1",
+			true,
+			true,
+			10,
+			[]settings.StorageSettings{
+				{
+					Name:  "a",
+					Value: "b",
+				},
+				{
+					Name:  "cdsdsd",
+					Value: "ds",
+				},
+			},
+			nil,
+		},
+	} {
+
+		msg := message.NewCatMessageV3(tt.name, tt.decrypt, tt.kek, tt.off, tt.settings)
+		body := msg.Encode()
+
+		msg2 := message.CatMessageV3{}
+
+		msg2.Decode(body[8:])
+
+		assert.Equal(msg.Name, msg2.Name)
+		assert.Equal(msg.Decrypt, msg2.Decrypt)
+		assert.Equal(msg.KEK, msg2.KEK)
+		assert.Equal(msg.StartOffset, msg2.StartOffset)
+		assert.Equal(msg.Settings, msg2.Settings)
+	}
+}
+
 func TestPatchMsg(t *testing.T) {
 	assert := assert.New(t)
 
