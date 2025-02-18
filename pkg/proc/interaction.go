@@ -25,7 +25,7 @@ func ProcessCatExtended(
 	s storage.StorageInteractor,
 	pr *ProtoReader,
 	name string,
-	decrypt bool, startOffset uint64, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient) error {
+	decrypt bool, kek bool, startOffset uint64, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient) error {
 
 	ycl.SetExternalFilePath(name)
 
@@ -49,6 +49,12 @@ func ProcessCatExtended(
 
 			return err
 		}
+	}
+
+	if kek {
+		err := fmt.Errorf("KEK is currently unsupported")
+		_ = ycl.ReplyError(err, "cat failed")
+		return err
 	}
 
 	if startOffset != 0 {
@@ -447,7 +453,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		msg := message.CatMessage{}
 		msg.Decode(body)
 
-		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, msg.StartOffset, nil, cr, ycl); err != nil {
+		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, false, msg.StartOffset, nil, cr, ycl); err != nil {
 			return err
 		}
 
@@ -456,7 +462,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		msg := message.CatMessageV2{}
 		msg.Decode(body)
 
-		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, msg.StartOffset, msg.Settings, cr, ycl); err != nil {
+		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, msg.KEK, msg.StartOffset, msg.Settings, cr, ycl); err != nil {
 			return err
 		}
 

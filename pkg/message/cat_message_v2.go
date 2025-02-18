@@ -8,6 +8,7 @@ import (
 
 type CatMessageV2 struct {
 	Decrypt     bool
+	KEK         bool
 	Name        string
 	StartOffset uint64
 
@@ -16,10 +17,11 @@ type CatMessageV2 struct {
 
 var _ ProtoMessage = &CatMessage{}
 
-func NewCatMessageV2(name string, decrypt bool, StartOffset uint64, Settings []settings.StorageSettings) *CatMessageV2 {
+func NewCatMessageV2(name string, decrypt bool, kek bool, StartOffset uint64, Settings []settings.StorageSettings) *CatMessageV2 {
 	return &CatMessageV2{
 		Name:        name,
 		Decrypt:     decrypt,
+		KEK:         kek,
 		StartOffset: StartOffset,
 		Settings:    Settings,
 	}
@@ -37,6 +39,11 @@ func (c *CatMessageV2) Encode() []byte {
 		bt[1] = byte(DecryptMessage)
 	} else {
 		bt[1] = byte(NoDecryptMessage)
+	}
+	if c.KEK {
+		bt[2] = byte(UseKEK)
+	} else {
+		bt[2] = byte(NoUseKEK)
 	}
 
 	bt = append(bt, []byte(c.Name)...)
@@ -66,6 +73,9 @@ func (c *CatMessageV2) Decode(body []byte) {
 	c.Name, off = GetCstring(body[4:])
 	if body[1] == byte(DecryptMessage) {
 		c.Decrypt = true
+	}
+	if body[2] == byte(UseKEK) {
+		c.KEK = true
 	}
 	c.StartOffset = binary.BigEndian.Uint64(body[4+len(c.Name)+1:])
 
