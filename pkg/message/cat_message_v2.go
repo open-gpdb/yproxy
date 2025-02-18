@@ -8,7 +8,7 @@ import (
 
 type CatMessageV2 struct {
 	Decrypt     bool
-	KEK         bool
+	KEK         bool // If we need to use key encryption key when decrypting data
 	Name        string
 	StartOffset uint64
 
