@@ -68,14 +68,15 @@ func (dh *BasicGarbageMgr) HandleUntrasifyFile(msg message.UntrashifyMessage) er
 	}
 
 	for _, file := range objectMetas {
-		ylogger.Zero.Info().Str("file", file.Path).Msg("file will be untrsahified")
+		ylogger.Zero.Info().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
 	}
+
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
 		return nil
 	}
 
 	for _, file := range objectMetas {
-		tp := TrashPathFromRegPath(file.Path, int(msg.Segnum))
+		tp := RegPathFromTrasnPath(file.Path, int(msg.Segnum))
 		err = dh.StorageInterractor.MoveObject(file.Path, tp)
 		if err != nil {
 			return err

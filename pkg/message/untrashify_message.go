@@ -6,17 +6,15 @@ import (
 
 type UntrashifyMessage struct { //seg port
 	Name    string
-	Port    uint64
 	Segnum  uint64
 	Confirm bool
 }
 
 var _ ProtoMessage = &UntrashifyMessage{}
 
-func NewUntrashifyMessage(name string, port uint64, seg uint64, confirm bool) *UntrashifyMessage {
+func NewUntrashifyMessage(name string, seg uint64, confirm bool) *UntrashifyMessage {
 	return &UntrashifyMessage{
 		Name:    name,
-		Port:    port,
 		Segnum:  seg,
 		Confirm: confirm,
 	}
@@ -38,10 +36,6 @@ func (c *UntrashifyMessage) Encode() []byte {
 	bt = append(bt, 0)
 
 	p := make([]byte, 8)
-	binary.BigEndian.PutUint64(p, uint64(c.Port))
-	bt = append(bt, p...)
-
-	p = make([]byte, 8)
 	binary.BigEndian.PutUint64(p, uint64(c.Segnum))
 	bt = append(bt, p...)
 
@@ -56,6 +50,5 @@ func (c *UntrashifyMessage) Decode(body []byte) {
 		c.Confirm = true
 	}
 	c.Name, _ = GetCstring(body[4:])
-	c.Port = binary.BigEndian.Uint64(body[len(body)-16 : len(body)-8])
 	c.Segnum = binary.BigEndian.Uint64(body[len(body)-8:])
 }

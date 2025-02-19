@@ -412,7 +412,7 @@ func TestDeleteMsg(t *testing.T) {
 func TestUntrashifyMsg(t *testing.T) {
 	assert := assert.New(t)
 
-	msg := message.NewUntrashifyMessage("myname/mynextname", 5432, 42, true)
+	msg := message.NewUntrashifyMessage("myname/mynextname", 42, true)
 	body := msg.Encode()
 
 	assert.Equal(body[8], byte(message.MessageTypeUntrashify))
@@ -421,7 +421,6 @@ func TestUntrashifyMsg(t *testing.T) {
 	msg2.Decode(body[8:])
 
 	assert.Equal("myname/mynextname", msg2.Name)
-	assert.Equal(uint64(5432), msg2.Port)
 	assert.Equal(uint64(42), msg2.Segnum)
 	assert.True(msg2.Confirm)
 }

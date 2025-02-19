@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -52,24 +51,11 @@ func (c *CatMessage) Encode() []byte {
 }
 
 func (c *CatMessage) Decode(body []byte) {
-	c.Name = c.GetCatName(body[4:])
+	c.Name, _ = GetCstring(body[4:])
 	if body[1] == byte(DecryptMessage) {
 		c.Decrypt = true
 	}
 	if body[2] == byte(ExtendedMesssage) {
 		c.StartOffset = binary.BigEndian.Uint64(body[4+len(c.Name)+1:])
 	}
-}
-
-func (c *CatMessage) GetCatName(b []byte) string {
-	buff := bytes.NewBufferString("")
-
-	for i := 0; i < len(b); i++ {
-		if b[i] == 0 {
-			break
-		}
-		buff.WriteByte(b[i])
-	}
-
-	return buff.String()
 }

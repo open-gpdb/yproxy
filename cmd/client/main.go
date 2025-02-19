@@ -252,6 +252,34 @@ func deleteFunc(con net.Conn, instanceCnf *config.Instance, args []string) error
 	return nil
 }
 
+func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
+	ylogger.Zero.Info().Msg("Execute untrashify command")
+
+	ylogger.Zero.Info().Str("name", args[0]).Msg("untrash")
+	msg := message.NewUntrashifyMessage(args[0], segmentNum, confirm).Encode()
+	_, err := con.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete msg")
+
+	client := client.NewYClient(con)
+	protoReader := proc.NewProtoReader(client)
+
+	ansType, body, err := protoReader.ReadPacket()
+	if err != nil {
+		ylogger.Zero.Debug().Err(err).Msg("error while recieving answer")
+		return err
+	}
+
+	if ansType != message.MessageTypeReadyForQuery {
+		return fmt.Errorf("failed to untrashify, msg: %v", body)
+	}
+
+	return nil
+}
+
 func goolFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	msg := message.NewGoolMessage(args[0]).Encode()
 	_, err := con.Write(msg)
@@ -310,6 +338,13 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete",
 	RunE:  Runner(deleteFunc),
+	Args:  cobra.ExactArgs(1),
+}
+
+var untrashifyCmd = &cobra.Command{
+	Use:   "untrash",
+	Short: "untrash",
+	RunE:  Runner(untrashifyFunc),
 }
 
 var putCmd = &cobra.Command{
@@ -364,6 +399,9 @@ func init() {
 	deleteCmd.PersistentFlags().BoolVarP(&garbage, "garbage", "g", false, "delete garbage")
 	rootCmd.AddCommand(deleteCmd)
 
+	untrashifyCmd.PersistentFlags().Uint64VarP(&segmentNum, "segnum", "s", 0, "logical number of a segment")
+	untrashifyCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
+	rootCmd.AddCommand(untrashifyCmd)
 }
 
 func main() {

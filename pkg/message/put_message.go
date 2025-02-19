@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -42,22 +41,9 @@ func (c *PutMessage) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *PutMessage) GetPutName(b []byte) string {
-	buff := bytes.NewBufferString("")
-
-	for i := 0; i < len(b); i++ {
-		if b[i] == 0 {
-			break
-		}
-		buff.WriteByte(b[i])
-	}
-
-	return buff.String()
-}
-
 func (c *PutMessage) Decode(body []byte) {
 	if body[1] == byte(EncryptMessage) {
 		c.Encrypt = true
 	}
-	c.Name = c.GetPutName(body[4:])
+	c.Name, _ = GetCstring(body[4:])
 }
