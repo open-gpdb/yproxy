@@ -2,10 +2,12 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/sdnotifier"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"golang.org/x/sys/unix"
 )
 
 type Instance struct {
@@ -40,6 +43,9 @@ func (i *Instance) DispatchServer(listener net.Listener, server func(net.Conn)) 
 		for {
 			clConn, err := listener.Accept()
 			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					break
+				}
 				ylogger.Zero.Error().Err(err).Msg("failed to accept connection")
 				continue
 			}
@@ -58,37 +64,10 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	go func() {
-		defer os.Remove(instanceCnf.SocketPath)
-
-		defer os.Remove(instanceCnf.InterconnectSocketPath)
-		defer cancelCtx()
-
-		for {
-			s := <-sigs
-			ylogger.Zero.Info().Str("signal", s.String()).Msg("received signal")
-
-			switch s {
-			case syscall.SIGUSR1:
-				ylogger.ReloadLogger(instanceCnf.LogPath)
-			case syscall.SIGUSR2:
-				return
-			case syscall.SIGHUP:
-				// reread config file
-
-			case syscall.SIGINT, syscall.SIGTERM:
-
-				// make better
-				return
-			default:
-				return
-			}
-		}
-	}()
-
 	/* dispatch statistic server */
 	if instanceCnf.StatPort != 0 {
-		statListener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", instanceCnf.StatPort))
+		config := &net.ListenConfig{Control: reusePort}
+		statListener, err := config.Listen(context.Background(), "tcp", fmt.Sprintf("localhost:%v", instanceCnf.StatPort))
 		if err != nil {
 			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
 			return err
@@ -120,7 +99,8 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	}
 
 	if instanceCnf.PsqlPort != 0 {
-		psqlListener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", instanceCnf.PsqlPort))
+		config := &net.ListenConfig{Control: reusePort}
+		psqlListener, err := config.Listen(context.Background(), "tcp", fmt.Sprintf("localhost:%v", instanceCnf.PsqlPort))
 		if err != nil {
 			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
 			return err
@@ -131,10 +111,19 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		})
 	}
 
-	listener, err := net.Listen("unix", instanceCnf.SocketPath)
-	if err != nil {
-		ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
-		return err
+	activeConnections := sync.WaitGroup{}
+
+	var listener net.Listener
+	for listener == nil {
+		listener, err = net.Listen("unix", instanceCnf.SocketPath)
+		if err != nil {
+			if errors.Is(err, syscall.EADDRINUSE) {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
+			return err
+		}
 	}
 
 	var cr crypt.Crypter = nil
@@ -143,6 +132,8 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	}
 
 	i.DispatchServer(listener, func(clConn net.Conn) {
+		activeConnections.Add(1)
+		defer activeConnections.Done()
 		defer clConn.Close()
 		ycl := client.NewYClient(clConn)
 		i.pool.Put(ycl)
@@ -160,7 +151,18 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		return err
 	}
 
-	iclistener, err := net.Listen("unix", instanceCnf.InterconnectSocketPath)
+	var iclistener net.Listener
+	for iclistener == nil {
+		iclistener, err = net.Listen("unix", instanceCnf.InterconnectSocketPath)
+		if err != nil {
+			if errors.Is(err, syscall.EADDRINUSE) {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
+			return err
+		}
+	}
 
 	ylogger.Zero.Debug().Msg("try to start interconnect socket listener")
 	if err != nil {
@@ -169,6 +171,8 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	}
 
 	i.DispatchServer(iclistener, func(clConn net.Conn) {
+		activeConnections.Add(1)
+		defer activeConnections.Done()
 		defer clConn.Close()
 		ycl := client.NewYClient(clConn)
 		r := proc.NewProtoReader(ycl)
@@ -206,6 +210,47 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		}
 	}()
 
+	go func() {
+		defer os.Remove(instanceCnf.SocketPath)
+
+		defer os.Remove(instanceCnf.InterconnectSocketPath)
+		defer cancelCtx()
+
+		for {
+			s := <-sigs
+			ylogger.Zero.Info().Str("signal", s.String()).Msg("received signal")
+
+			switch s {
+			case syscall.SIGUSR1:
+				ylogger.ReloadLogger(instanceCnf.LogPath)
+			case syscall.SIGUSR2:
+				if err := listener.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close socket")
+				}
+				if err := iclistener.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close ic socket")
+				}
+				return
+			case syscall.SIGHUP:
+				// reread config file
+
+			case syscall.SIGINT, syscall.SIGTERM:
+
+				// make better
+				return
+			default:
+				return
+			}
+		}
+	}()
+
 	<-ctx.Done()
+	activeConnections.Wait()
 	return nil
+}
+
+func reusePort(network, address string, conn syscall.RawConn) error {
+	return conn.Control(func(descriptor uintptr) {
+		syscall.SetsockoptInt(int(descriptor), unix.SOL_SOCKET, unix.SO_REUSEADDR|unix.SO_REUSEPORT, 1)
+	})
 }
