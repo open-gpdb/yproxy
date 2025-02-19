@@ -48,7 +48,7 @@ func TestFilesToDeletion(t *testing.T) {
 	database := mock.NewMockDatabaseInterractor(ctrl)
 	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(vi, ei, nil)
 
-	handler := proc.BasicDeleteHandler{
+	handler := proc.BasicGarbageMgr{
 		StorageInterractor: storage,
 		DbInterractor:      database,
 		BackupInterractor:  backup,
@@ -61,4 +61,28 @@ func TestFilesToDeletion(t *testing.T) {
 	assert.Equal(t, 2, len(list))
 	assert.Equal(t, "1663_16530_deleted-before-backup_18002_", list[0])
 	assert.Equal(t, "some_trash", list[1])
+}
+
+func TestTrashPathConversion(t *testing.T) {
+
+	type tt struct {
+		Path         string
+		ExpTrashPath string
+	}
+
+	for _, tc := range []tt{
+		{
+			Path:         "segments_005/seg60/basebackups_005/yezzey/1663_16712_001128848b0d46158f270005bc9cd82a_28144635_2305__DY_1_xlog_109463918313472",
+			ExpTrashPath: "trash/segments_005/seg60/basebackups_005/yezzey/1663_16712_001128848b0d46158f270005bc9cd82a_28144635_2305__DY_1_xlog_109463918313472",
+		},
+	} {
+
+		resP := proc.TrashPathFromRegPath(tc.Path, 60)
+
+		assert.Equal(t, tc.ExpTrashPath, resP)
+
+		resP2 := proc.RegPathFromTrasnPath(resP, 60)
+
+		assert.Equal(t, tc.Path, resP2)
+	}
 }

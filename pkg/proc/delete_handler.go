@@ -15,12 +15,13 @@ import (
 )
 
 //go:generate mockgen -destination=../../../test/mocks/mock_object.go -package mocks -build_flags -mod=readonly github.com/wal-g/wal-g/pkg/storages/storage Object
-type DeleteHandler interface {
+type GarbageMgr interface {
 	HandleDeleteGarbage(message.DeleteMessage) error
 	HandleDeleteFile(message.DeleteMessage) error
+	HandleUntrasifyFile(message.UntrashifyMessage) error
 }
 
-type BasicDeleteHandler struct {
+type BasicGarbageMgr struct {
 	BackupInterractor  backups.BackupInterractor
 	DbInterractor      database.DatabaseInterractor
 	StorageInterractor storage.StorageInteractor
@@ -28,7 +29,64 @@ type BasicDeleteHandler struct {
 	Cnf *config.Vacuum
 }
 
-func (dh *BasicDeleteHandler) HandleDeleteGarbage(msg message.DeleteMessage) error {
+var _ GarbageMgr = &BasicGarbageMgr{}
+
+func TrashPathFromRegPath(p string, segnum int) string {
+
+	filePathParts := strings.Split(p, "/")
+
+	destPath := path.Join(
+		"trash",
+		"segments_005",
+		fmt.Sprintf("seg%d", segnum),
+		"basebackups_005",
+		"yezzey", filePathParts[len(filePathParts)-1])
+
+	return destPath
+}
+
+func RegPathFromTrasnPath(p string, segnum int) string {
+
+	filePathParts := strings.Split(p, "/")
+
+	destPath := path.Join(
+		"segments_005",
+		fmt.Sprintf("seg%d", segnum),
+		"basebackups_005",
+		"yezzey", filePathParts[len(filePathParts)-1])
+
+	return destPath
+}
+
+// HandleUntrasifyFile implements GarbageMgr.
+func (dh *BasicGarbageMgr) HandleUntrasifyFile(msg message.UntrashifyMessage) error {
+
+	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
+	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true)
+	if err != nil {
+		return errors.Wrap(err, "could not list objects")
+	}
+
+	for _, file := range objectMetas {
+		ylogger.Zero.Info().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
+	}
+
+	if !msg.Confirm { //do not delete files if no confirmation flag provided
+		return nil
+	}
+
+	for _, file := range objectMetas {
+		tp := RegPathFromTrasnPath(file.Path, int(msg.Segnum))
+		err = dh.StorageInterractor.MoveObject(file.Path, tp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error {
 	fileList, err := dh.ListGarbageFiles(msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
@@ -61,17 +119,8 @@ func (dh *BasicDeleteHandler) HandleDeleteGarbage(msg message.DeleteMessage) err
 				err = dh.StorageInterractor.DeleteObject(fileList[i])
 
 			} else {
-
-				filePathParts := strings.Split(fileList[i], "/")
-
-				destPath := path.Join(
-					"trash",
-					"segments_005",
-					fmt.Sprintf("seg%d", msg.Segnum),
-					"basebackups_005",
-					"yezzey", filePathParts[len(filePathParts)-1])
-
-				err = dh.StorageInterractor.MoveObject(fileList[i], destPath)
+				tp := TrashPathFromRegPath(fileList[i], int(msg.Segnum))
+				err = dh.StorageInterractor.MoveObject(fileList[i], tp)
 			}
 			if err != nil {
 				ylogger.Zero.Warn().AnErr("err", err).Str("file", fileList[i]).Msg("failed to obsolete file")
@@ -97,7 +146,7 @@ func (dh *BasicDeleteHandler) HandleDeleteGarbage(msg message.DeleteMessage) err
 	return nil
 }
 
-func (dh *BasicDeleteHandler) HandleDeleteFile(msg message.DeleteMessage) error {
+func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 	err := dh.StorageInterractor.DeleteObject(msg.Name)
 	if err != nil {
 		ylogger.Zero.Error().AnErr("err", err).Msg("failed to delete file " + msg.Name)
@@ -106,7 +155,7 @@ func (dh *BasicDeleteHandler) HandleDeleteFile(msg message.DeleteMessage) error 
 	return nil
 }
 
-func (dh *BasicDeleteHandler) ListGarbageFiles(msg message.DeleteMessage) ([]string, error) {
+func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string, error) {
 	//get firsr backup lsn
 	var firstBackupLSN uint64
 	var err error

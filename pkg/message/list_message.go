@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -35,18 +34,5 @@ func (c *ListMessage) Encode() []byte {
 }
 
 func (c *ListMessage) Decode(body []byte) {
-	c.Prefix = c.GetListName(body[4:])
-}
-
-func (c *ListMessage) GetListName(b []byte) string {
-	buff := bytes.NewBufferString("")
-
-	for i := 0; i < len(b); i++ {
-		if b[i] == 0 {
-			break
-		}
-		buff.WriteByte(b[i])
-	}
-
-	return buff.String()
+	c.Prefix, _ = GetCstring(body[4:])
 }

@@ -28,6 +28,7 @@ const (
 	MessageTypeError           = MessageType(55)
 	MessageTypePutV3           = MessageType(56)
 	MessageTypePutComplete     = MessageType(57)
+	MessageTypeUntrashify      = MessageType(58)
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
@@ -73,6 +74,8 @@ func (m MessageType) String() string {
 		return "GOOL"
 	case MessageTypeError:
 		return "ERROR"
+	case MessageTypeUntrashify:
+		return "UNTRASHIFY"
 	}
 	return "UNKNOWN"
 }

@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -71,20 +70,7 @@ func (c *DeleteMessage) Decode(body []byte) {
 	if body[3] == 1 {
 		c.CrazyDrop = true
 	}
-	c.Name = c.GetDeleteName(body[4:])
+	c.Name, _ = GetCstring(body[4:])
 	c.Port = binary.BigEndian.Uint64(body[len(body)-16 : len(body)-8])
 	c.Segnum = binary.BigEndian.Uint64(body[len(body)-8:])
-}
-
-func (c *DeleteMessage) GetDeleteName(b []byte) string {
-	buff := bytes.NewBufferString("")
-
-	for i := 0; i < len(b); i++ {
-		if b[i] == 0 {
-			break
-		}
-		buff.WriteByte(b[i])
-	}
-
-	return buff.String()
 }
