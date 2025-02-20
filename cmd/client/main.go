@@ -241,7 +241,7 @@ func deleteFunc(con net.Conn, instanceCnf *config.Instance, args []string) error
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while recieving answer")
+		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
 		return err
 	}
 
@@ -269,7 +269,7 @@ func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) e
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while recieving answer")
+		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
 		return err
 	}
 

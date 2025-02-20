@@ -614,7 +614,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		}
 
 	case message.MessageTypeDelete:
-		//receive message
+		// receive message
 		msg := message.DeleteMessage{}
 		msg.Decode(body)
 		err := ProcessDeleteExtended(msg, s, bs, ycl, cnf)
@@ -623,7 +623,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		}
 
 	case message.MessageTypeUntrashify:
-		//receive message
+		// receive message
 		msg := message.UntrashifyMessage{}
 		msg.Decode(body)
 		err := ProcessUntrashify(msg, s, bs, ycl)
@@ -706,7 +706,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 			continue
 		}
 		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
-			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
+			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copied size", sz).Msg("already copied, skipping...")
 			skipped = append(skipped, objectMetas[i])
 			continue
 		}
