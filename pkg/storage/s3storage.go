@@ -408,7 +408,7 @@ func readCache(cfg config.Storage, prefix string) ([]*object.ObjectInfo, error) 
 		return nil, fmt.Errorf("no cache for storage %s", cfg.ID())
 	}
 	if storageFiles.Time.Before(time.Now().Add(-24 * time.Hour)) {
-		return nil, fmt.Errorf("cache for storage %s has expirted", cfg.ID())
+		return nil, fmt.Errorf("cache for storage %s has expired", cfg.ID())
 	}
 
 	res := make([]*object.ObjectInfo, 0, len(objs))

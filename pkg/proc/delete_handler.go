@@ -186,7 +186,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 	}
 	ylogger.Zero.Info().Msg("received virtual index and expire index")
 	ylogger.Zero.Debug().Int("virtual", len(vi)).Msg("virtual index match count")
-	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("exprire index match count")
+	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("expire index match count")
 
 	filesToDelete := make([]string, 0)
 	for i := 0; i < len(objectMetas); i++ {
