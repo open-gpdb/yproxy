@@ -1,13 +1,9 @@
 name: Check Spelling
 
 on:
-  pull_request_target:
+  pull_request:
     branches:
     - "**"
-    types:
-    - 'opened'
-    - 'reopened'
-    - 'synchronize'
   issue_comment:
     types:
     - 'created'
