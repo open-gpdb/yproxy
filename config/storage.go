@@ -5,6 +5,13 @@ import "net/url"
 type Crypto struct {
 	GPGKeyId   string `json:"gpg_key_id" toml:"gpg_key_id" yaml:"gpg_key_id"`
 	GPGKeyPath string `json:"gpg_key_path" toml:"gpg_key_path" yaml:"gpg_key_path"`
+
+	// key encryption key settings
+	GPGKEKId   string `json:"gpg_kek_id" toml:"gpg_kek_id" yaml:"gpg_kek_id"`
+	GPGKEKPath string `json:"gpg_kek_path" toml:"gpg_kek_path" yaml:"gpg_kek_path"`
+	// data encryption key settings
+	GPGDEKId   string `json:"gpg_dek_id" toml:"gpg_dek_id" yaml:"gpg_dek_id"`
+	GPGDEKPath string `json:"gpg_dek_path" toml:"gpg_dek_path" yaml:"gpg_dek_path"`
 }
 
 type Storage struct {
