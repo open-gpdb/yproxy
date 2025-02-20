@@ -29,6 +29,7 @@ const (
 	MessageTypePutV3
 	MessageTypePutComplete
 	MessageTypeUntrashify
+	MessageTypeCopyV2
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
