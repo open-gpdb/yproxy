@@ -14,7 +14,7 @@ type KEKUsage byte
 const (
 	MessageTypeCat = MessageType(iota + 42)
 	MessageTypePut
-	MessageTypeCommandComplete
+	MessageTypeCopyDone
 	MessageTypeReadyForQuery
 	MessageTypeCopyData
 	MessageTypeDelete
@@ -56,7 +56,7 @@ func (m MessageType) String() string {
 		return "PUTV3"
 	case MessageTypePutComplete:
 		return "PUTCOMPLETE"
-	case MessageTypeCommandComplete:
+	case MessageTypeCopyDone:
 		return "COMMAND COMPLETE"
 	case MessageTypeReadyForQuery:
 		return "READY FOR QUERY"

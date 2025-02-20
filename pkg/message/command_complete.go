@@ -2,18 +2,18 @@ package message
 
 import "encoding/binary"
 
-type CommandCompleteMessage struct {
+type CopyDoneMessage struct {
 }
 
-var _ ProtoMessage = &CommandCompleteMessage{}
+var _ ProtoMessage = &CopyDoneMessage{}
 
-func NewCommandCompleteMessage() *CommandCompleteMessage {
-	return &CommandCompleteMessage{}
+func NewCopyDoneMessage() *CopyDoneMessage {
+	return &CopyDoneMessage{}
 }
 
-func (cc *CommandCompleteMessage) Encode() []byte {
+func (cc *CopyDoneMessage) Encode() []byte {
 	bt := []byte{
-		byte(MessageTypeCommandComplete),
+		byte(MessageTypeCopyDone),
 		0,
 		0,
 		0,
@@ -26,5 +26,5 @@ func (cc *CommandCompleteMessage) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *CommandCompleteMessage) Decode(body []byte) {
+func (c *CopyDoneMessage) Decode(body []byte) {
 }
