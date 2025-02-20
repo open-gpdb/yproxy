@@ -66,7 +66,7 @@ init:
 		msg, err := conn.Receive()
 
 		if err != nil {
-			ylogger.Zero.Error().Err(err).Msg("failed to recieve message")
+			ylogger.Zero.Error().Err(err).Msg("failed to receive message")
 			return
 		}
 

@@ -555,7 +555,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 			return err
 		}
 	case message.MessageTypeDelete:
-		//recieve message
+		//receive message
 		msg := message.DeleteMessage{}
 		msg.Decode(body)
 		err := ProcessDeleteExtended(msg, s, bs, ycl, cnf)
@@ -564,13 +564,14 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		}
 
 	case message.MessageTypeUntrashify:
-		//recieve message
+		//receive message
 		msg := message.UntrashifyMessage{}
 		msg.Decode(body)
 		err := ProcessUntrashify(msg, s, bs, ycl)
 		if err != nil {
 			return err
 		}
+
 	case message.MessageTypeGool:
 		return ProcMotion(s, cr, ycl)
 
