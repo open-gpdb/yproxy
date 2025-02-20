@@ -12,23 +12,23 @@ type RequestEncryption byte
 type KEKUsage byte
 
 const (
-	MessageTypeCat             = MessageType(42)
-	MessageTypePut             = MessageType(43)
-	MessageTypeCommandComplete = MessageType(44)
-	MessageTypeReadyForQuery   = MessageType(45)
-	MessageTypeCopyData        = MessageType(46)
-	MessageTypeDelete          = MessageType(47)
-	MessageTypeList            = MessageType(48)
-	MessageTypeObjectMeta      = MessageType(49)
-	MessageTypePatch           = MessageType(50)
-	MessageTypeCopy            = MessageType(51)
-	MessageTypeGool            = MessageType(52)
-	MessageTypePutV2           = MessageType(53)
-	MessageTypeCatV2           = MessageType(54)
-	MessageTypeError           = MessageType(55)
-	MessageTypePutV3           = MessageType(56)
-	MessageTypePutComplete     = MessageType(57)
-	MessageTypeUntrashify      = MessageType(58)
+	MessageTypeCat = MessageType(iota + 42)
+	MessageTypePut
+	MessageTypeCommandComplete
+	MessageTypeReadyForQuery
+	MessageTypeCopyData
+	MessageTypeDelete
+	MessageTypeList
+	MessageTypeObjectMeta
+	MessageTypePatch
+	MessageTypeCopy
+	MessageTypeGool
+	MessageTypePutV2
+	MessageTypeCatV2
+	MessageTypeError
+	MessageTypePutV3
+	MessageTypePutComplete
+	MessageTypeUntrashify
 
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
