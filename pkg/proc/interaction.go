@@ -220,12 +220,32 @@ func ProcessListExtended(msg message.ListMessage, s storage.StorageInteractor, c
 	}
 	return nil
 }
-func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient) error {
+func ProcessCopyExtended(
+	name string,
+	oldCfgPath string,
+	port uint64,
+	confirm,
+	encrypt,
+	decrypt,
+	kEKDecrypt,
+	serverSide bool,
+	s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient) error {
+	if kEKDecrypt {
+		err := fmt.Errorf("KEK decryption in Copy not supported")
+		_ = ycl.ReplyError(err, "failed to compelete request")
+		return err
+	}
 
-	ycl.SetExternalFilePath(msg.Name)
+	if serverSide {
+		err := fmt.Errorf("server-side Copy not supported")
+		_ = ycl.ReplyError(err, "failed to compelete request")
+		return err
+	}
+
+	ycl.SetExternalFilePath(name)
 
 	// get config for old bucket
-	instanceCnf, err := config.ReadInstanceConfig(msg.OldCfgPath)
+	instanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to compelete request")
 		return nil
@@ -237,12 +257,12 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 	}
 	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
 
-	objectMetas, _, err := ListFilesToCopy(msg.Name, msg.Port, instanceCnf.StorageCnf, oldStorage, s)
+	objectMetas, _, err := ListFilesToCopy(name, port, instanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
 		return err
 	}
 
-	if !msg.Confirm {
+	if !confirm {
 		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
 		return nil
 	}
@@ -275,7 +295,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 				fromReader = readerFromOldBucket
 				defer readerFromOldBucket.Close()
 
-				if msg.Decrypt {
+				if decrypt {
 					oldCr, err := crypt.NewCrypto(&instanceCnf.CryptoCnf)
 					if err != nil {
 						ylogger.Zero.Error().Err(err).Msg("failed to configure decrypter")
@@ -306,7 +326,7 @@ func ProcessCopyExtended(msg message.CopyMessage, s storage.StorageInteractor, c
 
 					var writerToNewBucket io.WriteCloser = writerEncrypt
 
-					if msg.Encrypt {
+					if encrypt {
 						var err error
 						writerToNewBucket, err = cr.Encrypt(writerEncrypt)
 						if err != nil {
@@ -546,14 +566,46 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		if err != nil {
 			return err
 		}
+
 	case message.MessageTypeCopy:
 		msg := message.CopyMessage{}
 		msg.Decode(body)
 
-		err := ProcessCopyExtended(msg, s, cr, ycl)
+		err := ProcessCopyExtended(
+			msg.Name,
+			msg.OldCfgPath,
+			msg.Port,
+			msg.Confirm,
+			msg.Encrypt,
+			msg.Decrypt,
+			false,
+			false,
+			s, cr, ycl)
 		if err != nil {
 			return err
 		}
+
+	case message.MessageTypeCopyV2:
+		msg := message.CopyMessageV2{}
+		msg.Decode(body)
+
+		err := ProcessCopyExtended(
+			msg.Name,
+			msg.OldCfgPath,
+			msg.Port,
+			msg.Confirm,
+			msg.Encrypt,
+			msg.Decrypt,
+			msg.KEKDecrypt,
+			msg.ServerSideCopy,
+			s, cr, ycl)
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			return err
+		}
+
 	case message.MessageTypeDelete:
 		//recieve message
 		msg := message.DeleteMessage{}
