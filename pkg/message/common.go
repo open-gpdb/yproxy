@@ -3,6 +3,6 @@ package message
 const (
 	StorageClassSetting = "StorageClass"
 	TableSpaceSetting   = "TableSpace"
-	MultipartChunksize  = "MultipartChunksize"
+	MultipartChunkSize  = "MultipartChunkSize"
 	MultipartUpload     = "MultipartUpload"
 )

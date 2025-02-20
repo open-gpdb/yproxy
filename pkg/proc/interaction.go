@@ -161,7 +161,7 @@ func ProcessPutExtended(
 	}()
 
 	for _, s := range settings {
-		ylogger.Zero.Debug().Bool("encypt", encrypt).Str("name", name).Str("name", s.Name).Str("value", s.Value).Msg("offloading setting")
+		ylogger.Zero.Debug().Bool("encrypt", encrypt).Str("name", name).Str("name", s.Name).Str("value", s.Value).Msg("offloading setting")
 	}
 
 	/* Should go after reader dispatch! */
@@ -233,13 +233,13 @@ func ProcessCopyExtended(
 	s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient) error {
 	if kEKDecrypt {
 		err := fmt.Errorf("KEK decryption in Copy not supported")
-		_ = ycl.ReplyError(err, "failed to compelete request")
+		_ = ycl.ReplyError(err, "failed to complete request")
 		return err
 	}
 
 	if serverSide {
 		err := fmt.Errorf("server-side Copy not supported")
-		_ = ycl.ReplyError(err, "failed to compelete request")
+		_ = ycl.ReplyError(err, "failed to complete request")
 		return err
 	}
 
@@ -248,7 +248,7 @@ func ProcessCopyExtended(
 	// get config for old bucket
 	instanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
 	if err != nil {
-		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to compelete request")
+		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to complete request")
 		return nil
 	}
 	config.EmbedDefaults(&instanceCnf)
@@ -483,7 +483,7 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 		Bool("confirm", msg.Confirm).Msg("requested to perform untrashify")
 
 	if msg.Confirm {
-		if err := dh.HandleUntrasifyFile(msg); err != nil {
+		if err := dh.HandleUntrashifyFile(msg); err != nil {
 			_ = ycl.ReplyError(err, "failed to upload")
 			return err
 		}
@@ -664,7 +664,7 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 	msg := message.GoolMessage{}
 	msg.Decode(body)
 
-	ylogger.Zero.Info().Msg("received client gool succ")
+	ylogger.Zero.Info().Msg("received client gool success")
 
 	_, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode())
 	if err != nil {
@@ -706,7 +706,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 			continue
 		}
 		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
-			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copeid size", sz).Msg("already copied, skipping...")
+			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copied size", sz).Msg("already copied, skipping...")
 			skipped = append(skipped, objectMetas[i])
 			continue
 		}

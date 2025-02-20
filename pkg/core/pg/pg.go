@@ -46,7 +46,7 @@ init:
 		}
 	}
 
-	/* send aut ok */
+	/* send auth ok */
 	conn.Send(&pgproto3.AuthenticationCleartextPassword{})
 	conn.Flush()
 	_, err := conn.Receive()
@@ -149,7 +149,7 @@ init:
 					TxStatus: 'I',
 				})
 				conn.Flush()
-				/* TDB: remove this kostyl */
+				/* TDB: remove this crutch */
 				time.Sleep(time.Second * 5)
 				os.Exit(2)
 			default:
@@ -261,7 +261,7 @@ func ProcessShow(conn *pgproto3.Backend, s string, p clientpool.Pool, instanceSt
 
 	case "stats":
 		/*
-		* OPType, client_id, xpath, quantilies.
+		* OPType, client_id, xpath, quantiles.
 		 */
 
 		quants := []float64{

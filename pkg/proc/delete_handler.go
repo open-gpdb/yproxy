@@ -18,7 +18,7 @@ import (
 type GarbageMgr interface {
 	HandleDeleteGarbage(message.DeleteMessage) error
 	HandleDeleteFile(message.DeleteMessage) error
-	HandleUntrasifyFile(message.UntrashifyMessage) error
+	HandleUntrashifyFile(message.UntrashifyMessage) error
 }
 
 type BasicGarbageMgr struct {
@@ -58,8 +58,8 @@ func RegPathFromTrasnPath(p string, segnum int) string {
 	return destPath
 }
 
-// HandleUntrasifyFile implements GarbageMgr.
-func (dh *BasicGarbageMgr) HandleUntrasifyFile(msg message.UntrashifyMessage) error {
+// HandleUntrashifyFile implements GarbageMgr.
+func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) error {
 
 	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
 	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true)
@@ -156,7 +156,7 @@ func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 }
 
 func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string, error) {
-	//get firsr backup lsn
+	//get first backup lsn
 	var firstBackupLSN uint64
 	var err error
 
@@ -186,7 +186,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 	}
 	ylogger.Zero.Info().Msg("received virtual index and expire index")
 	ylogger.Zero.Debug().Int("virtual", len(vi)).Msg("virtual index match count")
-	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("exprire index match count")
+	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("expire index match count")
 
 	filesToDelete := make([]string, 0)
 	for i := 0; i < len(objectMetas); i++ {
