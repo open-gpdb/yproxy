@@ -43,18 +43,17 @@ func ProcessCatExtended(
 			return err
 		}
 		ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
-		contentReader, err = cr.Decrypt(yr)
+		contentReader, err = cr.Decrypt(yr, func() crypt.KeyVersion {
+			if kek {
+				return crypt.KEKDEKUsed
+			}
+			return crypt.SingleKeyUsed
+		}())
 		if err != nil {
 			_ = ycl.ReplyError(err, "failed to decrypt object")
 
 			return err
 		}
-	}
-
-	if kek {
-		err := fmt.Errorf("KEK is currently unsupported")
-		_ = ycl.ReplyError(err, "cat failed")
-		return err
 	}
 
 	if startOffset != 0 {
@@ -90,6 +89,8 @@ func ProcessPutExtended(
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
+	keyVersion := crypt.KeyVersion(0)
+
 	go func() {
 		defer wg.Done()
 
@@ -102,9 +103,16 @@ func ProcessPutExtended(
 			}
 
 			var err error
-			ww, err = cr.Encrypt(w)
+			var kVer crypt.KeyVersion
+			ww, kVer, err = cr.Encrypt(w)
 			if err != nil {
 				_ = ycl.ReplyError(err, "failed to encrypt")
+				return
+			}
+			if keyVersion == 0 {
+				keyVersion = kVer
+			} else if keyVersion != kVer {
+				_ = ycl.ReplyError(fmt.Errorf("different key versions while encrypting a single message"), "failed to encrypt")
 				return
 			}
 		} else {
