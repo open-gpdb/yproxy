@@ -150,8 +150,8 @@ func ProcessPutExtended(
 
 					return
 				}
-			case message.MessageTypeCommandComplete:
-				msg := message.CommandCompleteMessage{}
+			case message.MessageTypeCopyDone:
+				msg := message.CopyDoneMessage{}
 				msg.Decode(body)
 				return
 			default:

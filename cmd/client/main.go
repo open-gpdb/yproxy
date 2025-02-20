@@ -163,7 +163,7 @@ func putFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 
 	ylogger.Zero.Debug().Msg("send command complete msg")
 
-	msg = message.NewCommandCompleteMessage().Encode()
+	msg = message.NewCopyDoneMessage().Encode()
 	_, err = con.Write(msg)
 	if err != nil {
 		return err
