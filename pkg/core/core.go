@@ -64,6 +64,38 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
+	var listener net.Listener
+	var iclistener net.Listener
+
+	go func() {
+		defer cancelCtx()
+
+		for {
+			s := <-sigs
+			ylogger.Zero.Info().Str("signal", s.String()).Msg("received signal")
+
+			switch s {
+			case syscall.SIGUSR1:
+				ylogger.ReloadLogger(instanceCnf.LogPath)
+			case syscall.SIGHUP:
+				// reread config file
+			case syscall.SIGUSR2:
+				fallthrough
+			case syscall.SIGINT, syscall.SIGTERM:
+				// make better
+				fallthrough
+			default:
+				if err := listener.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close socket")
+				}
+				if err := iclistener.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close ic socket")
+				}
+				return
+			}
+		}
+	}()
+
 	/* dispatch statistic server */
 	if instanceCnf.StatPort != 0 {
 		config := &net.ListenConfig{Control: reusePort}
@@ -112,17 +144,21 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	}
 
 	activeConnections := sync.WaitGroup{}
+	retryTicker := time.NewTicker(time.Second)
 
-	var listener net.Listener
 	for listener == nil {
-		listener, err = net.Listen("unix", instanceCnf.SocketPath)
-		if err != nil {
-			if errors.Is(err, syscall.EADDRINUSE) {
-				time.Sleep(2 * time.Second)
-				continue
+		select {
+		case <-retryTicker.C:
+			listener, err = net.Listen("unix", instanceCnf.SocketPath)
+			if err != nil {
+				if errors.Is(err, syscall.EADDRINUSE) {
+					continue
+				}
+				ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
+				return err
 			}
-			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
-			return err
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 
@@ -151,16 +187,19 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		return err
 	}
 
-	var iclistener net.Listener
 	for iclistener == nil {
-		iclistener, err = net.Listen("unix", instanceCnf.InterconnectSocketPath)
-		if err != nil {
-			if errors.Is(err, syscall.EADDRINUSE) {
-				time.Sleep(2 * time.Second)
-				continue
+		select {
+		case <-retryTicker.C:
+			iclistener, err = net.Listen("unix", instanceCnf.InterconnectSocketPath)
+			if err != nil {
+				if errors.Is(err, syscall.EADDRINUSE) {
+					continue
+				}
+				ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
+				return err
 			}
-			ylogger.Zero.Error().Err(err).Msg("failed to start socket listener")
-			return err
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 
@@ -207,40 +246,6 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		for {
 			notifier.Notify()
 			time.Sleep(sdnotifier.Timeout)
-		}
-	}()
-
-	go func() {
-		defer os.Remove(instanceCnf.SocketPath)
-
-		defer os.Remove(instanceCnf.InterconnectSocketPath)
-		defer cancelCtx()
-
-		for {
-			s := <-sigs
-			ylogger.Zero.Info().Str("signal", s.String()).Msg("received signal")
-
-			switch s {
-			case syscall.SIGUSR1:
-				ylogger.ReloadLogger(instanceCnf.LogPath)
-			case syscall.SIGUSR2:
-				if err := listener.Close(); err != nil {
-					ylogger.Zero.Error().Err(err).Msg("failed to close socket")
-				}
-				if err := iclistener.Close(); err != nil {
-					ylogger.Zero.Error().Err(err).Msg("failed to close ic socket")
-				}
-				return
-			case syscall.SIGHUP:
-				// reread config file
-
-			case syscall.SIGINT, syscall.SIGTERM:
-
-				// make better
-				return
-			default:
-				return
-			}
 		}
 	}()
 
