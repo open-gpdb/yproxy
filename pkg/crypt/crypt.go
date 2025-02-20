@@ -12,6 +12,13 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
+type KeyVersion byte
+
+const (
+	SingleKeyEncryption = KeyVersion(iota + 1)
+	KEKDEKEncryption
+)
+
 type Crypter interface {
 	Decrypt(reader io.ReadCloser) (io.Reader, error)
 	Encrypt(writer io.WriteCloser) (io.WriteCloser, error)

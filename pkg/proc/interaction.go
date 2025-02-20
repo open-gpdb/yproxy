@@ -174,7 +174,7 @@ func ProcessPutExtended(
 	wg.Wait()
 
 	if replyKV {
-		if _, err := ycl.GetRW().Write(message.NewPutCompleteMessage(1).Encode()); err != nil {
+		if _, err := ycl.GetRW().Write(message.NewPutCompleteMessage(uint16(crypt.SingleKeyEncryption)).Encode()); err != nil {
 			_ = ycl.ReplyError(err, "failed to upload")
 
 			return err
@@ -228,7 +228,8 @@ func ProcessCopyExtended(
 	encrypt,
 	decrypt,
 	kEKDecrypt,
-	serverSide bool,
+	serverSide,
+	replyKV bool,
 	s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient) error {
 	if kEKDecrypt {
 		err := fmt.Errorf("KEK decryption in Copy not supported")
@@ -382,6 +383,13 @@ func ProcessCopyExtended(
 
 		_ = ycl.ReplyError(err, "failed files")
 		return err
+	}
+
+	if replyKV {
+		if _, err = ycl.GetRW().Write(message.NewCopyCompleteMessage(byte(crypt.SingleKeyEncryption)).Encode()); err != nil {
+			_ = ycl.ReplyError(err, "failed to upload")
+			return err
+		}
 	}
 
 	if _, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
@@ -580,6 +588,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 			msg.Decrypt,
 			false,
 			false,
+			false,
 			s, cr, ycl)
 		if err != nil {
 			return err
@@ -598,10 +607,8 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 			msg.Decrypt,
 			msg.KEKDecrypt,
 			msg.ServerSideCopy,
+			true,
 			s, cr, ycl)
-		if err != nil {
-			return err
-		}
 		if err != nil {
 			return err
 		}
