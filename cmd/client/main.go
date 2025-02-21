@@ -27,7 +27,7 @@ var (
 	encrypt            bool
 	storageClass       string
 	tableSpace         string
-	multipartChunksize int64
+	multipartChunkSize int64
 	multipartUpload    bool
 
 	offset uint64
@@ -38,7 +38,7 @@ var (
 	garbage     bool
 )
 
-// TODOV
+// TODO
 func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Command, []string) error {
 
 	return func(cmd *cobra.Command, args []string) error {
@@ -118,8 +118,8 @@ func putFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 			Value: tableSpace,
 		},
 		{
-			Name:  message.MultipartChunksize,
-			Value: fmt.Sprintf("%d", multipartChunksize),
+			Name:  message.MultipartChunkSize,
+			Value: fmt.Sprintf("%d", multipartChunkSize),
 		},
 		{
 			Name:  message.MultipartUpload,
@@ -386,7 +386,7 @@ func init() {
 	putCmd.PersistentFlags().StringVarP(&storageClass, "storage-class", "s", "STANDARD", "storage class for message upload")
 	putCmd.PersistentFlags().StringVarP(&tableSpace, "tablespace", "t", tablespace.DefaultTableSpace, "storage class for message upload")
 
-	putCmd.PersistentFlags().Int64VarP(&multipartChunksize, "multipart-chunk-size", "", int64(64*1024*1024), "S3 chunk size for multipart upload")
+	putCmd.PersistentFlags().Int64VarP(&multipartChunkSize, "multipart-chunk-size", "", int64(64*1024*1024), "S3 chunk size for multipart upload")
 	putCmd.PersistentFlags().BoolVarP(&multipartUpload, "multipart-upload", "", true, "S3 multipart or single part upload")
 	rootCmd.AddCommand(putCmd)
 

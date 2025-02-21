@@ -58,7 +58,7 @@ func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
 func buildBucketMapFromCnf(cnf *config.Storage) map[string]string {
 	mp := cnf.TablespaceMap
 	if mp == nil {
-		/* fallback for backward-compatibilty if to TableSpace map configured */
+		/* fallback for backward-compatibility if to TableSpace map configured */
 		mp = map[string]string{}
 	}
 	if _, ok := mp[tablespace.DefaultTableSpace]; !ok {

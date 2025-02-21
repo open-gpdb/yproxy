@@ -78,8 +78,8 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 
 	storageClass := ResolveStorageSetting(settings, message.StorageClassSetting, "STANDARD")
 	tableSpace := ResolveStorageSetting(settings, message.TableSpaceSetting, tablespace.DefaultTableSpace)
-	multipartChunksizeStr := ResolveStorageSetting(settings, message.MultipartChunksize, "16777216")
-	multipartChunksize, err := strconv.ParseInt(multipartChunksizeStr, 10, 64)
+	multipartChunkSizeStr := ResolveStorageSetting(settings, message.MultipartChunkSize, "16777216")
+	multipartChunkSize, err := strconv.ParseInt(multipartChunkSizeStr, 10, 64)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 	}
 
 	up := s3manager.NewUploaderWithClient(sess, func(uploader *s3manager.Uploader) {
-		uploader.PartSize = int64(multipartChunksize)
+		uploader.PartSize = int64(multipartChunkSize)
 		uploader.Concurrency = 1
 	})
 
@@ -222,7 +222,7 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
 		return err
 	}
-	ylogger.Zero.Debug().Msg("aquired session")
+	ylogger.Zero.Debug().Msg("acquired session")
 
 	if !strings.HasPrefix(key, s.cnf.StoragePrefix) {
 		key = path.Join(s.cnf.StoragePrefix, key)
@@ -249,7 +249,7 @@ func (s *S3StorageInteractor) SScopyObject(from string, to string) error {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
 		return err
 	}
-	ylogger.Zero.Debug().Msg("aquired session for server-side copy")
+	ylogger.Zero.Debug().Msg("acquired session for server-side copy")
 
 	if !strings.HasPrefix(from, s.cnf.StoragePrefix) {
 		from = path.Join(s.cnf.StoragePrefix, from)
