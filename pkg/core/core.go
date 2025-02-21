@@ -85,11 +85,15 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 				// make better
 				fallthrough
 			default:
-				if err := listener.Close(); err != nil {
-					ylogger.Zero.Error().Err(err).Msg("failed to close socket")
+				if listener != nil {
+					if err := listener.Close(); err != nil {
+						ylogger.Zero.Error().Err(err).Msg("failed to close socket")
+					}
 				}
-				if err := iclistener.Close(); err != nil {
-					ylogger.Zero.Error().Err(err).Msg("failed to close ic socket")
+				if iclistener != nil {
+					if err := iclistener.Close(); err != nil {
+						ylogger.Zero.Error().Err(err).Msg("failed to close ic socket")
+					}
 				}
 				return
 			}
@@ -161,6 +165,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			return ctx.Err()
 		}
 	}
+	ylogger.Zero.Info().Str("socket", instanceCnf.SocketPath).Msg("yproxy is listening unix socket")
 
 	var cr crypt.Crypter = nil
 	if instanceCnf.CryptoCnf.GPGKeyPath != "" {
