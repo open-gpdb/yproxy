@@ -23,6 +23,8 @@ var (
 	logLevel   string
 
 	decrypt bool
+	useKEK  bool
+	ssCopy  bool
 	/* Put command flags */
 	encrypt            bool
 	storageClass       string
@@ -62,7 +64,7 @@ func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Comm
 }
 
 func catFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
-	msg := message.NewCatMessage(args[0], decrypt, offset).Encode()
+	msg := message.NewCatMessageV2(args[0], decrypt, useKEK, offset, []settings.StorageSettings{}).Encode()
 	_, err := con.Write(msg)
 	if err != nil {
 		return err
@@ -81,7 +83,7 @@ func catFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute copy command")
 	ylogger.Zero.Info().Str("name", args[0]).Msg("copy")
-	msg := message.NewCopyMessage(args[0], oldCfgPath, encrypt, decrypt, confirm, segmentPort).Encode()
+	msg := message.NewCopyMessageV2(args[0], oldCfgPath, encrypt, decrypt, confirm, useKEK, ssCopy, segmentPort).Encode()
 	_, err := con.Write(msg)
 	if err != nil {
 		return err
@@ -93,6 +95,26 @@ func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	protoReader := proc.NewProtoReader(client)
 
 	ansType, body, err := protoReader.ReadPacket()
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("error while reading the answer")
+		return err
+	}
+
+	switch ansType {
+	case message.MessageTypeError:
+		msg := &message.ErrorMessage{}
+		msg.Decode(body)
+		return fmt.Errorf("%s: \"%s\"", msg.Message, msg.Error)
+	case message.MessageTypeCopyComplete:
+		msg := &message.CopyCompleteMessage{}
+		msg.Decode(body)
+		ylogger.Zero.Debug().Int("key-version", int(msg.KeyVersion)).Msg("got copy complete message")
+		fmt.Println(msg.KeyVersion)
+	default:
+		return fmt.Errorf("unexpected message %v", body)
+	}
+
+	ansType, body, err = protoReader.ReadPacket()
 	if err != nil {
 		ylogger.Zero.Debug().Err(err).Msg("error while answer")
 		return err
@@ -108,7 +130,7 @@ func putFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ycl := client.NewYClient(con)
 	r := proc.NewProtoReader(ycl)
 
-	msg := message.NewPutMessageV2(args[0], encrypt, []settings.StorageSettings{
+	msg := message.NewPutMessageV3(args[0], encrypt, []settings.StorageSettings{
 		{
 			Name:  message.StorageClassSetting,
 			Value: storageClass,
@@ -169,7 +191,21 @@ func putFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 		return err
 	}
 
-	tp, _, err := r.ReadPacket()
+	tp, data, err := r.ReadPacket()
+	if err != nil {
+		return err
+	}
+
+	if tp == message.MessageTypePutComplete {
+		msg := message.NewPutCompleteMessage(0)
+		msg.Decode(data)
+		ylogger.Zero.Debug().Int("key-version", int(msg.KeyVersion)).Msg("got put complete")
+		fmt.Println(msg.KeyVersion)
+	} else {
+		return fmt.Errorf("failed to get rfq")
+	}
+
+	tp, _, err = r.ReadPacket()
 	if err != nil {
 		return err
 	}
@@ -373,6 +409,7 @@ func init() {
 
 	catCmd.PersistentFlags().BoolVarP(&decrypt, "decrypt", "d", false, "decrypt external object or not")
 	catCmd.PersistentFlags().Uint64VarP(&offset, "offset", "o", 0, "start offset for read")
+	catCmd.PersistentFlags().BoolVarP(&useKEK, "use-kek", "", false, "use key encryption key and data encryption key pair to decrypt data")
 	rootCmd.AddCommand(catCmd)
 
 	copyCmd.PersistentFlags().BoolVarP(&decrypt, "decrypt", "d", false, "decrypt external object or not")
@@ -380,6 +417,8 @@ func init() {
 	copyCmd.PersistentFlags().StringVarP(&oldCfgPath, "old-config", "", "/etc/yproxy/yproxy.yaml", "path to old yproxy config file")
 	copyCmd.PersistentFlags().Uint64VarP(&segmentPort, "port", "p", 6000, "port that segment is listening on")
 	copyCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm copy")
+	copyCmd.PersistentFlags().BoolVarP(&useKEK, "use-kek", "", false, "use key encryption key and data encryption key pair to decrypt data")
+	copyCmd.PersistentFlags().BoolVarP(&ssCopy, "server-side", "", false, "perform server-side copy (requires KEK & DEK encryption)")
 	rootCmd.AddCommand(copyCmd)
 
 	putCmd.PersistentFlags().BoolVarP(&encrypt, "encrypt", "e", false, "encrypt external object before put")
