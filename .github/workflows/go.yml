@@ -26,3 +26,8 @@ jobs:
 
     - name: Test
       run: make unittest
+
+    - name: Run bash tests
+      run: |
+        make build
+        bash tests/graceful_restart.sh
