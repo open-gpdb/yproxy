@@ -34,7 +34,7 @@ echo 'yp-client1 received connection with pid' $clientpid1
 
 echo 'Killing Instance 1'
 kill -USR2 $pid1
-# old intance should be still running, serving active connections
+# old instance should be still running, serving active connections
 if ! kill -0 $pid1 2>&1; then
     cleanup
     exit 1
