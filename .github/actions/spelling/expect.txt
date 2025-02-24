@@ -27,6 +27,7 @@ dattablespace
 debhelper
 debian
 decrypter
+DEK
 devbin
 djewikdeowp
 dpkg
