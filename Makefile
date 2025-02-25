@@ -15,6 +15,9 @@ build:
 unittest:
 	go test -race ./pkg/message/... ./pkg/proc/... ./pkg/core/... ./pkg/storage/...
 
+regress:
+	docker build . -f test/regress/Dockerfile --tag yp-regress:1.0 && docker run yp-regress:1.0
+
 mockgen:
 	mockgen -source=pkg/proc/yio/yrreader.go -destination=pkg/mock/proc/yio/yrreader.go -package=mock
 	mockgen -source=pkg/client/client.go -destination=pkg/mock/client/client.go -package=mock

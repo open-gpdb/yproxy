@@ -166,6 +166,7 @@ untrashify
 USEC
 usr
 wal
+WORKDIR
 workflows
 WRONLY
 wtf
