@@ -1,5 +1,6 @@
 ababa
 aboba
+ABRT
 AExpr
 aocs
 Atoi
@@ -14,6 +15,7 @@ cdsdsd
 cfg
 Chk
 Cleartext
+clientpid
 clientpool
 cnf
 compat
@@ -31,6 +33,7 @@ DEK
 devbin
 djewikdeowp
 dpkg
+EADDRINUSE
 Errflag
 Errorf
 Exca
@@ -101,6 +104,7 @@ PGP
 pgproto
 pgtype
 pgx
+pid
 PITR
 postgres
 println
@@ -113,12 +117,15 @@ ragel
 rbuf
 RDWR
 reshke
+REUSEADDR
+REUSEPORT
 rfq
 rowsdb
 sconst
 sdnotifier
 segnum
 sessionpool
+Setsockopt
 SIGHUP
 SIGINT
 SIGTERM
@@ -132,6 +139,7 @@ Statenames
 Statname
 strconv
 stretchr
+sys
 syscall
 tablespace
 tcase
