@@ -58,6 +58,12 @@ func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Comm
 			return err
 		}
 
+		if logLevel == "" {
+			logLevel = instanceCnf.LogLevel
+		}
+
+		ylogger.UpdateZeroLogLevel(logLevel)
+
 		defer con.Close()
 		return f(con, instanceCnf, args)
 	}
