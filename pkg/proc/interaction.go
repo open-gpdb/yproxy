@@ -263,75 +263,47 @@ func ProcessCopyExtended(
 		return err
 	}
 
-	if !confirm {
-		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
-		return nil
-	}
+	if confirm {
+		var my sync.Mutex
 
-	var my sync.Mutex
+		var failed []*object.ObjectInfo
+		retryCount := 0
+		for len(objectMetas) > 0 && retryCount < 10 {
+			retryCount++
 
-	var failed []*object.ObjectInfo
-	retryCount := 0
-	for len(objectMetas) > 0 && retryCount < 10 {
-		retryCount++
+			sem := semaphore.NewWeighted(200)
 
-		sem := semaphore.NewWeighted(200)
+			wg := sync.WaitGroup{}
 
-		wg := sync.WaitGroup{}
+			for i := range len(objectMetas) {
+				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
 
-		for i := range len(objectMetas) {
-			path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
+				sem.Acquire(context.TODO(), 1)
+				wg.Add(1)
 
-			sem.Acquire(context.TODO(), 1)
-			wg.Add(1)
+				go func(i int) {
+					defer sem.Release(1)
+					defer wg.Done()
 
-			go func(i int) {
-				defer sem.Release(1)
-				defer wg.Done()
+					ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+					/* get reader */
+					readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
+					var fromReader io.Reader
+					fromReader = readerFromOldBucket
+					defer readerFromOldBucket.Close()
 
-				ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
-				/* get reader */
-				readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
-				var fromReader io.Reader
-				fromReader = readerFromOldBucket
-				defer readerFromOldBucket.Close()
-
-				if decrypt {
-					oldCr, err := crypt.NewCrypto(&instanceCnf.CryptoCnf)
-					if err != nil {
-						ylogger.Zero.Error().Err(err).Msg("failed to configure decrypter")
-						my.Lock()
-						failed = append(failed, objectMetas[i])
-						my.Unlock()
-						return
-					}
-					fromReader, err = oldCr.Decrypt(readerFromOldBucket)
-					if err != nil {
-						ylogger.Zero.Error().Err(err).Msg("failed to decrypt object")
-						my.Lock()
-						failed = append(failed, objectMetas[i])
-						my.Unlock()
-						return
-					}
-				}
-
-				/* re-encrypt */
-				readerEncrypt, writerEncrypt := io.Pipe()
-
-				go func() {
-					defer func() {
-						if err := writerEncrypt.Close(); err != nil {
-							ylogger.Zero.Warn().Err(err).Msg("failed to close writer")
-						}
-					}()
-
-					var writerToNewBucket io.WriteCloser = writerEncrypt
-
-					if encrypt {
-						var err error
-						writerToNewBucket, err = cr.Encrypt(writerEncrypt)
+					if decrypt {
+						oldCr, err := crypt.NewCrypto(&instanceCnf.CryptoCnf)
 						if err != nil {
-							ylogger.Zero.Error().Err(err).Msg("failed to encrypt object")
+							ylogger.Zero.Error().Err(err).Msg("failed to configure decrypter")
+							my.Lock()
+							failed = append(failed, objectMetas[i])
+							my.Unlock()
+							return
+						}
+						fromReader, err = oldCr.Decrypt(readerFromOldBucket)
+						if err != nil {
+							ylogger.Zero.Error().Err(err).Msg("failed to decrypt object")
 							my.Lock()
 							failed = append(failed, objectMetas[i])
 							my.Unlock()
@@ -339,50 +311,77 @@ func ProcessCopyExtended(
 						}
 					}
 
-					if _, err := io.Copy(writerToNewBucket, fromReader); err != nil {
-						ylogger.Zero.Error().Str("path", path).Err(err).Msg("failed to copy data")
+					/* re-encrypt */
+					readerEncrypt, writerEncrypt := io.Pipe()
+
+					go func() {
+						defer func() {
+							if err := writerEncrypt.Close(); err != nil {
+								ylogger.Zero.Warn().Err(err).Msg("failed to close writer")
+							}
+						}()
+
+						var writerToNewBucket io.WriteCloser = writerEncrypt
+
+						if encrypt {
+							var err error
+							writerToNewBucket, err = cr.Encrypt(writerEncrypt)
+							if err != nil {
+								ylogger.Zero.Error().Err(err).Msg("failed to encrypt object")
+								my.Lock()
+								failed = append(failed, objectMetas[i])
+								my.Unlock()
+								return
+							}
+						}
+
+						if _, err := io.Copy(writerToNewBucket, fromReader); err != nil {
+							ylogger.Zero.Error().Str("path", path).Err(err).Msg("failed to copy data")
+							my.Lock()
+							failed = append(failed, objectMetas[i])
+							my.Unlock()
+							return
+						}
+
+						if err := writerToNewBucket.Close(); err != nil {
+							ylogger.Zero.Error().Str("path", path).Err(err).Msg("failed to close writer")
+							my.Lock()
+							failed = append(failed, objectMetas[i])
+							my.Unlock()
+							return
+						}
+					}()
+
+					//write file
+					err = s.PutFileToDest(path, readerEncrypt, nil)
+					if err != nil {
+						ylogger.Zero.Error().Err(err).Msg("failed to upload file")
 						my.Lock()
 						failed = append(failed, objectMetas[i])
 						my.Unlock()
 						return
 					}
-
-					if err := writerToNewBucket.Close(); err != nil {
-						ylogger.Zero.Error().Str("path", path).Err(err).Msg("failed to close writer")
-						my.Lock()
-						failed = append(failed, objectMetas[i])
-						my.Unlock()
-						return
-					}
-				}()
-
-				//write file
-				err = s.PutFileToDest(path, readerEncrypt, nil)
-				if err != nil {
-					ylogger.Zero.Error().Err(err).Msg("failed to upload file")
-					my.Lock()
-					failed = append(failed, objectMetas[i])
-					my.Unlock()
-					return
-				}
-			}(i)
+				}(i)
+			}
+			wg.Wait()
+			objectMetas = failed
+			ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
+			failed = make([]*object.ObjectInfo, 0)
 		}
-		wg.Wait()
-		objectMetas = failed
-		ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
-		failed = make([]*object.ObjectInfo, 0)
-	}
 
-	if len(objectMetas) > 0 {
-		ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
-		fmt.Printf("failed files: %v\n", objectMetas)
-		ylogger.Zero.Error().Int("failed files count", len(objectMetas)).Msg("failed to upload some files")
-		ylogger.Zero.Error().Any("failed files", objectMetas).Msg("failed to upload some files")
+		if len(objectMetas) > 0 {
+			ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
+			fmt.Printf("failed files: %v\n", objectMetas)
+			ylogger.Zero.Error().Int("failed files count", len(objectMetas)).Msg("failed to upload some files")
+			ylogger.Zero.Error().Any("failed files", objectMetas).Msg("failed to upload some files")
 
-		err := fmt.Errorf("failed to copy some files")
+			err := fmt.Errorf("failed to copy some files")
 
-		_ = ycl.ReplyError(err, "failed files")
-		return err
+			_ = ycl.ReplyError(err, "failed files")
+			return err
+		}
+	} else {
+		ylogger.Zero.Info().Msg("It was a dry-run, nothing was copied")
 	}
 
 	if replyKV {
