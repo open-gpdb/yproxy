@@ -1,4 +1,4 @@
-name: Pull request
+name: Run yezzey integration tests
 
 on:
   pull_request:
