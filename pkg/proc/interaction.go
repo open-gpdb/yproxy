@@ -260,6 +260,7 @@ func ProcessCopyExtended(
 
 	objectMetas, _, err := ListFilesToCopy(name, port, instanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
+		_ = ycl.ReplyError(err, "failed to list files to copy")
 		return err
 	}
 
