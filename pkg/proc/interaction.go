@@ -523,8 +523,8 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 		return err
 	}
 	for _, v := range files {
-		not_obs, ok := vi[v.Path]
-		if !ok || not_obs {
+		_, ok := vi[v.Path]
+		if ok {
 			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in virtual index, skiped")
 
 			continue

@@ -165,8 +165,8 @@ func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, fi
 		}
 		defer conn.Close() //error
 		ylogger.Zero.Debug().Msg("connected to database")
-
-		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (x_path, lsn) VALUES (%s , %d);`, filename, lsn)
+		// TODO
+		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, lsn, filename)
 		if err != nil {
 			return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
 		}
