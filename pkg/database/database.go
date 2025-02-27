@@ -165,8 +165,7 @@ func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, fi
 		}
 		defer conn.Close() //error
 		ylogger.Zero.Debug().Msg("connected to database")
-		// TODO
-		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, lsn, filename)
+		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, pgx.FormatLSN(lsn), filename)
 		if err != nil {
 			return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
 		}
@@ -197,7 +196,7 @@ func (database *DatabaseHandler) DeleteFromExpireIndex(port uint64, dbname strin
 		defer conn.Close() //error
 		ylogger.Zero.Debug().Msg("connected to database")
 
-		rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path == "%s";`, filename)
+		rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path = $1;`, filename)
 		if err != nil {
 			return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
 		}

@@ -549,7 +549,7 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 }
 
 func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
-	bh := &backups.StorageBackupInteractor{}
+	bh := &backups.StorageBackupInteractor{Storage: s}
 
 	dh := database.DatabaseHandler{}
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
@@ -587,7 +587,7 @@ func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.Storag
 		}
 
 		// TODO make deletion if crazy_drop
-		err = s.MoveObject(str, "trash/"+str)
+		err = s.MoveObject(str, "/trash"+str)
 		if err != nil {
 			// unanable to delete file
 			// if file exists then ok if else ok
