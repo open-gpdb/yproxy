@@ -525,14 +525,14 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 	for _, v := range files {
 		_, ok := vi[v.Path]
 		if ok {
-			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in virtual index, skiped")
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in virtual index, skipped")
 
 			continue
 		}
 
 		_, ok = ei[v.Path]
 		if ok {
-			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in expire index, skiped")
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in expire index, skipped")
 
 			continue
 		}
@@ -589,7 +589,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		// TODO make deletion if crazy_drop
 		err = s.MoveObject(str, "/trash"+str)
 		if err != nil {
-			// unanable to delete file
+			// couldn't delete the file
 			// if file exists then ok if else ok
 			// TODO PRINT
 			continue

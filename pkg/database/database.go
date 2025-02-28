@@ -121,7 +121,7 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 				return 0, fmt.Errorf("unable to parse query output %v", err)
 			}
 
-			ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("getted lsn")
+			ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
 			return lsn, nil
 		}
 		// unexcepted
