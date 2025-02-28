@@ -32,6 +32,9 @@ const (
 	MessageTypeCopyV2
 	MessageTypeCopyComplete
 
+	MessageCollectObsolete = MessageType(64)
+	MessageDeleteObsolete  = MessageType(65)
+
 	DecryptMessage   = RequestEncryption(1)
 	NoDecryptMessage = RequestEncryption(0)
 
@@ -78,6 +81,10 @@ func (m MessageType) String() string {
 		return "ERROR"
 	case MessageTypeUntrashify:
 		return "UNTRASHIFY"
+	case MessageCollectObsolete:
+		return "COLLECT OBSOLETE"
+	case MessageDeleteObsolete:
+		return "DELETE OBSOLETE"
 	}
 	return "UNKNOWN"
 }

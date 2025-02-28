@@ -27,6 +27,9 @@ type ExpireHint struct {
 	expireLsn string
 	x_path    string
 }
+type LSN struct {
+	lsn string
+}
 
 func (database *DatabaseHandler) populateIndex() {
 
@@ -41,8 +44,8 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 	ylogger.Zero.Debug().Msg("connected to database")
 
 	/* Todo: check that yezzey version >= 1.8.1 */
-	if false {
-		rows, err := conn.Query(`SELECT x_path, expire_lsn FROM yezzey.yezzey_expire_hint;`)
+	if true { //yezzey version >=1.8.4 or didnt works
+		rows, err := conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
 		if err != nil {
 			return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 		}
@@ -84,6 +87,39 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 
 	return err
 }
+func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64, error) {
+
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
+	conn, err := connectToDatabase(port, dbname)
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close() //error
+	ylogger.Zero.Debug().Msg("connected to database")
+
+	rows, err := conn.Query(`select pg_current_xlog_location();`)
+	if err != nil {
+		return 0, fmt.Errorf("unable to next lsn %v", err) //fix
+	}
+	defer rows.Close()
+	ylogger.Zero.Debug().Msg("executed select")
+
+	for rows.Next() {
+		row := LSN{}
+		if err := rows.Scan(&row.lsn); err != nil {
+			return 0, fmt.Errorf("unable to parse query output %v", err)
+		}
+		lsn, err := pgx.ParseLSN(row.lsn)
+		if err != nil {
+			return 0, fmt.Errorf("unable to parse query output %v", err)
+		}
+
+		ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
+		return lsn, nil
+	}
+	// unexcepted
+	return 0, fmt.Errorf("unexpected error while getting next lsn")
+}
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
 	databases, err := getDatabase(port)
 	if err != nil || databases == nil {
@@ -101,7 +137,35 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[strin
 	}
 	return virtualIndex, expireIndex, nil
 }
+func (database *DatabaseHandler) GetConnectToDatabase(port uint64, dbname string) (*pgx.Conn, error) {
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
+	conn, err := connectToDatabase(port, dbname)
+	if err != nil {
+		return nil, err
+	}
+	ylogger.Zero.Debug().Msg("connected to database")
+	return conn, nil
 
+}
+func (database *DatabaseHandler) AddToExpireIndex(conn *pgx.Conn, port uint64, dbname string, filename string, lsn uint64) error {
+	rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, pgx.FormatLSN(lsn), filename)
+	if err != nil {
+		return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
+	}
+	defer rows.Close()
+
+	return nil
+}
+
+func (database *DatabaseHandler) DeleteFromExpireIndex(conn *pgx.Conn, port uint64, dbname string, filename string) error {
+	rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path = $1;`, filename)
+	if err != nil {
+		return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
+	}
+	defer rows.Close()
+
+	return nil
+}
 func getDatabase(port uint64) ([]DB, error) {
 	var databases = []DB{}
 	conn, err := connectToDatabase(port, "postgres")

@@ -502,6 +502,122 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 
 	return nil
 }
+func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+	dh := database.DatabaseHandler{}
+	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed get virtual expire indexes")
+		return err
+	}
+	curr_lsn, err := dh.GetNextLSN(msg.Port, msg.DBName)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed get min lsn")
+		return err
+	}
+
+	files, err := s.ListPath(msg.Message, true)
+	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed list path")
+
+		return err
+	}
+	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed connect to db")
+		return err
+	}
+	defer conn.Close()
+	for _, v := range files {
+		_, ok := vi[v.Path]
+		if ok {
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in virtual index, skipped")
+
+			continue
+		}
+
+		_, ok = ei[v.Path]
+		if ok {
+			ylogger.Zero.Debug().Str("file name", v.Path).Msg("in expire index, skipped")
+
+			continue
+		}
+		// add to expire index
+		err = dh.AddToExpireIndex(conn, msg.Port, msg.DBName, v.Path, curr_lsn)
+		if err != nil {
+			_ = ycl.ReplyError(err, "error while adding to ei")
+			continue
+		}
+		ylogger.Zero.Debug().Str("file name", v.Path).Msg("added to ei")
+
+	}
+	return nil
+}
+
+func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+	bh := &backups.StorageBackupInteractor{Storage: s}
+
+	dh := database.DatabaseHandler{}
+	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	if err != nil {
+		return err
+	}
+	first_backup_lsn, err := bh.GetFirstLSN(msg.Segnum)
+	if err != nil {
+		return err
+	}
+	if first_backup_lsn == ^uint64(0) {
+		return fmt.Errorf("wal-g required for consistent deleting")
+	}
+	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed connect to db")
+		return err
+	}
+	defer conn.Close()
+
+	for str, v := range ei {
+		if v >= first_backup_lsn {
+			continue
+		}
+		if vi[str] {
+			ylogger.Zero.Error().Str("delete candidate ", str).Msg("in virtual index, trying to delete")
+
+			err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
+			if err != nil {
+				ylogger.Zero.Error().Str("delete candidate ", str).Msg("not deleted from expire hint")
+				continue
+			}
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("deleted from expire hint")
+			continue
+		}
+
+		// delete file
+
+		// TODO check has prefix msg.Message
+		if !strings.Contains(str, msg.Message) {
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("doesnt have substring")
+			continue
+		}
+		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
+		if err != nil {
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not deleted from expire hint")
+
+			continue
+		}
+
+		// TODO make deletion if crazy_drop
+		err = s.MoveObject(str, "/trash"+str)
+		if err != nil {
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not moved to trash")
+
+			continue
+		}
+		ylogger.Zero.Debug().Str("delete candidate ", str).Msg("deleted successfully")
+
+	}
+	return nil
+}
 
 func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 
@@ -633,6 +749,19 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 
 	case message.MessageTypeGool:
 		return ProcMotion(s, cr, ycl)
+
+	case message.MessageCollectObsolete:
+		msg := message.CollectObsoleteMessage{}
+		msg.Decode(body)
+		if err := ProcessCollectObsolete(msg, s, ycl); err != nil {
+			return err
+		}
+	case message.MessageDeleteObsolete:
+		msg := message.DeleteObsoleteMessage{}
+		msg.Decode(body)
+		if err := ProcessDeleteObsolete(msg, s, ycl); err != nil {
+			return err
+		}
 
 	default:
 		ylogger.Zero.Error().Any("type", tp).Msg("unknown message type")
