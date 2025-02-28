@@ -137,16 +137,17 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[strin
 	}
 	return virtualIndex, expireIndex, nil
 }
-
-func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, filename string, lsn uint64) error {
-
+func (database *DatabaseHandler) GetConnectToDatabase(port uint64, dbname string) (*pgx.Conn, error) {
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
 	conn, err := connectToDatabase(port, dbname)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer conn.Close() //error
 	ylogger.Zero.Debug().Msg("connected to database")
+	return conn, nil
+
+}
+func (database *DatabaseHandler) AddToExpireIndex(conn *pgx.Conn, port uint64, dbname string, filename string, lsn uint64) error {
 	rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, pgx.FormatLSN(lsn), filename)
 	if err != nil {
 		return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
@@ -157,35 +158,15 @@ func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, fi
 	return nil
 }
 
-func (database *DatabaseHandler) DeleteFromExpireIndex(port uint64, dbname string, filename string) error {
-
-	databases, err := getDatabase(port)
-	if err != nil || databases == nil {
-		return fmt.Errorf("unable to get ao/aocs tables %v", err) // fix
+func (database *DatabaseHandler) DeleteFromExpireIndex(conn *pgx.Conn, port uint64, dbname string, filename string) error {
+	rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path = $1;`, filename)
+	if err != nil {
+		return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
 	}
-	for _, db := range databases {
-		if dbname != db.name {
-			continue
-		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
-		conn, err := connectToDatabase(port, db.name)
-		if err != nil {
-			return err
-		}
-		defer conn.Close() //error
-		ylogger.Zero.Debug().Msg("connected to database")
+	defer rows.Close()
+	ylogger.Zero.Debug().Msg("executed delete")
 
-		rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path = $1;`, filename)
-		if err != nil {
-			return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
-		}
-		defer rows.Close()
-		ylogger.Zero.Debug().Msg("executed delete")
-
-		return nil
-	}
-
-	return fmt.Errorf("didnt find db with name %s", dbname)
+	return nil
 }
 func getDatabase(port uint64) ([]DB, error) {
 	var databases = []DB{}

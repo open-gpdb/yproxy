@@ -522,6 +522,12 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 
 		return err
 	}
+	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed connect to db")
+		return err
+	}
+	defer conn.Close()
 	for _, v := range files {
 		_, ok := vi[v.Path]
 		if ok {
@@ -538,7 +544,7 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 		}
 		// add to expire index
 		ylogger.Zero.Debug().Str("file name", v.Path).Msg("added to ei")
-		err = dh.AddToExpireIndex(msg.Port, msg.DBName, v.Path, curr_lsn)
+		err = dh.AddToExpireIndex(conn, msg.Port, msg.DBName, v.Path, curr_lsn)
 		if err != nil {
 			_ = ycl.ReplyError(err, "error while adding to ei")
 			continue
@@ -563,6 +569,13 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	if first_backup_oid == ^uint64(0) {
 		return fmt.Errorf("wal-g required for consistent deleting")
 	}
+	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed connect to db")
+		return err
+	}
+	defer conn.Close()
+
 	for str, v := range ei {
 		if v >= first_backup_oid {
 			continue
@@ -570,7 +583,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		if vi[str] {
 			ylogger.Zero.Error().Str("delete candidate ", str).Msg("in virtual index, trying to delete")
 
-			err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
+			err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 			if err != nil {
 				ylogger.Zero.Error().Str("delete candidate ", str).Msg("not deleted from expire hint")
 				continue
