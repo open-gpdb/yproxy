@@ -88,47 +88,37 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 	return err
 }
 func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64, error) {
-	databases, err := getDatabase(port)
-	if err != nil || databases == nil {
-		return 0, fmt.Errorf("unable to get ao/aocs tables %v", err) // fix
+
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
+	conn, err := connectToDatabase(port, dbname)
+	if err != nil {
+		return 0, err
 	}
-	for _, db := range databases {
-		if dbname != db.name {
-			continue
-		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
-		conn, err := connectToDatabase(port, db.name)
-		if err != nil {
-			return 0, err
-		}
-		defer conn.Close() //error
-		ylogger.Zero.Debug().Msg("connected to database")
+	defer conn.Close() //error
+	ylogger.Zero.Debug().Msg("connected to database")
 
-		rows, err := conn.Query(`select pg_current_xlog_location();`)
-		if err != nil {
-			return 0, fmt.Errorf("unable to next lsn %v", err) //fix
-		}
-		defer rows.Close()
-		ylogger.Zero.Debug().Msg("executed select")
-
-		for rows.Next() {
-			row := LSN{}
-			if err := rows.Scan(&row.lsn); err != nil {
-				return 0, fmt.Errorf("unable to parse query output %v", err)
-			}
-			lsn, err := pgx.ParseLSN(row.lsn)
-			if err != nil {
-				return 0, fmt.Errorf("unable to parse query output %v", err)
-			}
-
-			ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
-			return lsn, nil
-		}
-		// unexcepted
-		return 0, fmt.Errorf("unexpected error while getting next lsn")
+	rows, err := conn.Query(`select pg_current_xlog_location();`)
+	if err != nil {
+		return 0, fmt.Errorf("unable to next lsn %v", err) //fix
 	}
+	defer rows.Close()
+	ylogger.Zero.Debug().Msg("executed select")
 
-	return 0, fmt.Errorf("didnt find db with name %s", dbname)
+	for rows.Next() {
+		row := LSN{}
+		if err := rows.Scan(&row.lsn); err != nil {
+			return 0, fmt.Errorf("unable to parse query output %v", err)
+		}
+		lsn, err := pgx.ParseLSN(row.lsn)
+		if err != nil {
+			return 0, fmt.Errorf("unable to parse query output %v", err)
+		}
+
+		ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
+		return lsn, nil
+	}
+	// unexcepted
+	return 0, fmt.Errorf("unexpected error while getting next lsn")
 }
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
 	databases, err := getDatabase(port)
