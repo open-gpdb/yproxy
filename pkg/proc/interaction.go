@@ -599,7 +599,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("doesnt have substring")
 			continue
 		}
-		err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
+		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 		if err != nil {
 			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not deleted from expire hint")
 
