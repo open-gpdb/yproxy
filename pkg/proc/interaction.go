@@ -562,11 +562,11 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	if err != nil {
 		return err
 	}
-	first_backup_oid, err := bh.GetFirstLSN(msg.Segnum)
+	first_backup_lsn, err := bh.GetFirstLSN(msg.Segnum)
 	if err != nil {
 		return err
 	}
-	if first_backup_oid == ^uint64(0) {
+	if first_backup_lsn == ^uint64(0) {
 		return fmt.Errorf("wal-g required for consistent deleting")
 	}
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
@@ -577,7 +577,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	defer conn.Close()
 
 	for str, v := range ei {
-		if v >= first_backup_oid {
+		if v >= first_backup_lsn {
 			continue
 		}
 		if vi[str] {
