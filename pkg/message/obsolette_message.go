@@ -5,14 +5,14 @@ import (
 	"encoding/binary"
 )
 
-type CollectObsoletteMessage struct {
+type CollectObsoleteMessage struct {
 	Segnum  uint64
 	Port    uint64
 	DBName  string
 	Message string
 }
 
-type DeleteObsoletteMessage struct {
+type DeleteObsoleteMessage struct {
 	Segnum  uint64
 	Port    uint64
 	DBName  string
@@ -22,16 +22,16 @@ type DeleteObsoletteMessage struct {
 var _ ProtoMessage = &ListMessage{}
 
 // TODO
-func NewCollectObsoletteMessage(dbname string, msg string) *CollectObsoletteMessage {
-	return &CollectObsoletteMessage{
+func NewCollectObsoleteMessage(dbname string, msg string) *CollectObsoleteMessage {
+	return &CollectObsoleteMessage{
 		DBName:  dbname,
 		Message: msg,
 	}
 }
 
-func (c *CollectObsoletteMessage) Encode() []byte {
+func (c *CollectObsoleteMessage) Encode() []byte {
 	encodedMessage := []byte{
-		byte(MessageCollectObsolette),
+		byte(MessageCollectObsolete),
 		0,
 		0,
 		0,
@@ -52,7 +52,7 @@ func (c *CollectObsoletteMessage) Encode() []byte {
 	return append(byteLen, encodedMessage...)
 }
 
-func (c *CollectObsoletteMessage) Decode(data []byte) {
+func (c *CollectObsoleteMessage) Decode(data []byte) {
 	c.Segnum = binary.BigEndian.Uint64(data[4:12])
 	c.Port = binary.BigEndian.Uint64(data[12:20])
 	n := bytes.IndexByte(data[20:], 0)
@@ -60,16 +60,16 @@ func (c *CollectObsoletteMessage) Decode(data []byte) {
 	c.Message = string(data[20+n+1 : len(data)-1])
 }
 
-func NewDeleteObsoletteMessage(dbname string, msg string) *DeleteObsoletteMessage {
-	return &DeleteObsoletteMessage{
+func NewDeleteObsoleteMessage(dbname string, msg string) *DeleteObsoleteMessage {
+	return &DeleteObsoleteMessage{
 		DBName:  dbname,
 		Message: msg,
 	}
 }
 
-func (c *DeleteObsoletteMessage) Encode() []byte {
+func (c *DeleteObsoleteMessage) Encode() []byte {
 	encodedMessage := []byte{
-		byte(MessageDeleteObsolette),
+		byte(MessageDeleteObsolete),
 		0,
 		0,
 		0,
@@ -90,7 +90,7 @@ func (c *DeleteObsoletteMessage) Encode() []byte {
 	return append(byteLen, encodedMessage...)
 }
 
-func (c *DeleteObsoletteMessage) Decode(data []byte) {
+func (c *DeleteObsoleteMessage) Decode(data []byte) {
 	c.Segnum = binary.BigEndian.Uint64(data[4:12])
 	c.Port = binary.BigEndian.Uint64(data[12:20])
 	n := bytes.IndexByte(data[20:], 0)

@@ -502,7 +502,7 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 
 	return nil
 }
-func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
 	dh := database.DatabaseHandler{}
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
 	if err != nil {
@@ -548,7 +548,7 @@ func ProcessCollectObsolette(msg message.CollectObsoletteMessage, s storage.Stor
 	return nil
 }
 
-func ProcessDeleteObsolette(msg message.DeleteObsoletteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
 	bh := &backups.StorageBackupInteractor{Storage: s}
 
 	dh := database.DatabaseHandler{}
@@ -729,16 +729,16 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 	case message.MessageTypeGool:
 		return ProcMotion(s, cr, ycl)
 
-	case message.MessageCollectObsolette:
-		msg := message.CollectObsoletteMessage{}
+	case message.MessageCollectObsolete:
+		msg := message.CollectObsoleteMessage{}
 		msg.Decode(body)
-		if err := ProcessCollectObsolette(msg, s, ycl); err != nil {
+		if err := ProcessCollectObsolete(msg, s, ycl); err != nil {
 			return err
 		}
-	case message.MessageDeleteObsolette:
-		msg := message.DeleteObsoletteMessage{}
+	case message.MessageDeleteObsolete:
+		msg := message.DeleteObsoleteMessage{}
 		msg.Decode(body)
-		if err := ProcessDeleteObsolette(msg, s, ycl); err != nil {
+		if err := ProcessDeleteObsolete(msg, s, ycl); err != nil {
 			return err
 		}
 
