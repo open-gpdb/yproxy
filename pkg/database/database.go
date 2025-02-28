@@ -153,7 +153,6 @@ func (database *DatabaseHandler) AddToExpireIndex(conn *pgx.Conn, port uint64, d
 		return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
 	}
 	defer rows.Close()
-	ylogger.Zero.Debug().Msg("executed insert")
 
 	return nil
 }
@@ -164,7 +163,6 @@ func (database *DatabaseHandler) DeleteFromExpireIndex(conn *pgx.Conn, port uint
 		return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
 	}
 	defer rows.Close()
-	ylogger.Zero.Debug().Msg("executed delete")
 
 	return nil
 }

@@ -543,12 +543,12 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 			continue
 		}
 		// add to expire index
-		ylogger.Zero.Debug().Str("file name", v.Path).Msg("added to ei")
 		err = dh.AddToExpireIndex(conn, msg.Port, msg.DBName, v.Path, curr_lsn)
 		if err != nil {
 			_ = ycl.ReplyError(err, "error while adding to ei")
 			continue
 		}
+		ylogger.Zero.Debug().Str("file name", v.Path).Msg("added to ei")
 
 	}
 	return nil
@@ -613,6 +613,8 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 
 			continue
 		}
+		ylogger.Zero.Debug().Str("delete candidate ", str).Msg("deleted successfully")
+
 	}
 	return nil
 }
