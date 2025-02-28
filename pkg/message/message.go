@@ -82,9 +82,9 @@ func (m MessageType) String() string {
 	case MessageTypeUntrashify:
 		return "UNTRASHIFY"
 	case MessageCollectObsolete:
-		return "COLLECT OBSOLETTE"
+		return "COLLECT OBSOLETE"
 	case MessageDeleteObsolete:
-		return "DELETE OBSOLETTE"
+		return "DELETE OBSOLETE"
 	}
 	return "UNKNOWN"
 }
