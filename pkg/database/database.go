@@ -96,7 +96,7 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 		if dbname != db.name {
 			continue
 		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("recieved database")
+		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
 		conn, err := connectToDatabase(port, db.name)
 		if err != nil {
 			return 0, err
@@ -158,7 +158,7 @@ func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, fi
 		if dbname != db.name {
 			continue
 		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("recieved database")
+		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
 		conn, err := connectToDatabase(port, db.name)
 		if err != nil {
 			return err
@@ -188,7 +188,7 @@ func (database *DatabaseHandler) DeleteFromExpireIndex(port uint64, dbname strin
 		if dbname != db.name {
 			continue
 		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("recieved database")
+		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
 		conn, err := connectToDatabase(port, db.name)
 		if err != nil {
 			return err
