@@ -140,32 +140,21 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[strin
 
 func (database *DatabaseHandler) AddToExpireIndex(port uint64, dbname string, filename string, lsn uint64) error {
 
-	databases, err := getDatabase(port)
-	if err != nil || databases == nil {
-		return fmt.Errorf("unable to get ao/aocs tables %v", err) // fix
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
+	conn, err := connectToDatabase(port, dbname)
+	if err != nil {
+		return err
 	}
-	for _, db := range databases {
-		if dbname != db.name {
-			continue
-		}
-		ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
-		conn, err := connectToDatabase(port, db.name)
-		if err != nil {
-			return err
-		}
-		defer conn.Close() //error
-		ylogger.Zero.Debug().Msg("connected to database")
-		rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, pgx.FormatLSN(lsn), filename)
-		if err != nil {
-			return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
-		}
-		defer rows.Close()
-		ylogger.Zero.Debug().Msg("executed insert")
-
-		return nil
+	defer conn.Close() //error
+	ylogger.Zero.Debug().Msg("connected to database")
+	rows, err := conn.Query(`INSERT INTO yezzey.yezzey_expire_hint (lsn,x_path) VALUES ($1 , $2);`, pgx.FormatLSN(lsn), filename)
+	if err != nil {
+		return fmt.Errorf("unable to update yezzey_expire_hint %v", err) //fix
 	}
+	defer rows.Close()
+	ylogger.Zero.Debug().Msg("executed insert")
 
-	return fmt.Errorf("didnt find db with name %s", dbname)
+	return nil
 }
 
 func (database *DatabaseHandler) DeleteFromExpireIndex(port uint64, dbname string, filename string) error {
