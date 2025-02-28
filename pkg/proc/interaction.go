@@ -568,30 +568,36 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 			continue
 		}
 		if vi[str] {
-			//BIG WARNING  BIG WARNING BIG WARNING BIG WARNING
-			// make error if error comes fix bug
-			// TODO PRINT + RET ERROR
+			ylogger.Zero.Error().Str("delete candidate ", str).Msg("in virtual index, trying to delete")
+
+			err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
+			if err != nil {
+				ylogger.Zero.Error().Str("delete candidate ", str).Msg("not deleted from expire hint")
+				continue
+			}
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("deleted from expire hint")
 			continue
 		}
 
 		// delete file
 
 		// TODO check has prefix msg.Message
-
+		if !strings.Contains(str, msg.Message) {
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("doesnt have substr")
+			continue
+		}
 		err = dh.DeleteFromExpireIndex(msg.Port, msg.DBName, str)
 		if err != nil {
-			// problem when deleting
-			// will delete next time
-			// TODO PRINT
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not deleted from expire hint")
+
 			continue
 		}
 
 		// TODO make deletion if crazy_drop
 		err = s.MoveObject(str, "/trash"+str)
 		if err != nil {
-			// couldn't delete the file
-			// if file exists then ok if else ok
-			// TODO PRINT
+			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not moved to trash")
+
 			continue
 		}
 	}
