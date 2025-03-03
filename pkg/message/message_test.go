@@ -389,12 +389,12 @@ func TestListMsgV2(t *testing.T) {
 			prefix: "nam1",
 			Set: []settings.StorageSettings{
 				{
-					Name:  "n1n1n1n",
-					Value: "valalalla",
+					Name:  "completely normal setting name",
+					Value: "some value",
 				},
 				{
-					Name:  "n1n1n12121221n",
-					Value: "valal122112alla",
+					Name:  "another completely normal setting name",
+					Value: "no meaningfull value",
 				},
 			},
 		},
