@@ -189,10 +189,10 @@ func ProcessPutExtended(
 
 	return nil
 }
-func ProcessListExtended(msg message.ListMessage, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
-	ycl.SetExternalFilePath(msg.Prefix)
+func ProcessListExtended(prefix string, settings []settings.StorageSettings, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
+	ycl.SetExternalFilePath(prefix)
 
-	objectMetas, err := s.ListPath(msg.Prefix, true)
+	objectMetas, err := s.ListPath(prefix, true, nil)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to complete request")
 
@@ -515,7 +515,7 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 		return err
 	}
 
-	files, err := s.ListPath(msg.Message, true)
+	files, err := s.ListPath(msg.Message, true, nil)
 	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed list path")
@@ -686,7 +686,15 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		msg := message.ListMessage{}
 		msg.Decode(body)
 
-		err := ProcessListExtended(msg, s, cr, ycl, cnf)
+		err := ProcessListExtended(msg.Prefix, nil, s, cr, ycl, cnf)
+		if err != nil {
+			return err
+		}
+	case message.MessageTypeListV2:
+		msg := message.ListMessageV2{}
+		msg.Decode(body)
+
+		err := ProcessListExtended(msg.Prefix, msg.Settings, s, cr, ycl, cnf)
 		if err != nil {
 			return err
 		}
@@ -803,7 +811,7 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 }
 
 func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage.StorageLister, dst storage.StorageLister) ([]*object.ObjectInfo, []*object.ObjectInfo, error) {
-	objectMetas, err := src.ListPath(prefix, true)
+	objectMetas, err := src.ListPath(prefix, true, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -814,7 +822,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 		return nil, nil, err
 	}
 
-	copied, err := dst.ListPath(prefix, false)
+	copied, err := dst.ListPath(prefix, false, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -835,7 +843,13 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 			continue
 		}
 		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
-			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Int64("copied size", sz).Msg("already copied, skipping...")
+			ylogger.Zero.Info().
+				Int("index", i).
+				Str("object path", objectMetas[i].Path).
+				Int64("object size", objectMetas[i].Size).
+				Int64("copied size", sz).
+				Msg("already copied, skipping...")
+
 			skipped = append(skipped, objectMetas[i])
 			continue
 		}

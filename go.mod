@@ -32,10 +32,13 @@ require (
 )
 
 require (
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 )
 

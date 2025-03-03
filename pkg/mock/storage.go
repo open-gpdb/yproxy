@@ -149,18 +149,18 @@ func (mr *MockStorageListerMockRecorder) ListFailedMultipartUploads() *gomock.Ca
 }
 
 // ListPath mocks base method.
-func (m *MockStorageLister) ListPath(prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+func (m *MockStorageLister) ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPath", prefix, useCache)
+	ret := m.ctrl.Call(m, "ListPath", prefix, useCache, settings)
 	ret0, _ := ret[0].([]*object.ObjectInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListPath indicates an expected call of ListPath.
-func (mr *MockStorageListerMockRecorder) ListPath(prefix, useCache any) *gomock.Call {
+func (mr *MockStorageListerMockRecorder) ListPath(prefix, useCache, settings any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPath", reflect.TypeOf((*MockStorageLister)(nil).ListPath), prefix, useCache)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPath", reflect.TypeOf((*MockStorageLister)(nil).ListPath), prefix, useCache, settings)
 }
 
 // MockStorageMover is a mock of StorageMover interface.
@@ -312,18 +312,18 @@ func (mr *MockStorageInteractorMockRecorder) ListFailedMultipartUploads() *gomoc
 }
 
 // ListPath mocks base method.
-func (m *MockStorageInteractor) ListPath(prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+func (m *MockStorageInteractor) ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPath", prefix, useCache)
+	ret := m.ctrl.Call(m, "ListPath", prefix, useCache, settings)
 	ret0, _ := ret[0].([]*object.ObjectInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListPath indicates an expected call of ListPath.
-func (mr *MockStorageInteractorMockRecorder) ListPath(prefix, useCache any) *gomock.Call {
+func (mr *MockStorageInteractorMockRecorder) ListPath(prefix, useCache, settings any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPath", reflect.TypeOf((*MockStorageInteractor)(nil).ListPath), prefix, useCache)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPath", reflect.TypeOf((*MockStorageInteractor)(nil).ListPath), prefix, useCache, settings)
 }
 
 // MoveObject mocks base method.

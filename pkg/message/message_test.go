@@ -372,6 +372,46 @@ func TestListMsg(t *testing.T) {
 	}
 }
 
+func TestListMsgV2(t *testing.T) {
+	assert := assert.New(t)
+
+	type tcase struct {
+		prefix string
+		Set    []settings.StorageSettings
+	}
+
+	for _, tt := range []tcase{
+		{
+			prefix: "nam1",
+			Set:    []settings.StorageSettings{},
+		},
+		{
+			prefix: "nam1",
+			Set: []settings.StorageSettings{
+				{
+					Name:  "completely normal setting name",
+					Value: "some value",
+				},
+				{
+					Name:  "another completely normal setting name",
+					Value: "no meaningful value",
+				},
+			},
+		},
+	} {
+
+		msg := message.NewListMessageV2(tt.prefix, tt.Set)
+		body := msg.Encode()
+
+		msg2 := message.ListMessageV2{}
+
+		msg2.Decode(body[8:])
+
+		assert.Equal(msg.Prefix, msg2.Prefix)
+		assert.Equal(msg.Settings, msg2.Settings)
+	}
+}
+
 func TestCopyMsg(t *testing.T) {
 	assert := assert.New(t)
 
