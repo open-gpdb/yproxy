@@ -394,7 +394,7 @@ func TestListMsgV2(t *testing.T) {
 				},
 				{
 					Name:  "another completely normal setting name",
-					Value: "no meaningfull value",
+					Value: "no meaningful value",
 				},
 			},
 		},

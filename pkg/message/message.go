@@ -31,6 +31,7 @@ const (
 	MessageTypeUntrashify
 	MessageTypeCopyV2
 	MessageTypeCopyComplete
+	MessageTypeListV2
 
 	MessageCollectObsolete = MessageType(64)
 	MessageDeleteObsolete  = MessageType(65)
@@ -70,6 +71,8 @@ func (m MessageType) String() string {
 	case MessageTypeDelete:
 		return "DELETE"
 	case MessageTypeList:
+		return "LIST"
+	case MessageTypeListV2:
 		return "LIST"
 	case MessageTypeObjectMeta:
 		return "OBJECT META"

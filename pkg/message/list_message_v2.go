@@ -23,7 +23,7 @@ func NewListMessageV2(name string, Settings []settings.StorageSettings) *ListMes
 
 func (c *ListMessageV2) Encode() []byte {
 	bt := []byte{
-		byte(MessageTypeList),
+		byte(MessageTypeListV2),
 		0,
 		0,
 		0,
