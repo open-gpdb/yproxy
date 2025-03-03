@@ -31,9 +31,31 @@ type LSN struct {
 	lsn string
 }
 
-func (database *DatabaseHandler) populateIndex() {
+func checkVersion(c *pgx.Conn, exp string) (bool, error) {
+	rows, err := c.Query(`SELECT extversion FROM pg_extension WHERE extname = 'yezzey';`)
+	if err != nil {
+		return false, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
+	}
 
+	defer rows.Close()
+	ylogger.Zero.Debug().Msg("executed select")
+
+	for rows.Next() {
+		var ver string
+		if err := rows.Scan(&ver); err != nil {
+			return false, fmt.Errorf("unable to parse query output %v", err)
+		}
+		if rows.Next() {
+			return false, fmt.Errorf("unable to get yezzey extension version: duplicate output")
+		}
+
+		/* we compare versions lexicographically */
+		return ver >= exp, nil
+	}
+
+	return false, fmt.Errorf("unable to get yezzey extension version")
 }
+
 func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtualIndex *map[string]bool, expireIndex *map[string]uint64) error {
 	ylogger.Zero.Debug().Str("database name", db.name).Msg("received database")
 	conn, err := connectToDatabase(port, db.name)
@@ -43,8 +65,11 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 	defer conn.Close() //error
 	ylogger.Zero.Debug().Msg("connected to database")
 
-	/* Todo: check that yezzey version >= 1.8.1 */
-	if true { //yezzey version >=1.8.4 or didnt works
+	/* Todo: check that yezzey version >= 1.8.4 */
+	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
+		ylogger.Zero.Debug().Err(err).Msg("GetVirtualExpireIndex: failed")
+		return err
+	} else if ch {
 		rows, err := conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
 		if err != nil {
 			return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
@@ -69,15 +94,15 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 		ylogger.Zero.Debug().Msg("fetched expire hint info")
 	}
 
-	rows2, err := conn.Query(`SELECT x_path FROM yezzey.yezzey_virtual_index;`)
+	viRows, err := conn.Query(`SELECT x_path FROM yezzey.yezzey_virtual_index;`)
 	if err != nil {
 		return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 	}
-	defer rows2.Close()
+	defer viRows.Close()
 
-	for rows2.Next() {
+	for viRows.Next() {
 		xpath := ""
-		if err := rows2.Scan(&xpath); err != nil {
+		if err := viRows.Scan(&xpath); err != nil {
 			return fmt.Errorf("unable to parse query output %v", err)
 		}
 		(*virtualIndex)[xpath] = true
@@ -120,6 +145,7 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 	// unexcepted
 	return 0, fmt.Errorf("unexpected error while getting next lsn")
 }
+
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
 	databases, err := getDatabase(port)
 	if err != nil || databases == nil {
@@ -137,6 +163,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[strin
 	}
 	return virtualIndex, expireIndex, nil
 }
+
 func (database *DatabaseHandler) GetConnectToDatabase(port uint64, dbname string) (*pgx.Conn, error) {
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
 	conn, err := connectToDatabase(port, dbname)
