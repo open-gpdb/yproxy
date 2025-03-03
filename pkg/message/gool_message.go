@@ -33,7 +33,7 @@ func (c *GoolMessage) Decode(body []byte) {
 func (c *GoolMessage) GetGoolName(b []byte) string {
 	buff := bytes.NewBufferString("")
 
-	for i := 0; i < len(b); i++ {
+	for i := range b {
 		if b[i] == 0 {
 			break
 		}
