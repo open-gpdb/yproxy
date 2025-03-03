@@ -20,7 +20,7 @@ type StorageWriter interface {
 }
 
 type StorageLister interface {
-	ListPath(prefix string, useCache bool) ([]*object.ObjectInfo, error)
+	ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error)
 	ListFailedMultipartUploads() (map[string]string, error)
 }
 

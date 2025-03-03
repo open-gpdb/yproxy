@@ -152,7 +152,7 @@ func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffse
 	return err
 }
 
-func (s *S3StorageInteractor) ListPath(prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error) {
 	if useCache {
 		objectMetas, err := readCache(*s.cnf, prefix)
 		if err == nil {
@@ -171,9 +171,18 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool) ([]*object.
 	prefix = strings.TrimLeft(path.Join(s.cnf.StoragePrefix, prefix), "/")
 	metas := make([]*object.ObjectInfo, 0)
 
+	tableSpace := ResolveStorageSetting(settings, message.TableSpaceSetting, tablespace.DefaultTableSpace)
+
+	bucket, ok := s.bucketMap[tableSpace]
+	if !ok {
+		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
+		ylogger.Zero.Err(err)
+		return nil, err
+	}
+
 	for {
 		input := &s3.ListObjectsV2Input{
-			Bucket:            &s.cnf.StorageBucket,
+			Bucket:            &bucket,
 			Prefix:            aws.String(prefix),
 			ContinuationToken: continuationToken,
 		}

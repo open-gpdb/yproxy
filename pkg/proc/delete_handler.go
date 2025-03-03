@@ -62,7 +62,7 @@ func RegPathFromTrasnPath(p string, segnum int) string {
 func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) error {
 
 	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
-	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true)
+	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not list objects")
 	}
@@ -173,7 +173,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 
 	//list files in storage
 	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
-	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true)
+	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list objects")
 	}
