@@ -11,6 +11,7 @@
 (?:^|/|\b)requirements(?:-dev|-doc|-test|)\.txt$
 (?:^|/)vendor/
 ignore$
+pkg/message/message.go
 \.a$
 \.ai$
 \.all-contributorsrc$

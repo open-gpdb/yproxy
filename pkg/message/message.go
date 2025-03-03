@@ -73,7 +73,7 @@ func (m MessageType) String() string {
 	case MessageTypeList:
 		return "LIST"
 	case MessageTypeListV2:
-		return "LIST"
+		return "LISTV2"
 	case MessageTypeObjectMeta:
 		return "OBJECT META"
 	case MessageTypeCopy:
