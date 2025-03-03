@@ -1,3 +1,7 @@
+yezzey
+extversion
+dbname
+extname
 github
 https
 ssh
