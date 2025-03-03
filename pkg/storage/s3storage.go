@@ -180,6 +180,8 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		return nil, err
 	}
 
+	ylogger.Zero.Debug().Str("tablespace", tableSpace).Str("bucket", bucket).Msg("listing bucket")
+
 	for {
 		input := &s3.ListObjectsV2Input{
 			Bucket:            &bucket,

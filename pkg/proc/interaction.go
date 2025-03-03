@@ -192,7 +192,7 @@ func ProcessPutExtended(
 func ProcessListExtended(prefix string, settings []settings.StorageSettings, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(prefix)
 
-	objectMetas, err := s.ListPath(prefix, true, nil)
+	objectMetas, err := s.ListPath(prefix, true, settings)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to complete request")
 
@@ -693,6 +693,10 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 	case message.MessageTypeListV2:
 		msg := message.ListMessageV2{}
 		msg.Decode(body)
+
+		for _, s := range msg.Settings {
+			ylogger.Zero.Debug().Str("name", s.Name).Str("value", s.Value).Msg("list request setting")
+		}
 
 		err := ProcessListExtended(msg.Prefix, msg.Settings, s, cr, ycl, cnf)
 		if err != nil {
