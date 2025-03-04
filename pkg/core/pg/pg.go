@@ -52,6 +52,7 @@ init:
 	_, err := conn.Receive()
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("failed to complete AUTH")
+		return
 	}
 	conn.Send(&pgproto3.AuthenticationOk{})
 	conn.Flush()
