@@ -73,7 +73,7 @@ func (c *PutMessageV3) Decode(body []byte) {
 
 	c.Settings = make([]settings.StorageSettings, settLen)
 
-	for i := 0; i < int(settLen); i++ {
+	for i := range int(settLen) {
 
 		var currOff uint64
 

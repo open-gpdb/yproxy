@@ -64,6 +64,9 @@ func ProcessCatExtended(
 	n, err := io.Copy(ycl.GetRW(), contentReader)
 	if err != nil {
 		_ = ycl.ReplyError(err, "copy failed to complete")
+
+		ylogger.Zero.Error().Int64("copied bytes", n).Msg("failed to put object")
+		return err
 	}
 	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("decrypt object")
 
@@ -142,12 +145,13 @@ func ProcessPutExtended(
 				msg.Decode(body)
 				if n, err := ww.Write(msg.Data); err != nil {
 					_ = ycl.ReplyError(err, "failed to write copy data")
-
+					ylogger.Zero.Error().Int("write bytes", n).Uint64("msg size", msg.Sz).Err(err).Msg("failed to put object due to error")
 					return
 				} else if n != int(msg.Sz) {
 
 					_ = ycl.ReplyError(fmt.Errorf("unfull write"), "failed to complete request")
 
+					ylogger.Zero.Error().Int("write bytes", n).Uint64("msg size", msg.Sz).Msg("failed to put object due to unfull write")
 					return
 				}
 			case message.MessageTypeCopyDone:
@@ -189,14 +193,15 @@ func ProcessPutExtended(
 
 	return nil
 }
+
 func ProcessListExtended(prefix string, settings []settings.StorageSettings, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(prefix)
 
 	objectMetas, err := s.ListPath(prefix, true, settings)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to complete request")
-
-		return nil
+		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
+		return err
 	}
 
 	const chunkSize = 1000
@@ -208,16 +213,15 @@ func ProcessListExtended(prefix string, settings []settings.StorageSettings, s s
 
 			return nil
 		}
-
 	}
 
 	_, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode())
 
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to upload")
-
 		return err
 	}
+
 	return nil
 }
 func ProcessCopyExtended(
@@ -234,12 +238,14 @@ func ProcessCopyExtended(
 	if kEKDecrypt {
 		err := fmt.Errorf("KEK decryption in Copy not supported")
 		_ = ycl.ReplyError(err, "failed to complete request")
+		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
 		return err
 	}
 
 	if serverSide {
 		err := fmt.Errorf("server-side Copy not supported")
 		_ = ycl.ReplyError(err, "failed to complete request")
+		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
 		return err
 	}
 
@@ -249,6 +255,8 @@ func ProcessCopyExtended(
 	instanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to complete request")
+
+		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
 		return nil
 	}
 	config.EmbedDefaults(&instanceCnf)
@@ -261,6 +269,7 @@ func ProcessCopyExtended(
 	objectMetas, _, err := ListFilesToCopy(name, port, instanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to list files to copy")
+		ylogger.Zero.Error().Err(err).Msg("failed to list files to copy")
 		return err
 	}
 
