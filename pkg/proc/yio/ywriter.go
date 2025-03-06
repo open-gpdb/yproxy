@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
 /* TBD: support restart */
@@ -24,6 +25,10 @@ func (y *YproxyWriter) Write(p []byte) (n int, err error) {
 	n, err = y.underlying.Write(p)
 	y.offsetReached += int64(n)
 	y.selfCl.SetByteOffset(y.offsetReached)
+
+	if err != nil {
+		ylogger.Zero.Error().Uint("client id", y.selfCl.ID()).Int("bytes write", n).Err(err).Msg("failed to write into underlying connection")
+	}
 
 	return n, err
 }
