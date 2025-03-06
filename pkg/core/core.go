@@ -179,12 +179,12 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		ycl := client.NewYClient(clConn)
 		i.pool.Put(ycl)
 		if err := proc.ProcConn(s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("got error serving client")
+			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
 		_, err := i.pool.Pop(ycl.ID())
 		if err != nil {
 			// ?? wtf
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("got error erasing client from pool")
+			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error erasing client from pool")
 		}
 	})
 

@@ -65,7 +65,7 @@ func ProcessCatExtended(
 	if err != nil {
 		_ = ycl.ReplyError(err, "copy failed to complete")
 
-		ylogger.Zero.Error().Int64("copied bytes", n).Msg("failed to put object")
+		ylogger.Zero.Error().Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to put object")
 		return err
 	}
 	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("decrypt object")
@@ -145,13 +145,13 @@ func ProcessPutExtended(
 				msg.Decode(body)
 				if n, err := ww.Write(msg.Data); err != nil {
 					_ = ycl.ReplyError(err, "failed to write copy data")
-					ylogger.Zero.Error().Int("write bytes", n).Uint64("msg size", msg.Sz).Err(err).Msg("failed to put object due to error")
+					ylogger.Zero.Error().Uint("client id", ycl.ID()).Int("write bytes", n).Uint64("msg size", msg.Sz).Err(err).Msg("failed to put object due to error")
 					return
 				} else if n != int(msg.Sz) {
 
 					_ = ycl.ReplyError(fmt.Errorf("unfull write"), "failed to complete request")
 
-					ylogger.Zero.Error().Int("write bytes", n).Uint64("msg size", msg.Sz).Msg("failed to put object due to unfull write")
+					ylogger.Zero.Error().Uint("client id", ycl.ID()).Int("write bytes", n).Uint64("msg size", msg.Sz).Msg("failed to put object due to unfull write")
 					return
 				}
 			case message.MessageTypeCopyDone:

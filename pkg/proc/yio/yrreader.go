@@ -88,7 +88,7 @@ func (y *YproxyRetryReader) Close() error {
 // Read implements io.ReadCloser.
 func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 
-	for retry := 0; retry < y.retryLimit; retry++ {
+	for retry := range y.retryLimit {
 
 		if y.needReacquire {
 

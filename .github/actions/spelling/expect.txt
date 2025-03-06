@@ -215,3 +215,4 @@ yystack
 yystate
 yytoken
 zerolog
+intn
