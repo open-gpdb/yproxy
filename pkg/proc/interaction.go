@@ -65,7 +65,7 @@ func ProcessCatExtended(
 	if err != nil {
 		_ = ycl.ReplyError(err, "copy failed to complete")
 
-		ylogger.Zero.Error().Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to put object")
+		ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to put object")
 		return err
 	}
 	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("decrypt object")
