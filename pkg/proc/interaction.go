@@ -39,21 +39,21 @@ func ProcessCatExtended(
 	if decrypt {
 		if cr == nil {
 			err := fmt.Errorf("failed to decrypt object, decrypter not configured")
-			_ = ycl.ReplyError(err, "cat failed")
+
+			ylogger.Zero.Error().Err(err).Msg("cat failed")
 			return err
 		}
 		ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
 		contentReader, err = cr.Decrypt(yr)
 		if err != nil {
-			_ = ycl.ReplyError(err, "failed to decrypt object")
-
+			ylogger.Zero.Error().Err(err).Msg("failed to decrypt object")
 			return err
 		}
 	}
 
 	if kek {
 		err := fmt.Errorf("KEK is currently unsupported")
-		_ = ycl.ReplyError(err, "cat failed")
+		ylogger.Zero.Error().Err(err).Msg("cat failed")
 		return err
 	}
 
