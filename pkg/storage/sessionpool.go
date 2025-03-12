@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/aws-sdk-go/aws"
+	"github.com/yezzey-gp/aws-sdk-go/aws/client"
 	"github.com/yezzey-gp/aws-sdk-go/aws/credentials"
 	"github.com/yezzey-gp/aws-sdk-go/aws/defaults"
 	"github.com/yezzey-gp/aws-sdk-go/aws/request"
@@ -48,7 +50,13 @@ func NewSessionPool(cnf *config.Storage) SessionPool {
 
 // TODO : unit tests
 func (sp *S3SessionPool) createSession() (*session.Session, error) {
-	s, err := session.NewSession()
+	s, err := session.NewSession(&aws.Config{
+		Retryer: client.DefaultRetryer{
+			NumMaxRetries: 20,
+			MinRetryDelay: time.Second,
+			MaxRetryDelay: time.Second * 20,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
