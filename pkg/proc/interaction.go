@@ -54,7 +54,7 @@ func ProcessCatExtended(
 	if kek {
 		err := fmt.Errorf("KEK is currently unsupported")
 		ylogger.Zero.Error().Err(err).Msg("cat failed")
-		return err
+		// return err
 	}
 
 	if startOffset != 0 {
