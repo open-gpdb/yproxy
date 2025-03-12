@@ -63,8 +63,6 @@ func ProcessCatExtended(
 
 	n, err := io.Copy(ycl.GetRW(), contentReader)
 	if err != nil {
-		_ = ycl.ReplyError(err, "copy failed to complete")
-
 		ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to put object")
 		return err
 	}
@@ -99,15 +97,14 @@ func ProcessPutExtended(
 		var ww io.WriteCloser = w
 		if encrypt {
 			if cr == nil {
-				_ = ycl.ReplyError(fmt.Errorf("failed to encrypt, crypter not configured"), "connection aborted")
-
+				ylogger.Zero.Error().Err(fmt.Errorf("failed to encrypt, crypter not configured")).Str("path", name).Msg("connection aborted")
 				return
 			}
 
 			var err error
 			ww, err = cr.Encrypt(w)
 			if err != nil {
-				_ = ycl.ReplyError(err, "failed to encrypt")
+				ylogger.Zero.Error().Err(err).Msg("failed to encrypt")
 				return
 			}
 		} else {
@@ -116,7 +113,7 @@ func ProcessPutExtended(
 
 		defer func() {
 			if err := ww.Close(); err != nil {
-				_ = ycl.ReplyError(err, "failed to close connection")
+				ylogger.Zero.Error().Err(err).Msg("failed to close connection")
 				return
 			}
 
@@ -133,7 +130,7 @@ func ProcessPutExtended(
 		for {
 			tp, body, err := pr.ReadPacket()
 			if err != nil {
-				_ = ycl.ReplyError(err, "failed to read chunk of data")
+				ylogger.Zero.Error().Err(err).Str("msg-type", tp.String()).Msg("failed to read chunk of data")
 				return
 			}
 
@@ -144,13 +141,9 @@ func ProcessPutExtended(
 				msg := message.CopyDataMessage{}
 				msg.Decode(body)
 				if n, err := ww.Write(msg.Data); err != nil {
-					_ = ycl.ReplyError(err, "failed to write copy data")
 					ylogger.Zero.Error().Uint("client id", ycl.ID()).Int("write bytes", n).Uint64("msg size", msg.Sz).Err(err).Msg("failed to put object due to error")
 					return
 				} else if n != int(msg.Sz) {
-
-					_ = ycl.ReplyError(fmt.Errorf("unfull write"), "failed to complete request")
-
 					ylogger.Zero.Error().Uint("client id", ycl.ID()).Int("write bytes", n).Uint64("msg size", msg.Sz).Msg("failed to put object due to unfull write")
 					return
 				}
@@ -170,8 +163,7 @@ func ProcessPutExtended(
 
 	/* Should go after reader dispatch! */
 	if err := s.PutFileToDest(name, r, settings); err != nil {
-		_ = ycl.ReplyError(err, "failed to upload")
-
+		ylogger.Zero.Error().Err(err).Bool("encrypt", encrypt).Str("name", name).Msg("failed to upload")
 		return err
 	}
 
@@ -179,15 +171,13 @@ func ProcessPutExtended(
 
 	if replyKV {
 		if _, err := ycl.GetRW().Write(message.NewPutCompleteMessage(uint16(crypt.SingleKeyEncryption)).Encode()); err != nil {
-			_ = ycl.ReplyError(err, "failed to upload")
-
+			ylogger.Zero.Error().Err(err).Bool("encrypt", encrypt).Str("name", name).Msg("failed to upload")
 			return err
 		}
 	}
 
 	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
-		_ = ycl.ReplyError(err, "failed to upload")
-
+		ylogger.Zero.Error().Err(err).Bool("encrypt", encrypt).Str("name", name).Msg("failed to upload")
 		return err
 	}
 
