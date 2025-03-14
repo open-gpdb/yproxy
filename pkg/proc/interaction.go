@@ -503,6 +503,15 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 }
 func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
 	dh := database.DatabaseHandler{}
+
+	files, err := s.ListPath(msg.Message, true, nil)
+	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed list path")
+
+		return err
+	}
+	// maybe get lock on moment
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed get virtual expire indexes")
@@ -514,13 +523,6 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 		return err
 	}
 
-	files, err := s.ListPath(msg.Message, true, nil)
-	ylogger.Zero.Debug().Int("files count", len(files)).Msg("listed")
-	if err != nil {
-		_ = ycl.ReplyError(err, "failed list path")
-
-		return err
-	}
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed connect to db")
