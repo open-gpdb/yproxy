@@ -148,7 +148,7 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
 	databases, err := getDatabase(port)
-	if err != nil || databases == nil {
+	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 	}
 
@@ -210,11 +210,9 @@ func getDatabase(port uint64) ([]DB, error) {
 
 	for rows.Next() {
 		row := DB{}
-		ylogger.Zero.Debug().Msg("cycle 1")
 		if err := rows.Scan(&row.tablespace, &row.oid, &row.name); err != nil {
 			return nil, err
 		}
-		ylogger.Zero.Debug().Msg("cycle 2")
 		ylogger.Zero.Debug().Str("db", row.name).Int("db", int(row.oid)).Int("db", int(row.tablespace)).Msg("database")
 		if row.name == "postgres" {
 			continue
@@ -226,14 +224,12 @@ func getDatabase(port uint64) ([]DB, error) {
 			return nil, err
 		}
 		defer connDb.Close() //error
-		ylogger.Zero.Debug().Msg("cycle 3")
-
 		rowsdb, err := connDb.Query(`SELECT exists(SELECT * FROM information_schema.schemata WHERE schema_name='yezzey');`)
 		if err != nil {
 			return nil, err
 		}
 		defer rowsdb.Close()
-		ylogger.Zero.Debug().Msg("cycle 4")
+
 		var ans bool
 		rowsdb.Next()
 		err = rowsdb.Scan(&ans)
@@ -251,8 +247,10 @@ func getDatabase(port uint64) ([]DB, error) {
 		ylogger.Zero.Debug().Str("db", row.name).Msg("no yezzey schema in database")
 	}
 	if len(databases) == 0 {
-		return nil, fmt.Errorf("no yezzey schema across databases")
+		/* XXX: fix this */
 
+		ylogger.Zero.Debug().Msg("no yezzey schema across databases, skipping")
+		return nil, nil
 	} else {
 		return databases, nil
 	}
