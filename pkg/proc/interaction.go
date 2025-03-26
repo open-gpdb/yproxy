@@ -266,6 +266,16 @@ func ProcessCopyExtended(
 	if confirm {
 		var my sync.Mutex
 
+		eq, err := cr.CmpKey(instanceCnf.CryptoCnf.GPGKeyPath)
+		if err != nil {
+			return err
+		}
+		if !(encrypt || decrypt) || (encrypt && decrypt && eq) {
+			ylogger.Zero.Debug().Msg("Performing server-side copy")
+			// If keys are equal, perform server-side copy
+			return s.CopyObject(instanceCnf.StorageCnf.StorageBucket+instanceCnf.StorageCnf.StoragePrefix+name, name)
+		}
+
 		var failed []*object.ObjectInfo
 		retryCount := 0
 		for len(objectMetas) > 0 && retryCount < 10 {

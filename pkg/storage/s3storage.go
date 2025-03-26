@@ -295,6 +295,35 @@ func (s *S3StorageInteractor) MoveObject(from string, to string) error {
 	return s.DeleteObject(from)
 }
 
+func (s *S3StorageInteractor) CopyObject(from, to string) error {
+	sess, err := s.pool.GetSession(context.TODO())
+	if err != nil {
+		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
+		return err
+	}
+	ylogger.Zero.Debug().Msg("acquired session for server-side copy")
+
+	if !strings.HasPrefix(to, s.cnf.StoragePrefix) {
+		to = path.Join(s.cnf.StoragePrefix, to)
+	}
+	to = strings.TrimLeft(to, "/")
+
+	inp := s3.CopyObjectInput{
+		Bucket:     &s.cnf.StorageBucket,
+		CopySource: aws.String(from),
+		Key:        aws.String(to),
+	}
+
+	_, err = sess.CopyObject(&inp)
+	if err != nil {
+		ylogger.Zero.Err(err).Msg("failed to copy object")
+		return err
+	}
+	ylogger.Zero.Debug().Str("path-from", from).Str("path-to", to).Msg("copied object")
+
+	return nil
+}
+
 func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
 	sess, err := s.pool.GetSession(context.TODO())
 	if err != nil {
