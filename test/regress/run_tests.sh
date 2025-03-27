@@ -2,6 +2,7 @@
 set -ex
 
 yproxy --config test/regress/yproxy.yaml &
+yproxy --config test/regress/yproxy_old.yaml &
 
 # Wait for yproxy to become available
 i=0

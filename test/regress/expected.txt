@@ -2,6 +2,14 @@
 Object: {Name: "/some_file", size: 12}
 Sample data
 1
-Object: {Name: "/encrypted_file", size: 462}
+Object: {Name: "/encrypted_file", size: 472}
 Object: {Name: "/some_file", size: 12}
-Sample data
+Sample encrypted data
+1
+Object: {Name: "/encrypted_file_old_key", size: 481}
+Sample encrypted data, old key
+1
+Object: {Name: "/encrypted_file", size: 472}
+Object: {Name: "/encrypted_file_old_key", size: 481}
+Object: {Name: "/some_file", size: 12}
+Sample encrypted data, old key
