@@ -24,28 +24,8 @@ services:
       /bin/sh -c "
       /usr/bin/mc alias set myminio http://minio:9000 some_key some_key
       /usr/bin/mc mb myminio/gpyezzey
-      /usr/bin/mc mb myminio/gpyezzey2
       "
-  
-  pg:
-    image: postgres
-    hostname: pg
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "password"
-      POSTGRES_DB: postgres
-      POSTGRES_HOST_AUTH_METHOD: trust
-    expose:
-      - "5432"
-    shm_size: 128mb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 1s  
-      timeout: 5s
-      retries: 10
-    volumes:
-      - ./pg-init:/docker-entrypoint-initdb.d
-  
+
   yproxy:
     image: yproxy
     build:
@@ -56,5 +36,3 @@ services:
         condition: service_healthy
       setup-minio:
         condition: service_completed_successfully
-      pg:
-        condition: service_healthy
