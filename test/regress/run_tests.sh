@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-yproxy --config test/regress/yproxy_minio.yaml &
+yproxy --config test/regress/yproxy.yaml &
 
 # Wait for yproxy to become available
 i=0

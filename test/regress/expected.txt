@@ -1,3 +1,7 @@
 1
 Object: {Name: "/some_file", size: 12}
 Sample data
+1
+Object: {Name: "/encrypted_file", size: 462}
+Object: {Name: "/some_file", size: 12}
+Sample data
