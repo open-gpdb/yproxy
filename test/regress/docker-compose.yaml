@@ -54,3 +54,5 @@ services:
         condition: service_healthy
       setup-minio:
         condition: service_completed_successfully
+      pg:
+        condition: service_healthy
