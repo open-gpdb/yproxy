@@ -16,6 +16,6 @@ yp-client --config test/regress/yproxy_old.yaml -l fatal list ''
 yp-client --config test/regress/yproxy_old.yaml  -l fatal cat --decrypt 'encrypted_file_old_key'
 
 # Copy file encrypted with separate keys
-yp-client copy --config test/regress/yproxy.yaml --old-config test/regress/yproxy_old.yaml --encrypt --decrypt 'encrypted_file_old_key'
+yp-client copy --config test/regress/yproxy.yaml --old-config test/regress/yproxy_old.yaml --encrypt --decrypt --port 5432 --confirm --log-level error 'encrypted_file_old_key'
 yp-client --config test/regress/yproxy.yaml -l fatal list ''
 yp-client --config test/regress/yproxy.yaml  -l fatal cat --decrypt 'encrypted_file_old_key'

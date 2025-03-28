@@ -9,3 +9,4 @@ INSERT INTO pg_extension (oid, extowner, extnamespace, extrelocatable, extname, 
 CREATE TABLE yezzey.yezzey_expire_hint (x_path text, lsn pg_lsn);
 CREATE TABLE yezzey.yezzey_virtual_index(x_path text);
 INSERT INTO yezzey.yezzey_virtual_index VALUES ('/encrypted_file_old_key');
+EOF

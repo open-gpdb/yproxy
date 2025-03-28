@@ -1,8 +1,8 @@
 #!/bin/bash
 set -ex
 
-yproxy --config test/regress/yproxy.yaml &
-yproxy --config test/regress/yproxy_old.yaml &
+yproxy --config test/regress/yproxy.yaml --test-mode &
+yproxy --config test/regress/yproxy_old.yaml --test-mode &
 
 # Wait for yproxy to become available
 i=0
