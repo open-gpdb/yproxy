@@ -34,3 +34,6 @@ psql -h pg -U postgres -d test -c "DELETE FROM yezzey.yezzey_virtual_index; INSE
 yp-client copy --config test/regress/yproxy.yaml --old-config test/regress/yproxy_second_bucket.yaml --encrypt --decrypt --port 5432 --confirm --log-level error 'encrypted_file_identical_key'
 yp-client --config test/regress/yproxy.yaml -l fatal list ''
 yp-client --config test/regress/yproxy.yaml -l fatal cat --decrypt 'encrypted_file_identical_key'
+
+s3cmd --access_key some_key --secret_key some_key --host minio:9000 --host-bucket "" --no-ssl rm 's3://gpyezzey/*' 's3://gpyezzey2/*' > /dev/null || echo 's3cmd failed'
+yp-client --config test/regress/yproxy.yaml -l fatal list ''
