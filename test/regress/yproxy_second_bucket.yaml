@@ -1,4 +1,4 @@
-socket_path: "/tmp/yproxy.sock"
+socket_path: "/tmp/yproxy_identical.sock"
 
 storage:
   storage_endpoint: http://minio:9000

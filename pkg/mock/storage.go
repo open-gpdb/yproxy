@@ -229,6 +229,44 @@ func (mr *MockStorageMoverMockRecorder) MoveObject(from, to any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveObject", reflect.TypeOf((*MockStorageMover)(nil).MoveObject), from, to)
 }
 
+// MockStorageCopier is a mock of StorageCopier interface.
+type MockStorageCopier struct {
+	ctrl     *gomock.Controller
+	recorder *MockStorageCopierMockRecorder
+	isgomock struct{}
+}
+
+// MockStorageCopierMockRecorder is the mock recorder for MockStorageCopier.
+type MockStorageCopierMockRecorder struct {
+	mock *MockStorageCopier
+}
+
+// NewMockStorageCopier creates a new mock instance.
+func NewMockStorageCopier(ctrl *gomock.Controller) *MockStorageCopier {
+	mock := &MockStorageCopier{ctrl: ctrl}
+	mock.recorder = &MockStorageCopierMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStorageCopier) EXPECT() *MockStorageCopierMockRecorder {
+	return m.recorder
+}
+
+// CopyObject mocks base method.
+func (m *MockStorageCopier) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CopyObject indicates an expected call of CopyObject.
+func (mr *MockStorageCopierMockRecorder) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageCopier)(nil).CopyObject), from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+}
+
 // MockStorageInteractor is a mock of StorageInteractor interface.
 type MockStorageInteractor struct {
 	ctrl     *gomock.Controller
@@ -280,6 +318,20 @@ func (m *MockStorageInteractor) CatFileFromStorage(name string, offset int64, se
 func (mr *MockStorageInteractorMockRecorder) CatFileFromStorage(name, offset, setts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CatFileFromStorage", reflect.TypeOf((*MockStorageInteractor)(nil).CatFileFromStorage), name, offset, setts)
+}
+
+// CopyObject mocks base method.
+func (m *MockStorageInteractor) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CopyObject indicates an expected call of CopyObject.
+func (mr *MockStorageInteractorMockRecorder) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageInteractor)(nil).CopyObject), from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
 }
 
 // DeleteObject mocks base method.

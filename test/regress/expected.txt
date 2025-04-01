@@ -17,6 +17,8 @@ Sample encrypted data, old key
 Object: {Name: "/encrypted_file_identical_key", size: 487}
 Object: {Name: "/encrypted_file_old_key", size: 481}
 Sample encrypted data, identical key
+DELETE 1
+INSERT 0 1
 1
 Object: {Name: "/encrypted_file", size: 472}
 Object: {Name: "/encrypted_file_identical_key", size: 487}

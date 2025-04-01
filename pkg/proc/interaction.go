@@ -263,6 +263,7 @@ func ProcessCopyExtended(
 		return err
 	}
 
+	// TODO: iterate over objectMetas
 	if confirm {
 		var my sync.Mutex
 
@@ -270,10 +271,27 @@ func ProcessCopyExtended(
 		if err != nil {
 			return err
 		}
+		// If keys are equal, perform server-side copy
 		if !(encrypt || decrypt) || (encrypt && decrypt && eq) {
 			ylogger.Zero.Debug().Msg("Performing server-side copy")
-			// If keys are equal, perform server-side copy
-			return s.CopyObject(instanceCnf.StorageCnf.StorageBucket+instanceCnf.StorageCnf.StoragePrefix+name, name)
+
+			// TODO test & include destination storage prefix
+			if err := s.CopyObject(name, name, instanceCnf.StorageCnf.StoragePrefix, "", instanceCnf.StorageCnf.StorageBucket); err != nil {
+				return err
+			}
+
+			if replyKV {
+				if _, err = ycl.GetRW().Write(message.NewCopyCompleteMessage(byte(crypt.SingleKeyEncryption)).Encode()); err != nil {
+					_ = ycl.ReplyError(err, "failed to upload")
+					return err
+				}
+			}
+
+			if _, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
+				_ = ycl.ReplyError(err, "failed to upload")
+				return err
+			}
+			return nil
 		}
 
 		var failed []*object.ObjectInfo
