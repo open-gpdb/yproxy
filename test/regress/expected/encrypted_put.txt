@@ -1,3 +1,0 @@
-1
-Object: {Name: "/encrypted_file", size: 472}
-Sample encrypted data

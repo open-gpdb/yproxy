@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 echo 'Sample encrypted data, identical key' | yp-client --config test/regress/conf/yproxy_second_bucket.yaml -l fatal put --encrypt 'encrypted_file_identical_key_1'
 echo 'Sample encrypted data, identical key' | yp-client --config test/regress/conf/yproxy_second_bucket.yaml -l fatal put --encrypt 'encrypted_file_identical_key_2'

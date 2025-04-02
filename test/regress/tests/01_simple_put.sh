@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 
 echo 'Sample data' | yp-client --config test/regress/conf/yproxy.yaml -l fatal put 'some_file'
 yp-client --config test/regress/conf/yproxy.yaml -l fatal list ''

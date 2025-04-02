@@ -1,7 +1,0 @@
-INSERT 0 1
-1
-Object: {Name: "/encrypted_file_old_key", size: 481}
-Sample encrypted data, old key
-1
-Object: {Name: "/encrypted_file_old_key", size: 481}
-Sample encrypted data, old key
