@@ -9,7 +9,7 @@ storage:
   storage_region: "us-east-1"
 
 crypto:
-  gpg_key_id: F368E75DD267978CB47DC5D11F4EB669CD9BE224
+  gpg_key_id: "F368E75DD267978CB47DC5D11F4EB669CD9BE224"
   gpg_key_path: /root/test/regress/gpg/gpg_2.priv
 
 log_level: "debug"
