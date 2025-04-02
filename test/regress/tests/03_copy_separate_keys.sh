@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 psql -h pg -U postgres -d test -c "INSERT INTO yezzey.yezzey_virtual_index VALUES ('/encrypted_file_old_key')"
 
