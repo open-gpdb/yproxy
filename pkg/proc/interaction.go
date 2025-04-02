@@ -271,28 +271,28 @@ func ProcessCopyExtended(
 		if err != nil {
 			return err
 		}
-		// If keys are equal, perform server-side copy
-		if !(encrypt || decrypt) || (encrypt && decrypt && eq) {
-			ylogger.Zero.Debug().Msg("Performing server-side copy")
+		ssCopy := !(encrypt || decrypt) || (encrypt && decrypt && eq)
+		// if !(encrypt || decrypt) || (encrypt && decrypt && eq) {
+		// 	ylogger.Zero.Debug().Msg("Performing server-side copy")
 
-			// TODO test & include destination storage prefix
-			if err := s.CopyObject(name, name, instanceCnf.StorageCnf.StoragePrefix, "", instanceCnf.StorageCnf.StorageBucket); err != nil {
-				return err
-			}
+		// 	// TODO test & include destination storage prefix
+		// 	if err := s.CopyObject(name, name, instanceCnf.StorageCnf.StoragePrefix, "", instanceCnf.StorageCnf.StorageBucket); err != nil {
+		// 		return err
+		// 	}
 
-			if replyKV {
-				if _, err = ycl.GetRW().Write(message.NewCopyCompleteMessage(byte(crypt.SingleKeyEncryption)).Encode()); err != nil {
-					_ = ycl.ReplyError(err, "failed to upload")
-					return err
-				}
-			}
+		// 	if replyKV {
+		// 		if _, err = ycl.GetRW().Write(message.NewCopyCompleteMessage(byte(crypt.SingleKeyEncryption)).Encode()); err != nil {
+		// 			_ = ycl.ReplyError(err, "failed to upload")
+		// 			return err
+		// 		}
+		// 	}
 
-			if _, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
-				_ = ycl.ReplyError(err, "failed to upload")
-				return err
-			}
-			return nil
-		}
+		// 	if _, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
+		// 		_ = ycl.ReplyError(err, "failed to upload")
+		// 		return err
+		// 	}
+		// 	return nil
+		// }
 
 		var failed []*object.ObjectInfo
 		retryCount := 0
@@ -314,6 +314,18 @@ func ProcessCopyExtended(
 					defer wg.Done()
 
 					ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+
+					// If keys are equal, perform server-side copy
+					if ssCopy {
+						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, "", instanceCnf.StorageCnf.StorageBucket); err != nil {
+							ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
+							my.Lock()
+							failed = append(failed, objectMetas[i])
+							my.Unlock()
+						}
+						return
+					}
+
 					/* get reader */
 					readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 					var fromReader io.Reader

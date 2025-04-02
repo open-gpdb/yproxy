@@ -2,7 +2,7 @@
 set -e
 
 echo 'Sample encrypted data, identical key' | yp-client --config test/regress/yproxy_second_bucket.yaml -l fatal put --encrypt 'encrypted_file_identical_key_1'
-echo 'Sample encrypted data, identical key' | yp-client --config test/regress/yproxy_second_bucket.yaml -l fatal put --encrypt 'encrypted_file_identical_key_1'
+echo 'Sample encrypted data, identical key' | yp-client --config test/regress/yproxy_second_bucket.yaml -l fatal put --encrypt 'encrypted_file_identical_key_2'
 
 psql -h pg -U postgres -d test -c "INSERT INTO yezzey.yezzey_virtual_index VALUES ('/encrypted_file_identical_key_1'), ('/encrypted_file_identical_key_2')"
 
