@@ -254,7 +254,7 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 	return nil
 }
 
-func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
+func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
 	sess, err := s.pool.GetSession(context.TODO())
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -267,8 +267,8 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, toStorag
 	}
 	from = strings.TrimLeft(from, "/")
 
-	if !strings.HasPrefix(to, toStoragePrefix) {
-		to = path.Join(toStoragePrefix, to)
+	if !strings.HasPrefix(to, s.cnf.StoragePrefix) {
+		to = path.Join(s.cnf.StoragePrefix, to)
 	}
 	to = strings.TrimLeft(to, "/")
 	from = path.Join(fromStorageBucket, from)
@@ -292,14 +292,14 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, toStorag
 }
 
 func (s *S3StorageInteractor) MoveObject(from string, to string) error {
-	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix, s.cnf.StoragePrefix, s.cnf.StorageBucket); err != nil {
+	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix, s.cnf.StorageBucket); err != nil {
 		return err
 	}
 	return s.DeleteObject(from)
 }
 
-func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
-	return s.SScopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
+	return s.SScopyObject(from, to, fromStoragePrefix, fromStorageBucket)
 }
 
 func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {

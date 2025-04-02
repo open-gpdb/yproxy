@@ -318,7 +318,7 @@ func ProcessCopyExtended(
 					// If keys are equal, perform server-side copy
 					if ssCopy {
 						// TODO: test & check for source bucket storage prefix
-						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, "", instanceCnf.StorageCnf.StorageBucket); err != nil {
+						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, instanceCnf.StorageCnf.StorageBucket); err != nil {
 							ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
 							my.Lock()
 							failed = append(failed, objectMetas[i])

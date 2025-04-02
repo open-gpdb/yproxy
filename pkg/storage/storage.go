@@ -31,7 +31,7 @@ type StorageMover interface {
 }
 
 type StorageCopier interface {
-	CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error
+	CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error
 }
 
 //go:generate mockgen -destination=pkg/mock/storage.go -package=mock
