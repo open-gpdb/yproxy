@@ -78,6 +78,8 @@ func (m MessageType) String() string {
 		return "OBJECT META"
 	case MessageTypeCopy:
 		return "COPY"
+	case MessageTypeCopyV2:
+		return "COPYV2"
 	case MessageTypeGool:
 		return "GOOL"
 	case MessageTypeError:
@@ -88,6 +90,8 @@ func (m MessageType) String() string {
 		return "COLLECT OBSOLETE"
 	case MessageDeleteObsolete:
 		return "DELETE OBSOLETE"
+	case MessageTypeCopyComplete:
+		return "COPY COMPLETE"
 	}
 	return "UNKNOWN"
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/pkg/errors"
+	"github.com/yezzey-gp/yproxy/pkg/testutils"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
@@ -112,6 +113,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 
 	return err
 }
+
 func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64, error) {
 
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
@@ -267,6 +269,10 @@ func connectToDatabase(port uint64, database string) (*pgx.Conn, error) {
 	config.Port = uint16(port)
 	config.Database = database
 
+	if testutils.TestMode {
+		// Do not set GP-specific params
+		return pgx.Connect(config)
+	}
 	config.RuntimeParams["gp_role"] = "utility"
 	conn, err := pgx.Connect(config)
 	if err != nil {

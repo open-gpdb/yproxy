@@ -6,6 +6,7 @@ import (
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg"
 	"github.com/yezzey-gp/yproxy/pkg/core"
+	"github.com/yezzey-gp/yproxy/pkg/testutils"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
@@ -43,6 +44,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "/etc/yproxy/yproxy.yaml", "path to yproxy config file")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "", "log level")
+	rootCmd.PersistentFlags().BoolVarP(&testutils.TestMode, "test-mode", "", false, "enable test mode. Use only in regression tests")
 }
 
 func main() {

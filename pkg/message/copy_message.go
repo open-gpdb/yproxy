@@ -2,7 +2,6 @@ package message
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
@@ -67,7 +66,7 @@ func (message *CopyMessage) Encode() []byte {
 	}
 
 	binary.BigEndian.PutUint64(byteLen, uint64(len(encodedMessage)+8))
-	fmt.Printf("send: %v\n", MessageType(encodedMessage[0]))
+	ylogger.Zero.Debug().Str("type", MessageType(encodedMessage[0]).String()).Msg("send")
 	ylogger.Zero.Debug().Str("object-path", MessageType(encodedMessage[0]).String()).Msg("decrypt object")
 	return append(byteLen, encodedMessage...)
 }
