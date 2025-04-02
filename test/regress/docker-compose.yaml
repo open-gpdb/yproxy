@@ -15,7 +15,7 @@ services:
       retries: 5
     hostname: minio
   
-  setupminio:
+  setup-minio:
     image: quay.io/minio/mc
     depends_on:
       minio:
@@ -54,7 +54,7 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-      setupminio:
+      setup-minio:
         condition: service_completed_successfully
       pg:
         condition: service_healthy
