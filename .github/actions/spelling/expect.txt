@@ -17,6 +17,7 @@ Chk
 Cleartext
 clientpid
 clientpool
+Cmp
 cnf
 compat
 Cred
@@ -132,7 +133,6 @@ sdnotifier
 segnum
 sessionpool
 Setsockopt
-setupminio
 shm
 SIGHUP
 SIGINT
