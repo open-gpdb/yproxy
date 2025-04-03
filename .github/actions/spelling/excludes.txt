@@ -8,10 +8,8 @@
 (?:^|/)package(?:-lock|)\.json$
 (?:^|/)Pipfile$
 (?:^|/)pyproject.toml
-(?:^|/|\b)requirements(?:-dev|-doc|-test|)\.txt$
 (?:^|/)vendor/
-ignore$
-pkg/message/message.go
+(?:^|/|\b)requirements(?:-dev|-doc|-test|)\.txt$
 \.a$
 \.ai$
 \.all-contributorsrc$
@@ -83,3 +81,7 @@ pkg/message/message.go
 \.zip$
 ^\.github/actions/spelling/
 ^\Q.github/workflows/spelling.yml\E$
+^test/regress/gpg/
+ignore$
+pkg/message/message.go
+test/regress/pg-init/create-db.sh
