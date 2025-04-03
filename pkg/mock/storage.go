@@ -254,17 +254,17 @@ func (m *MockStorageCopier) EXPECT() *MockStorageCopierMockRecorder {
 }
 
 // CopyObject mocks base method.
-func (m *MockStorageCopier) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
+func (m *MockStorageCopier) CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, fromStorageBucket)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CopyObject indicates an expected call of CopyObject.
-func (mr *MockStorageCopierMockRecorder) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket any) *gomock.Call {
+func (mr *MockStorageCopierMockRecorder) CopyObject(from, to, fromStoragePrefix, fromStorageBucket any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageCopier)(nil).CopyObject), from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageCopier)(nil).CopyObject), from, to, fromStoragePrefix, fromStorageBucket)
 }
 
 // MockStorageInteractor is a mock of StorageInteractor interface.
@@ -321,17 +321,17 @@ func (mr *MockStorageInteractorMockRecorder) CatFileFromStorage(name, offset, se
 }
 
 // CopyObject mocks base method.
-func (m *MockStorageInteractor) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket string) error {
+func (m *MockStorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	ret := m.ctrl.Call(m, "CopyObject", from, to, fromStoragePrefix, fromStorageBucket)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CopyObject indicates an expected call of CopyObject.
-func (mr *MockStorageInteractorMockRecorder) CopyObject(from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket any) *gomock.Call {
+func (mr *MockStorageInteractorMockRecorder) CopyObject(from, to, fromStoragePrefix, fromStorageBucket any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageInteractor)(nil).CopyObject), from, to, fromStoragePrefix, toStoragePrefix, fromStorageBucket)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyObject", reflect.TypeOf((*MockStorageInteractor)(nil).CopyObject), from, to, fromStoragePrefix, fromStorageBucket)
 }
 
 // DeleteObject mocks base method.
