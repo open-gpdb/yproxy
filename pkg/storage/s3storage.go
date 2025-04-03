@@ -254,7 +254,7 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 	return nil
 }
 
-func (s *S3StorageInteractor) SScopyObject(from string, to string) error {
+func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
 	sess, err := s.pool.GetSession(context.TODO())
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -262,8 +262,8 @@ func (s *S3StorageInteractor) SScopyObject(from string, to string) error {
 	}
 	ylogger.Zero.Debug().Msg("acquired session for server-side copy")
 
-	if !strings.HasPrefix(from, s.cnf.StoragePrefix) {
-		from = path.Join(s.cnf.StoragePrefix, from)
+	if !strings.HasPrefix(from, fromStoragePrefix) {
+		from = path.Join(fromStoragePrefix, from)
 	}
 	from = strings.TrimLeft(from, "/")
 
@@ -271,10 +271,13 @@ func (s *S3StorageInteractor) SScopyObject(from string, to string) error {
 		to = path.Join(s.cnf.StoragePrefix, to)
 	}
 	to = strings.TrimLeft(to, "/")
+	from = path.Join(fromStorageBucket, from)
+
+	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
 	inp := s3.CopyObjectInput{
 		Bucket:     &s.cnf.StorageBucket,
-		CopySource: aws.String(path.Join(s.cnf.StorageBucket, from)),
+		CopySource: aws.String(from),
 		Key:        aws.String(to),
 	}
 
@@ -289,10 +292,14 @@ func (s *S3StorageInteractor) SScopyObject(from string, to string) error {
 }
 
 func (s *S3StorageInteractor) MoveObject(from string, to string) error {
-	if err := s.SScopyObject(from, to); err != nil {
+	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix, s.cnf.StorageBucket); err != nil {
 		return err
 	}
 	return s.DeleteObject(from)
+}
+
+func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
+	return s.SScopyObject(from, to, fromStoragePrefix, fromStorageBucket)
 }
 
 func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {

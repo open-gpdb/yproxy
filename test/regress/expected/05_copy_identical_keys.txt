@@ -1,0 +1,7 @@
+1
+Object: {Name: "/encrypted_file_identical_key", size: 487}
+Sample encrypted data, identical key
+INSERT 0 1
+1
+Object: {Name: "/encrypted_file_identical_key", size: 487}
+Sample encrypted data, identical key

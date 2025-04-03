@@ -30,12 +30,17 @@ type StorageMover interface {
 	AbortMultipartUpload(key, uploadId string) error
 }
 
+type StorageCopier interface {
+	CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error
+}
+
 //go:generate mockgen -destination=pkg/mock/storage.go -package=mock
 type StorageInteractor interface {
 	StorageReader
 	StorageWriter
 	StorageLister
 	StorageMover
+	StorageCopier
 }
 
 func NewStorage(cnf *config.Storage) (StorageInteractor, error) {

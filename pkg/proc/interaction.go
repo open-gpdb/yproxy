@@ -266,6 +266,12 @@ func ProcessCopyExtended(
 	if confirm {
 		var my sync.Mutex
 
+		eq, err := cr.CmpKey(instanceCnf.CryptoCnf.GPGKeyPath)
+		if err != nil {
+			return err
+		}
+		ssCopy := !(encrypt || decrypt) || (encrypt && decrypt && eq)
+
 		var failed []*object.ObjectInfo
 		retryCount := 0
 		for len(objectMetas) > 0 && retryCount < 10 {
@@ -286,6 +292,18 @@ func ProcessCopyExtended(
 					defer wg.Done()
 
 					ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+
+					// If keys are equal, perform server-side copy
+					if ssCopy {
+						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, instanceCnf.StorageCnf.StorageBucket); err != nil {
+							ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
+							my.Lock()
+							failed = append(failed, objectMetas[i])
+							my.Unlock()
+						}
+						return
+					}
+
 					/* get reader */
 					readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 					var fromReader io.Reader

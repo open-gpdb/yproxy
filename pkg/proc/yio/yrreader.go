@@ -129,7 +129,7 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			return n, err
 		}
 	}
-	return -1, fmt.Errorf("failed to unpload within retries")
+	return -1, fmt.Errorf("failed to upload within retries")
 }
 
 const (

@@ -89,6 +89,23 @@ func (s *FileStorageInteractor) MoveObject(from string, to string) error {
 	return os.Rename(fromPath, toPath)
 }
 
+func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _ string) error {
+	fromPath := path.Join(fromStoragePrefix, from)
+	toPath := path.Join(s.cnf.StoragePrefix, to)
+	toDir := path.Dir(toPath)
+	os.MkdirAll(toDir, 0700)
+	fromFile, err := os.Open(fromPath)
+	if err != nil {
+		return err
+	}
+	toFile, err := os.OpenFile(toPath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(fromFile, toFile)
+	return err
+}
+
 func (s *FileStorageInteractor) DeleteObject(key string) error {
 	return os.Remove(path.Join(s.cnf.StoragePrefix, key))
 }

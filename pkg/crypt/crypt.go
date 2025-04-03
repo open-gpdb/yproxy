@@ -22,6 +22,8 @@ const (
 type Crypter interface {
 	Decrypt(reader io.ReadCloser) (io.Reader, error)
 	Encrypt(writer io.WriteCloser) (io.WriteCloser, error)
+
+	CmpKey(path string) (bool, error)
 }
 
 type GPGCrypter struct {
@@ -104,4 +106,16 @@ func (g *GPGCrypter) Encrypt(writer io.WriteCloser) (io.WriteCloser, error) {
 	}
 
 	return encryptedWriter, nil
+}
+
+func (g *GPGCrypter) CmpKey(path string) (bool, error) {
+	this, err := os.ReadFile(g.cnf.GPGKeyPath)
+	if err != nil {
+		return false, err
+	}
+	other, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(this, other), nil
 }

@@ -1,3 +1,0 @@
-1
-Object: {Name: "//some_file", size: 12}
-Sample data

@@ -26,7 +26,6 @@ services:
       /usr/bin/mc mb myminio/gpyezzey
       /usr/bin/mc mb myminio/gpyezzey2
       "
-  
   pg:
     image: postgres
     hostname: pg

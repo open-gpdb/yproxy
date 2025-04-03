@@ -1,8 +1,0 @@
-socket_path: "/tmp/yproxy.sock"
-interconnect_socket_path: "/tmp/ic.sock"
-
-log_level: "debug"
-
-storage:
-  storage_type: fs
-  storage_prefix: /data
