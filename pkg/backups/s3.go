@@ -37,12 +37,14 @@ func (b *StorageBackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
 		}
 		content, err := io.ReadAll(reader)
 		if err != nil {
+			ylogger.Zero.Debug().Str("path", obj.Path).Err(err).Msg("GetFirstLSN: read all")
 			continue
 		}
 
 		lsn := BackupLSN{}
 		err = json.Unmarshal(content, &lsn)
 		if err != nil {
+			ylogger.Zero.Debug().Str("path", obj.Path).Err(err).Msg("GetFirstLSN: unmarshal")
 			continue
 		}
 
