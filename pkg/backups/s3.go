@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/yezzey-gp/yproxy/pkg/storage"
+	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
 type StorageBackupInteractor struct {
@@ -16,12 +17,15 @@ type StorageBackupInteractor struct {
 // get lsn of the oldest backup
 func (b *StorageBackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
 	objects, err := b.Storage.ListPath(fmt.Sprintf("segments_005/seg%d/basebackups_005/", seg), true, nil)
-	if err != nil {
+	if err != nil {	
+		ylogger.Zero.Debug().Err(err).Msg("GetFirstLSN: list result")
 		return 0, err
 	}
+	ylogger.Zero.Debug().Int("size", len(objects)).Msg("GetFirstLSN: list result size")
 
 	minLSN := BackupLSN{Lsn: ^uint64(0)}
 	for _, obj := range objects {
+		ylogger.Zero.Debug().Str("path", obj.Path).Msg("GetFirstLSN: checking")
 		if !strings.Contains(obj.Path, ".json") {
 			continue
 		}
