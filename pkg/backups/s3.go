@@ -46,6 +46,8 @@ func (b *StorageBackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
 			continue
 		}
 
+		ylogger.Zero.Debug().Str("path", obj.Path).Uint64("lsn", lsn.Lsn).Msg("GetFirstLSN: parsed backup lsn")
+
 		if lsn.Lsn < minLSN.Lsn {
 			minLSN.Lsn = lsn.Lsn
 		}
