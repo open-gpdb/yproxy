@@ -573,8 +573,8 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 	return nil
 }
 
-func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
-	bh := &backups.StorageBackupInteractor{Storage: s}
+func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient) error {
+	bh := &backups.StorageBackupInteractor{Storage: bs}
 
 	dh := database.DatabaseHandler{}
 	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
@@ -586,7 +586,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		return err
 	}
 	if first_backup_lsn == ^uint64(0) {
-		return fmt.Errorf("wal-g required for consistent deleting")
+		return fmt.Errorf("wal-g backups required for consistent deleting")
 	}
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
 	if err != nil {
@@ -790,7 +790,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 	case message.MessageDeleteObsolete:
 		msg := message.DeleteObsoleteMessage{}
 		msg.Decode(body)
-		if err := ProcessDeleteObsolete(msg, s, ycl); err != nil {
+		if err := ProcessDeleteObsolete(msg, s, bs, ycl); err != nil {
 			return err
 		}
 
