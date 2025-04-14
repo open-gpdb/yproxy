@@ -165,7 +165,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 		firstBackupLSN, err = dh.BackupInterractor.GetFirstLSN(msg.Segnum)
 		if err != nil {
 			ylogger.Zero.Error().AnErr("err", err).Msg("failed to get first lsn") //return or just assume there are no backups?
-			return err
+			return nil, err
 		}
 		ylogger.Zero.Info().Uint64("lsn", firstBackupLSN).Msg("first backup LSN")
 	} else {
