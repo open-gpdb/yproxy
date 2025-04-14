@@ -105,6 +105,7 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 	}
 
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
+		ylogger.Zero.Info().Msg("do not perform actual delete files as no confirmation flag provided")
 		return nil
 	}
 
