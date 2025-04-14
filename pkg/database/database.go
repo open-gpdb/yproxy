@@ -64,7 +64,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 		return err
 	}
 	defer conn.Close() //error
-	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetVirtualExpireIndex: connected to database")
+	ylogger.Zero.Debug().Str("database name", db.name).Msg("GetVirtualExpireIndex: connected to database")
 
 	/* Todo: check that yezzey version >= 1.8.4 */
 	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
