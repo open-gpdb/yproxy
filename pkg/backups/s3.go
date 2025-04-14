@@ -26,7 +26,7 @@ func (b *StorageBackupInteractor) GetFirstLSN(seg uint64) (uint64, error) {
 	minLSN := BackupLSN{Lsn: ^uint64(0)}
 	for _, obj := range objects {
 		ylogger.Zero.Debug().Str("path", obj.Path).Msg("GetFirstLSN: checking")
-		if !strings.Contains(obj.Path, ".json") {
+		if !strings.HasSuffix(obj.Path, "backup_stop_sentinel.json") {
 			continue
 		}
 

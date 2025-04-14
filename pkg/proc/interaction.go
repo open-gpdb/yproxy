@@ -590,7 +590,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	}
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
 	if err != nil {
-		_ = ycl.ReplyError(err, "failed connect to db")
+		ylogger.Zero.Error().Err(err).Msg("ProcessDeleteObsolete: get connection")
 		return err
 	}
 	defer conn.Close()
