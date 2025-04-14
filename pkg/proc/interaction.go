@@ -596,11 +596,12 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	defer conn.Close()
 
 	for str, v := range ei {
+		ylogger.Zero.Error().Str("delete candidate ", str).Uint64("expire lsn", v).Uintr64("fblsn", first_backup_lsn).Msg("checking lsn")
 		if v >= first_backup_lsn {
 			continue
 		}
 		if vi[str] {
-			ylogger.Zero.Error().Str("delete candidate ", str).Msg("in virtual index, trying to delete")
+			ylogger.Zero.Error().Str("delete candidate ", str).Msg("path in both expire and virtual index")
 
 			err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 			if err != nil {
@@ -615,12 +616,12 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 
 		// TODO check has prefix msg.Message
 		if !strings.Contains(str, msg.Message) {
-			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("doesnt have substring")
+			ylogger.Zero.Debug().Str("delete candidate ", str).Str("prefxi request",  msg.Message).Msg("does not have request substring")
 			continue
 		}
 		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 		if err != nil {
-			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not deleted from expire hint")
+			ylogger.Zero.Debug().Err(err).Str("delete candidate ", str).Msg("not deleted from expire hint")
 
 			continue
 		}
@@ -628,7 +629,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		// TODO make deletion if crazy_drop
 		err = s.MoveObject(str, "/trash"+str)
 		if err != nil {
-			ylogger.Zero.Debug().Str("delete candidate ", str).Msg("not moved to trash")
+			ylogger.Zero.Debug().Err(err).Str("delete candidate ", str).Msg("not moved to trash")
 
 			continue
 		}
