@@ -64,7 +64,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 		return err
 	}
 	defer conn.Close() //error
-	ylogger.Zero.Debug().Msg("connected to database")
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetVirtualExpireIndex: connected to database")
 
 	/* Todo: check that yezzey version >= 1.8.4 */
 	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
@@ -115,14 +115,13 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 }
 
 func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64, error) {
-
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("received database")
 	conn, err := connectToDatabase(port, dbname)
 	if err != nil {
 		return 0, err
 	}
 	defer conn.Close() //error
-	ylogger.Zero.Debug().Msg("connected to database")
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetNextLSN: connected to database")
 
 	rows, err := conn.Query(`select pg_current_xlog_location();`)
 	if err != nil {
@@ -172,7 +171,7 @@ func (database *DatabaseHandler) GetConnectToDatabase(port uint64, dbname string
 	if err != nil {
 		return nil, err
 	}
-	ylogger.Zero.Debug().Msg("connected to database")
+	ylogger.Zero.Debug().Str("database name", dbname).Msg("connected to database")
 	return conn, nil
 
 }
