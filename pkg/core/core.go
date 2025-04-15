@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/clientpool"
@@ -21,7 +23,6 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/sdnotifier"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
-	"golang.org/x/sys/unix"
 )
 
 type Instance struct {
@@ -66,6 +67,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 
 	var listener net.Listener
 	var iclistener net.Listener
+	var dws *DebugWebServer
 
 	go func() {
 		defer cancelCtx()
@@ -80,7 +82,12 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			case syscall.SIGHUP:
 				// reread config file
 			case syscall.SIGUSR2:
-				fallthrough
+				if dws != nil {
+					err := dws.ServeFor(time.Duration(instanceCnf.DebugMinutes) * time.Minute)
+					if err != nil {
+						ylogger.Zero.Error().Err(err).Msg("Error in debug server")
+					}
+				}
 			case syscall.SIGINT, syscall.SIGTERM:
 				// make better
 				fallthrough
@@ -120,6 +127,12 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 				return err
 			})
 		})
+	}
+
+	/* dispatch /debug/pprof server */
+	if instanceCnf.DebugPort != 0 {
+		debugAddr := fmt.Sprintf("[::1]:%d", instanceCnf.DebugPort)
+		dws = NewDebugWebServer(debugAddr)
 	}
 
 	s, err := storage.NewStorage(

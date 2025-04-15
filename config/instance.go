@@ -26,6 +26,8 @@ type Instance struct {
 	StatPort               int    `json:"stat_port" toml:"stat_port" yaml:"stat_port"`
 	PsqlPort               int    `json:"psql_port" toml:"psql_port" yaml:"psql_port"`
 	InterconnectSocketPath string `json:"interconnect_socket_path" toml:"interconnect_socket_path" yaml:"interconnect_socket_path"`
+	DebugPort              int    `json:"debug_port" toml:"debug_port" yaml:"debug_port"`
+	DebugMinutes           int    `json:"debug_minutes" toml:"debug_minutes" yaml:"debug_minutes"`
 
 	SystemdNotificationsDebug bool `json:"sd_notifications_debug" toml:"sd_notifications_debug" yaml:"sd_notifications_debug"`
 	systemdSocketPath         string
