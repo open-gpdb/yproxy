@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function cleanup() {
-    kill -s SIGINT $pid1
-    kill -s SIGINT $pid2
+    kill -USR2 $pid1
+    kill -USR2 $pid2
     kill -ABRT $clientpid1
     kill -ABRT $clientpid2
     wait $pid1
@@ -33,7 +33,7 @@ fi
 echo 'yp-client1 received connection with pid' $clientpid1
 
 echo 'Killing Instance 1'
-kill -s SIGINT $pid1
+kill -USR2 $pid1
 # old instance should be still running, serving active connections
 if ! kill -0 $pid1 2>&1; then
     cleanup
@@ -54,7 +54,7 @@ fi
 echo 'yp-client2 received connection with pid' $clientpid2
 
 echo 'Killing Instance 2'
-kill -s SIGINT $pid2
+kill -USR2 $pid2
 
 cleanup
 

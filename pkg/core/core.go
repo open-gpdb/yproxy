@@ -80,14 +80,14 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			case syscall.SIGUSR1:
 				ylogger.ReloadLogger(instanceCnf.LogPath)
 			case syscall.SIGHUP:
-				// reread config file
-			case syscall.SIGUSR2:
 				if dws != nil {
 					err := dws.ServeFor(time.Duration(instanceCnf.DebugMinutes) * time.Minute)
 					if err != nil {
 						ylogger.Zero.Error().Err(err).Msg("Error in debug server")
 					}
 				}
+			case syscall.SIGUSR2:
+				fallthrough
 			case syscall.SIGINT, syscall.SIGTERM:
 				// make better
 				fallthrough
