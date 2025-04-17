@@ -293,15 +293,12 @@ func ProcessCopyExtended(
 
 					ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 
-					// If keys are equal, perform server-side copy
+					// If keys are equal, try performing server-side copy
 					if ssCopy {
-						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, instanceCnf.StorageCnf.StorageBucket); err != nil {
-							ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
-							my.Lock()
-							failed = append(failed, objectMetas[i])
-							my.Unlock()
+						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, instanceCnf.StorageCnf.StorageBucket); err == nil {
+							return
 						}
-						return
+						ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
 					}
 
 					/* get reader */
@@ -616,7 +613,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 
 		// TODO check has prefix msg.Message
 		if !strings.Contains(str, msg.Message) {
-			ylogger.Zero.Debug().Str("delete candidate", str).Str("prefxi request",  msg.Message).Msg("does not have request substring")
+			ylogger.Zero.Debug().Str("delete candidate", str).Str("prefxi request", msg.Message).Msg("does not have request substring")
 			continue
 		}
 		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
