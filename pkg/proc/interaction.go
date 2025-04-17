@@ -613,7 +613,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 
 		// TODO check has prefix msg.Message
 		if !strings.Contains(str, msg.Message) {
-			ylogger.Zero.Debug().Str("delete candidate", str).Str("prefxi request", msg.Message).Msg("does not have request substring")
+			ylogger.Zero.Debug().Str("delete candidate", str).Str("prefix request", msg.Message).Msg("does not have request substring")
 			continue
 		}
 		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
