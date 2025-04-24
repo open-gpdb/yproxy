@@ -103,7 +103,13 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 
 func requestEndpoint(endpointSource, port string) (string, error) {
 	ylogger.Zero.Debug().Str("source host", endpointSource).Msg("requesting storage endpoint")
-	resp, err := http.Get(endpointSource)
+	t := http.DefaultTransport
+	var c *http.Client = http.DefaultClient
+	if tr, ok := t.(*http.Transport); ok {
+		tr.DisableKeepAlives = true
+		c = &http.Client{Transport: tr}
+	}
+	resp, err := c.Get(endpointSource)
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("failed to get S3 endpoint")
 		return "", err
