@@ -45,3 +45,6 @@
 
 # hex runs
 \b[0-9a-fA-F]{16,}\b
+
+# 'uses' in workflows
+uses:\s+[-a-zA-Z0-9_]+/[-a-zA-Z0-9_]+@.+
