@@ -42,4 +42,4 @@ fmtcheck:
 	@sh -c "'$(CURDIR)/script/gofmtcheck.sh'"
 
 lint:
-	golangci-lint run --timeout=10m --out-format=colored-line-number --exclude-dirs=pkg/core/parser
+	golangci-lint run --timeout=10m --exclude-dirs=pkg/core/parser
