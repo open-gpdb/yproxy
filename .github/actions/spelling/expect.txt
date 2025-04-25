@@ -8,10 +8,9 @@ Atoi
 aws
 basebackups
 BConst
-Benro
 buf
 buildpackage
-buildx
+Buildx
 caio
 cdsdsd
 cfg
@@ -28,7 +27,6 @@ crypter
 Cstring
 ctx
 CURDIR
-Darth
 datallowconn
 datname
 dattablespace
@@ -59,6 +57,7 @@ goimports
 golangci
 gomock
 gopkg
+govet
 goyacc
 gpdata
 gpdb
