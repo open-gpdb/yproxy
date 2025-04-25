@@ -3,6 +3,7 @@ aboba
 ABRT
 AExpr
 aocs
+Appendf
 Atoi
 aws
 basebackups
@@ -26,6 +27,7 @@ Cred
 crypter
 Cstring
 ctx
+CURDIR
 Darth
 datallowconn
 datname
@@ -51,6 +53,8 @@ fmtcheck
 gengeneric
 Getenv
 gettime
+gofmt
+gofmtcheck
 goimports
 golangci
 gomock
