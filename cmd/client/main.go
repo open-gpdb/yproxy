@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 
@@ -62,7 +63,9 @@ func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Comm
 			logLevel = instanceCnf.LogLevel
 		}
 
-		ylogger.UpdateZeroLogLevel(logLevel)
+		if err := ylogger.UpdateZeroLogLevel(logLevel); err != nil {
+			log.Printf("failed to update log level: %s\n", err)
+		}
 
 		defer con.Close()
 		return f(con, instanceCnf, args)

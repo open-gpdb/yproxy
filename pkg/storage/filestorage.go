@@ -67,7 +67,9 @@ func (s *FileStorageInteractor) ListPath(prefix string, _ bool, _ []settings.Sto
 func (s *FileStorageInteractor) PutFileToDest(name string, r io.Reader, _ []settings.StorageSettings) error {
 	fPath := path.Join(s.cnf.StoragePrefix, name)
 	fDir := path.Dir(fPath)
-	os.MkdirAll(fDir, 0700)
+	if err := os.MkdirAll(fDir, 0700); err != nil {
+		return err
+	}
 	file, err := os.Create(fPath)
 	if err != nil {
 		return err
@@ -85,7 +87,9 @@ func (s *FileStorageInteractor) MoveObject(from string, to string) error {
 	fromPath := path.Join(s.cnf.StoragePrefix, from)
 	toPath := path.Join(s.cnf.StoragePrefix, to)
 	toDir := path.Dir(toPath)
-	os.MkdirAll(toDir, 0700)
+	if err := os.MkdirAll(toDir, 0700); err != nil {
+		return err
+	}
 	return os.Rename(fromPath, toPath)
 }
 
@@ -93,7 +97,9 @@ func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _ string
 	fromPath := path.Join(fromStoragePrefix, from)
 	toPath := path.Join(s.cnf.StoragePrefix, to)
 	toDir := path.Dir(toPath)
-	os.MkdirAll(toDir, 0700)
+	if err := os.MkdirAll(toDir, 0700); err != nil {
+		return err
+	}
 	fromFile, err := os.Open(fromPath)
 	if err != nil {
 		return err

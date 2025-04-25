@@ -119,13 +119,15 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		i.DispatchServer(statListener, func(clConn net.Conn) {
 			defer clConn.Close()
 
-			clConn.Write([]byte("Hello from stats server!!\n"))
-			clConn.Write([]byte("Client id | Optype | External Path \n"))
+			_, _ = clConn.Write([]byte("Hello from stats server!!\n"))
+			_, _ = clConn.Write([]byte("Client id | Optype | External Path \n"))
 
-			i.pool.ClientPoolForeach(func(cl client.YproxyClient) error {
-				_, err := clConn.Write([]byte(fmt.Sprintf("%v | %v | %v\n", cl.ID(), cl.OPType(), cl.ExternalFilePath())))
+			if err := i.pool.ClientPoolForeach(func(cl client.YproxyClient) error {
+				_, err := clConn.Write(fmt.Appendf(nil, "%v | %v | %v\n", cl.ID(), cl.OPType(), cl.ExternalFilePath()))
 				return err
-			})
+			}); err != nil {
+				ylogger.Zero.Error().Err(err).Msg("failed to write client stats data")
+			}
 		})
 	}
 
@@ -190,20 +192,18 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		defer activeConnections.Done()
 		defer clConn.Close()
 		ycl := client.NewYClient(clConn)
-		i.pool.Put(ycl)
+		if err := i.pool.Put(ycl); err != nil {
+			// ?? wtf
+			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error puting client to pool")
+		}
 		if err := proc.ProcConn(s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
-		_, err := i.pool.Pop(ycl.ID())
-		if err != nil {
+		if _, err := i.pool.Pop(ycl.ID()); err != nil {
 			// ?? wtf
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error erasing client from pool")
 		}
 	})
-
-	if err != nil {
-		return err
-	}
 
 	for iclistener == nil {
 		select {
@@ -245,7 +245,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			msg := message.ReadyForQueryMessage{}
 			_, _ = ycl.GetRW().Write(msg.Encode())
 		default:
-			ycl.ReplyError(fmt.Errorf("wrong message type"), "")
+			_ = ycl.ReplyError(fmt.Errorf("wrong message type"), "")
 
 		}
 		ylogger.Zero.Debug().Msg("interconnection closed")
@@ -258,11 +258,11 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			return err
 		}
 	}
-	notifier.Ready()
+	_ = notifier.Ready()
 
 	go func() {
 		for {
-			notifier.Notify()
+			_ = notifier.Notify()
 			time.Sleep(sdnotifier.Timeout)
 		}
 	}()
@@ -274,6 +274,6 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 
 func reusePort(network, address string, conn syscall.RawConn) error {
 	return conn.Control(func(descriptor uintptr) {
-		syscall.SetsockoptInt(int(descriptor), unix.SOL_SOCKET, unix.SO_REUSEADDR|unix.SO_REUSEPORT, 1)
+		_ = syscall.SetsockoptInt(int(descriptor), unix.SOL_SOCKET, unix.SO_REUSEADDR|unix.SO_REUSEPORT, 1)
 	})
 }

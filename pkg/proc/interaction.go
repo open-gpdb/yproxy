@@ -58,7 +58,9 @@ func ProcessCatExtended(
 	}
 
 	if startOffset != 0 {
-		io.CopyN(io.Discard, contentReader, int64(startOffset))
+		if _, err := io.CopyN(io.Discard, contentReader, int64(startOffset)); err != nil {
+			return err
+		}
 	}
 
 	n, err := io.Copy(ycl.GetRW(), contentReader)
@@ -284,7 +286,7 @@ func ProcessCopyExtended(
 			for i := range len(objectMetas) {
 				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
 
-				sem.Acquire(context.TODO(), 1)
+				_ = sem.Acquire(context.TODO(), 1)
 				wg.Add(1)
 
 				go func(i int) {

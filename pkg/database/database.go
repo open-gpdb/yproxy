@@ -41,7 +41,7 @@ func checkVersion(c *pgx.Conn, exp string) (bool, error) {
 	defer rows.Close()
 	ylogger.Zero.Debug().Msg("executed select")
 
-	for rows.Next() {
+	if rows.Next() {
 		var ver string
 		if err := rows.Scan(&ver); err != nil {
 			return false, fmt.Errorf("unable to parse query output %v", err)
@@ -123,28 +123,23 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 	defer conn.Close() //error
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetNextLSN: connected to database")
 
-	rows, err := conn.Query(`select pg_current_xlog_location();`)
+	dbRow := conn.QueryRow(`select pg_current_xlog_location();`)
 	if err != nil {
 		return 0, fmt.Errorf("unable to next lsn %v", err) //fix
 	}
-	defer rows.Close()
 	ylogger.Zero.Debug().Msg("executed select")
 
-	for rows.Next() {
-		row := LSN{}
-		if err := rows.Scan(&row.lsn); err != nil {
-			return 0, fmt.Errorf("unable to parse query output %v", err)
-		}
-		lsn, err := pgx.ParseLSN(row.lsn)
-		if err != nil {
-			return 0, fmt.Errorf("unable to parse query output %v", err)
-		}
-
-		ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
-		return lsn, nil
+	row := LSN{}
+	if err := dbRow.Scan(&row.lsn); err != nil {
+		return 0, fmt.Errorf("unable to parse query output %v", err)
 	}
-	// unexcepted
-	return 0, fmt.Errorf("unexpected error while getting next lsn")
+	lsn, err := pgx.ParseLSN(row.lsn)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse query output %v", err)
+	}
+
+	ylogger.Zero.Debug().Uint64("lsn", lsn).Msg("received lsn")
+	return lsn, nil
 }
 
 func (database *DatabaseHandler) GetVirtualExpireIndexes(port uint64) (map[string]bool, map[string]uint64, error) { //TODO несколько баз
