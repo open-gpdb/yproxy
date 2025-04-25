@@ -40,7 +40,7 @@ func NewInstance() *Instance {
 
 func (i *Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
 	go func() {
-		defer listener.Close()
+		defer func() { _ = listener.Close() }()
 		for {
 			clConn, err := listener.Accept()
 			if err != nil {
@@ -117,7 +117,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		}
 
 		i.DispatchServer(statListener, func(clConn net.Conn) {
-			defer clConn.Close()
+			defer func() { _ = clConn.Close() }()
 
 			_, _ = clConn.Write([]byte("Hello from stats server!!\n"))
 			_, _ = clConn.Write([]byte("Client id | Optype | External Path \n"))
@@ -190,7 +190,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	i.DispatchServer(listener, func(clConn net.Conn) {
 		activeConnections.Add(1)
 		defer activeConnections.Done()
-		defer clConn.Close()
+		defer func() { _ = clConn.Close() }()
 		ycl := client.NewYClient(clConn)
 		if err := i.pool.Put(ycl); err != nil {
 			// ?? wtf
@@ -230,7 +230,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	i.DispatchServer(iclistener, func(clConn net.Conn) {
 		activeConnections.Add(1)
 		defer activeConnections.Done()
-		defer clConn.Close()
+		defer func() { _ = clConn.Close() }()
 		ycl := client.NewYClient(clConn)
 		r := proc.NewProtoReader(ycl)
 

@@ -63,7 +63,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 	if err != nil {
 		return err
 	}
-	defer conn.Close() //error
+	defer func() { _ = conn.Close() }() //error
 	ylogger.Zero.Debug().Str("database name", db.name).Msg("GetVirtualExpireIndex: connected to database")
 
 	/* Todo: check that yezzey version >= 1.8.4 */
@@ -120,13 +120,10 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 	if err != nil {
 		return 0, err
 	}
-	defer conn.Close() //error
+	defer func() { _ = conn.Close() }() //error
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetNextLSN: connected to database")
 
 	dbRow := conn.QueryRow(`select pg_current_xlog_location();`)
-	if err != nil {
-		return 0, fmt.Errorf("unable to next lsn %v", err) //fix
-	}
 	ylogger.Zero.Debug().Msg("executed select")
 
 	row := LSN{}
@@ -195,7 +192,7 @@ func getDatabase(port uint64) ([]DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close() //error
+	defer func() { _ = conn.Close() }() //error
 	ylogger.Zero.Debug().Msg("connected to db")
 	rows, err := conn.Query(`SELECT dattablespace, oid, datname FROM pg_database WHERE datallowconn;`)
 	if err != nil {
@@ -221,7 +218,7 @@ func getDatabase(port uint64) ([]DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer connDb.Close() //error
+		defer func() { _ = connDb.Close() }() //error
 		ylogger.Zero.Debug().Msg("cycle 3")
 
 		rowsdb, err := connDb.Query(`SELECT exists(SELECT * FROM information_schema.schemata WHERE schema_name='yezzey');`)

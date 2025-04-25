@@ -18,7 +18,7 @@ import (
 )
 
 func PostgresIface(cl net.Conn, p clientpool.Pool, instanceStart time.Time, s storage.StorageInteractor) {
-	defer cl.Close()
+	defer func() { _ = cl.Close() }()
 
 	conn := pgproto3.NewBackend(cl, cl)
 
@@ -48,18 +48,18 @@ init:
 
 	/* send auth ok */
 	conn.Send(&pgproto3.AuthenticationCleartextPassword{})
-	conn.Flush()
+	_ = conn.Flush()
 	_, err := conn.Receive()
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("failed to complete AUTH")
 		return
 	}
 	conn.Send(&pgproto3.AuthenticationOk{})
-	conn.Flush()
+	_ = conn.Flush()
 	conn.Send(&pgproto3.ReadyForQuery{
 		TxStatus: 'I',
 	})
-	conn.Flush()
+	_ = conn.Flush()
 
 	/* main cycle */
 
@@ -82,7 +82,7 @@ init:
 					Message: fmt.Sprintf("failed to parse query: %v", err),
 				})
 				conn.Send(&pgproto3.ReadyForQuery{})
-				conn.Flush()
+				_ = conn.Flush()
 				continue
 			}
 
@@ -107,7 +107,7 @@ init:
 				conn.Send(&pgproto3.ReadyForQuery{
 					TxStatus: 'I',
 				})
-				conn.Flush()
+				_ = conn.Flush()
 			case *parser.ShowCommand:
 				_ = ProcessShow(conn, q.Type, p, instanceStart)
 			case *parser.CopyCommand:
@@ -128,7 +128,7 @@ init:
 				conn.Send(&pgproto3.ReadyForQuery{
 					TxStatus: 'I',
 				})
-				conn.Flush()
+				_ = conn.Flush()
 			case *parser.KKBCommand:
 				ylogger.Zero.Error().Msg("received die command, exiting")
 
@@ -149,7 +149,7 @@ init:
 				conn.Send(&pgproto3.ReadyForQuery{
 					TxStatus: 'I',
 				})
-				conn.Flush()
+				_ = conn.Flush()
 				/* TDB: remove this crutch */
 				time.Sleep(time.Second * 5)
 				os.Exit(2)
@@ -161,7 +161,7 @@ init:
 				conn.Send(&pgproto3.ReadyForQuery{
 					TxStatus: 'I',
 				})
-				conn.Flush()
+				_ = conn.Flush()
 			}
 
 		default:

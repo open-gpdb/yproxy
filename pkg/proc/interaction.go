@@ -33,7 +33,7 @@ func ProcessCatExtended(
 
 	var contentReader io.Reader
 	contentReader = yr
-	defer yr.Close()
+	defer func() { _ = yr.Close() }()
 	var err error
 
 	if decrypt {
@@ -87,8 +87,8 @@ func ProcessPutExtended(
 
 	w = yio.NewYproxyWriter(w, ycl)
 
-	defer r.Close()
-	defer w.Close()
+	defer func() { _ = r.Close() }()
+	defer func() { _ = w.Close() }()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -96,7 +96,7 @@ func ProcessPutExtended(
 	go func() {
 		defer wg.Done()
 
-		var ww io.WriteCloser = w
+		ww := w
 		if encrypt {
 			if cr == nil {
 				ylogger.Zero.Error().Err(fmt.Errorf("failed to encrypt, crypter not configured")).Str("path", name).Msg("connection aborted")
@@ -272,7 +272,7 @@ func ProcessCopyExtended(
 		if err != nil {
 			return err
 		}
-		ssCopy := !(encrypt || decrypt) || (encrypt && decrypt && eq)
+		ssCopy := (!encrypt && !decrypt) || (encrypt && decrypt && eq)
 
 		var failed []*object.ObjectInfo
 		retryCount := 0
@@ -307,7 +307,7 @@ func ProcessCopyExtended(
 					readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
 					var fromReader io.Reader
 					fromReader = readerFromOldBucket
-					defer readerFromOldBucket.Close()
+					defer func() { _ = readerFromOldBucket.Close() }()
 
 					if decrypt {
 						oldCr, err := crypt.NewCrypto(&instanceCnf.CryptoCnf)
@@ -545,7 +545,7 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 		_ = ycl.ReplyError(err, "failed connect to db")
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	for _, v := range files {
 		_, ok := vi[v.Path]
 		if ok {
@@ -592,7 +592,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		ylogger.Zero.Error().Err(err).Msg("ProcessDeleteObsolete: get connection")
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	for str, v := range ei {
 		ylogger.Zero.Error().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
