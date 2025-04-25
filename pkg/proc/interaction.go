@@ -593,7 +593,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	defer conn.Close()
 
 	for str, v := range ei {
-		ylogger.Zero.Error().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("fblsn", first_backup_lsn).Msg("checking lsn")
+		ylogger.Zero.Error().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if v >= first_backup_lsn {
 			continue
 		}

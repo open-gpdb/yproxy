@@ -7,6 +7,7 @@ Atoi
 aws
 basebackups
 BConst
+Benro
 buf
 buildpackage
 buildx
@@ -17,6 +18,7 @@ Chk
 Cleartext
 clientpid
 clientpool
+cmdline
 Cmp
 cnf
 compat
@@ -24,6 +26,7 @@ Cred
 crypter
 Cstring
 ctx
+Darth
 datallowconn
 datname
 dattablespace
@@ -34,17 +37,22 @@ DEK
 devbin
 djewikdeowp
 dpkg
+dws
 EADDRINUSE
 Errflag
 Errorf
 Exca
+expvar
 Fatalf
 fbreak
 fileinfo
 filestorage
+fmtcheck
 gengeneric
 Getenv
 gettime
+goimports
+golangci
 gomock
 gopkg
 goyacc
@@ -115,6 +123,7 @@ pid
 PITR
 postgres
 postgresql
+pprof
 println
 psql
 ptr
@@ -175,7 +184,7 @@ uint
 uintptr
 unixgram
 unk
-Unmarshal
+unmarshal
 unssuported
 untrash
 untrashified
@@ -183,6 +192,7 @@ untrashify
 USEC
 usr
 wal
+webserver
 WORKDIR
 workflows
 WRONLY
