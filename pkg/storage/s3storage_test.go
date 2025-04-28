@@ -14,8 +14,8 @@ func TestCache(t *testing.T) {
 
 	f, err := os.CreateTemp("", "*")
 	assert.NoError(err)
-	defer os.Remove(f.Name())
-	defer f.Close()
+	defer func() { _ = os.Remove(f.Name()) }()
+	defer func() { _ = f.Close() }()
 
 	config.InstanceConfig().ProxyCnf.BucketCachePath = f.Name()
 

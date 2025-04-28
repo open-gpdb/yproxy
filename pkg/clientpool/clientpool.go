@@ -81,14 +81,14 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 		total := cl.ByteOffset()
 		if total > 0 {
 			ct := SizeToCat(total)
-			timeTotal := time.Now().Sub(cl.OPStart()).Nanoseconds()
+			timeTotal := time.Since(cl.OPStart()).Nanoseconds()
 
 			optyp := cl.OPType().String()
 			if c.opSpeed[ct][optyp] == nil {
 				c.opSpeed[ct][optyp], _ = tdigest.New()
 			}
 
-			c.opSpeed[ct][optyp].Add(float64(total) / float64(timeTotal))
+			_ = c.opSpeed[ct][optyp].Add(float64(total) / float64(timeTotal))
 		}
 
 		delete(c.pool, id)
@@ -132,9 +132,9 @@ func NewClientPool() Pool {
 		pool: map[uint]client.YproxyClient{},
 		mu:   sync.Mutex{},
 		opSpeed: map[int]map[string]*tdigest.TDigest{
-			0: map[string]*tdigest.TDigest{},
-			1: map[string]*tdigest.TDigest{},
-			2: map[string]*tdigest.TDigest{},
+			0: {},
+			1: {},
+			2: {},
 		},
 	}
 }

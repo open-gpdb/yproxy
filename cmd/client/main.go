@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 
@@ -62,9 +63,13 @@ func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Comm
 			logLevel = instanceCnf.LogLevel
 		}
 
-		ylogger.UpdateZeroLogLevel(logLevel)
+		if err := ylogger.UpdateZeroLogLevel(logLevel); err != nil {
+			log.Printf("failed to update log level: %s\n", err)
+		}
 
-		defer con.Close()
+		defer func() {
+			_ = con.Close()
+		}()
 		return f(con, instanceCnf, args)
 	}
 }
@@ -238,10 +243,7 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 
 	done := false
 	res := make([]*object.ObjectInfo, 0)
-	for {
-		if done {
-			break
-		}
+	for !done {
 		tp, body, err := r.ReadPacket()
 		if err != nil {
 			return err
@@ -336,10 +338,7 @@ func goolFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	r := proc.NewProtoReader(ycl)
 
 	done := false
-	for {
-		if done {
-			break
-		}
+	for !done {
 		tp, _, err := r.ReadPacket()
 		if err != nil {
 			return err

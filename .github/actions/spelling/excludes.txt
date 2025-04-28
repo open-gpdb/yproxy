@@ -81,6 +81,7 @@
 \.zip$
 ^\.github/actions/spelling/
 ^\Q.github/workflows/spelling.yml\E$
+^\Qbuild.Dockerfile\E$
 ^test/regress/gpg/
 ignore$
 pkg/message/message.go

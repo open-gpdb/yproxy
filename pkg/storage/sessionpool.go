@@ -104,7 +104,7 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 func requestEndpoint(endpointSource, port string) (string, error) {
 	ylogger.Zero.Debug().Str("source host", endpointSource).Msg("requesting storage endpoint")
 	t := http.DefaultTransport
-	var c *http.Client = http.DefaultClient
+	c := http.DefaultClient
 	if tr, ok := t.(*http.Transport); ok {
 		tr.DisableKeepAlives = true
 		c = &http.Client{Transport: tr}
@@ -131,7 +131,7 @@ func requestEndpoint(endpointSource, port string) (string, error) {
 }
 
 func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
-	s.sem.Acquire(ctx, 1)
+	_ = s.sem.Acquire(ctx, 1)
 	s.usedConnections.Add(1)
 	defer func() {
 		s.sem.Release(1)

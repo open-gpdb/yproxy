@@ -366,7 +366,7 @@ func putInCache(storageId string, objs []*object.ObjectInfo) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	content, err := io.ReadAll(f)
 	if err != nil {
 		return err
@@ -411,7 +411,7 @@ func readCache(cfg config.Storage, prefix string) ([]*object.ObjectInfo, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	content, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
