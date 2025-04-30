@@ -150,7 +150,7 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 	err := dh.StorageInterractor.DeleteObject(msg.Name)
 	if err != nil {
-		ylogger.Zero.Error().AnErr("err", err).Msg("failed to delete file " + msg.Name)
+		ylogger.Zero.Error().AnErr("err", err).Str("name", msg.Name).Msg("failed to delete file")
 		return errors.Wrap(err, "failed to delete file")
 	}
 	return nil
