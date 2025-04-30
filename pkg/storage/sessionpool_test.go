@@ -35,7 +35,10 @@ func TestEndpointSourceHTTP(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO())
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+		AccessKeyId:     "mock_access_key",
+		SecretAccessKey: "mock_secret_key",
+	})
 	assert.NoError(err)
 	_, err = sess.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("bucket"),
@@ -71,7 +74,10 @@ func TestEndpointSourceHTTPS(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO())
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+		AccessKeyId:     "mock_access_key",
+		SecretAccessKey: "mock_secret_key",
+	})
 	assert.NoError(err)
 	_, err = sess.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("bucket"),
@@ -108,7 +114,10 @@ func TestEndpointSourceSetPort(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO())
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+		AccessKeyId:     "mock_access_key",
+		SecretAccessKey: "mock_secret_key",
+	})
 	assert.NoError(err)
 	_, err = sess.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("bucket"),

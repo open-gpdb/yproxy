@@ -7,12 +7,19 @@ type Crypto struct {
 	GPGKeyPath string `json:"gpg_key_path" toml:"gpg_key_path" yaml:"gpg_key_path"`
 }
 
+type StorageCreds struct {
+	AccessKeyId     string `json:"access_key_id" toml:"access_key_id" yaml:"access_key_id"`
+	SecretAccessKey string `json:"secret_access_key" toml:"secret_access_key" yaml:"secret_access_key"`
+}
+
 type Storage struct {
 	StorageEndpoint string `json:"storage_endpoint" toml:"storage_endpoint" yaml:"storage_endpoint"`
 	AccessKeyId     string `json:"access_key_id" toml:"access_key_id" yaml:"access_key_id"`
 	SecretAccessKey string `json:"secret_access_key" toml:"secret_access_key" yaml:"secret_access_key"`
 	StoragePrefix   string `json:"storage_prefix" toml:"storage_prefix" yaml:"storage_prefix"`
 	StorageBucket   string `json:"storage_bucket" toml:"storage_bucket" yaml:"storage_bucket"`
+
+	CredentialMap map[string]StorageCreds `json:"credential_map" toml:"credential_map" yaml:"credential_map"`
 
 	TablespaceMap map[string]string `json:"tablespace_map" toml:"tablespace_map" yaml:"tablespace_map"`
 
