@@ -73,14 +73,14 @@ func buildBucketMapFromCnf(cnf *config.Storage) map[string]string {
 	return mp
 }
 
-func buildCredMapFromCnf(cnf *config.Storage) map[string]config.StorageCreds {
+func buildCredMapFromCnf(cnf *config.Storage) map[string]config.StorageCredentials {
 	mp := cnf.CredentialMap
 	if mp == nil {
 		/* fallback for backward-compatibility if to TableSpace map configured */
-		mp = map[string]config.StorageCreds{}
+		mp = map[string]config.StorageCredentials{}
 	}
-	if _, ok := mp[tablespace.DefaultTableSpace]; !ok {
-		mp[tablespace.DefaultTableSpace] = config.StorageCreds{
+	if _, ok := mp[cnf.StorageBucket]; !ok {
+		mp[cnf.StorageBucket] = config.StorageCredentials{
 			AccessKeyId:     cnf.AccessKeyId,
 			SecretAccessKey: cnf.SecretAccessKey,
 		}

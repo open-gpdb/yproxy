@@ -35,7 +35,7 @@ func TestEndpointSourceHTTP(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
 		SecretAccessKey: "mock_secret_key",
 	})
@@ -74,7 +74,7 @@ func TestEndpointSourceHTTPS(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
 		SecretAccessKey: "mock_secret_key",
 	})
@@ -114,7 +114,7 @@ func TestEndpointSourceSetPort(t *testing.T) {
 		StorageConcurrency: 1,
 	})
 
-	sess, err := pool.GetSession(context.TODO(), &config.StorageCreds{
+	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
 		SecretAccessKey: "mock_secret_key",
 	})

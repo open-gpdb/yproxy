@@ -32,7 +32,7 @@ type S3StorageInteractor struct {
 	cnf *config.Storage
 
 	bucketMap        map[string]string
-	credentialMap    map[string]config.StorageCreds
+	credentialMap    map[string]config.StorageCredentials
 	multipartUploads sync.Map
 }
 
@@ -133,7 +133,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 
 func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffset int64) error {
 
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[s.cnf.StorageBucket]
 
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
@@ -177,7 +177,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		return nil, err
 	}
 
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
@@ -238,7 +238,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 
 func (s *S3StorageInteractor) DeleteObject(key string) error {
 
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[s.cnf.StorageBucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
@@ -268,7 +268,7 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 
 func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
 
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[s.cnf.StorageBucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
@@ -319,7 +319,7 @@ func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorag
 
 func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
 
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[s.cnf.StorageBucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
@@ -335,7 +335,7 @@ func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
 }
 
 func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, error) {
-	/* XXX: fix ussage of default bucket */
+	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[s.cnf.StorageBucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
