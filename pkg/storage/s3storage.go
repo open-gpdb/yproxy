@@ -32,19 +32,13 @@ type S3StorageInteractor struct {
 	cnf *config.Storage
 
 	bucketMap        map[string]string
+	credentialMap    map[string]config.StorageCredentials
 	multipartUploads sync.Map
 }
 
 func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, setts []settings.StorageSettings) (io.ReadCloser, error) {
-	// XXX: fix this
-	sess, err := s.pool.GetSession(context.TODO())
-	if err != nil {
-		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
-		return nil, err
-	}
 
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
-
 	tableSpace := ResolveStorageSetting(setts, message.TableSpaceSetting, tablespace.DefaultTableSpace)
 
 	bucket, ok := s.bucketMap[tableSpace]
@@ -54,6 +48,13 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 		return nil, err
 	}
 
+	// XXX: fix this
+	cr := s.credentialMap[bucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
+	if err != nil {
+		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
+		return nil, err
+	}
 	input := &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    aws.String(objectPath),
@@ -68,11 +69,6 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 }
 
 func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings []settings.StorageSettings) error {
-	sess, err := s.pool.GetSession(context.TODO())
-	if err != nil {
-		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
-		return err
-	}
 
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
 
@@ -88,17 +84,24 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		return err
 	}
 
-	up := s3manager.NewUploaderWithClient(sess, func(uploader *s3manager.Uploader) {
-		uploader.PartSize = int64(multipartChunkSize)
-		uploader.Concurrency = 1
-	})
-
 	bucket, ok := s.bucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)
 		return err
 	}
+
+	cr := s.credentialMap[bucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
+	if err != nil {
+		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
+		return err
+	}
+
+	up := s3manager.NewUploaderWithClient(sess, func(uploader *s3manager.Uploader) {
+		uploader.PartSize = int64(multipartChunkSize)
+		uploader.Concurrency = 1
+	})
 
 	if multipartUpload {
 		s.multipartUploads.Store(objectPath, true)
@@ -129,7 +132,11 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 }
 
 func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffset int64) error {
-	sess, err := s.pool.GetSession(context.TODO())
+
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[s.cnf.StorageBucket]
+
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
 		return nil
@@ -161,16 +168,6 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		ylogger.Zero.Debug().Msg("cache was not found, listing from source bucket")
 	}
 
-	sess, err := s.pool.GetSession(context.TODO())
-	if err != nil {
-		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
-		return nil, err
-	}
-
-	var continuationToken *string
-	prefix = strings.TrimLeft(path.Join(s.cnf.StoragePrefix, prefix), "/")
-	metas := make([]*object.ObjectInfo, 0)
-
 	tableSpace := ResolveStorageSetting(settings, message.TableSpaceSetting, tablespace.DefaultTableSpace)
 
 	bucket, ok := s.bucketMap[tableSpace]
@@ -179,6 +176,18 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		ylogger.Zero.Err(err)
 		return nil, err
 	}
+
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[bucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
+	if err != nil {
+		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
+		return nil, err
+	}
+
+	var continuationToken *string
+	prefix = strings.TrimLeft(path.Join(s.cnf.StoragePrefix, prefix), "/")
+	metas := make([]*object.ObjectInfo, 0)
 
 	ylogger.Zero.Debug().Str("tablespace", tableSpace).Str("bucket", bucket).Msg("listing bucket")
 
@@ -228,7 +237,10 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 }
 
 func (s *S3StorageInteractor) DeleteObject(key string) error {
-	sess, err := s.pool.GetSession(context.TODO())
+
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[s.cnf.StorageBucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
 		return err
@@ -255,7 +267,10 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 }
 
 func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
-	sess, err := s.pool.GetSession(context.TODO())
+
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[s.cnf.StorageBucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
 		return err
@@ -303,7 +318,10 @@ func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorag
 }
 
 func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
-	sess, err := s.pool.GetSession(context.TODO())
+
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[s.cnf.StorageBucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return err
 	}
@@ -317,7 +335,9 @@ func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
 }
 
 func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, error) {
-	sess, err := s.pool.GetSession(context.TODO())
+	/* XXX: fix usage of default bucket */
+	cr := s.credentialMap[s.cnf.StorageBucket]
+	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return nil, err
 	}

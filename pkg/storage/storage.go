@@ -51,9 +51,10 @@ func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
 		}, nil
 	case "s3":
 		return &S3StorageInteractor{
-			pool:      NewSessionPool(cnf),
-			cnf:       cnf,
-			bucketMap: buildBucketMapFromCnf(cnf),
+			pool:          NewSessionPool(cnf),
+			cnf:           cnf,
+			bucketMap:     buildBucketMapFromCnf(cnf),
+			credentialMap: buildCredMapFromCnf(cnf),
 		}, nil
 	default:
 		return nil, fmt.Errorf("wrong storage type %s", cnf.StorageType)
@@ -68,6 +69,21 @@ func buildBucketMapFromCnf(cnf *config.Storage) map[string]string {
 	}
 	if _, ok := mp[tablespace.DefaultTableSpace]; !ok {
 		mp[tablespace.DefaultTableSpace] = cnf.StorageBucket
+	}
+	return mp
+}
+
+func buildCredMapFromCnf(cnf *config.Storage) map[string]config.StorageCredentials {
+	mp := cnf.CredentialMap
+	if mp == nil {
+		/* fallback for backward-compatibility if to TableSpace map configured */
+		mp = map[string]config.StorageCredentials{}
+	}
+	if _, ok := mp[cnf.StorageBucket]; !ok {
+		mp[cnf.StorageBucket] = config.StorageCredentials{
+			AccessKeyId:     cnf.AccessKeyId,
+			SecretAccessKey: cnf.SecretAccessKey,
+		}
 	}
 	return mp
 }

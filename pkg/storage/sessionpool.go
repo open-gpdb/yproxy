@@ -25,7 +25,7 @@ import (
 )
 
 type SessionPool interface {
-	GetSession(ctx context.Context) (*s3.S3, error)
+	GetSession(ctx context.Context, cr *config.StorageCredentials) (*s3.S3, error)
 	StorageUsedConcurrency() int
 }
 
@@ -49,7 +49,7 @@ func NewSessionPool(cnf *config.Storage) SessionPool {
 }
 
 // TODO : unit tests
-func (sp *S3SessionPool) createSession() (*session.Session, error) {
+func (sp *S3SessionPool) createSession(cr *config.StorageCredentials) (*session.Session, error) {
 	s, err := session.NewSession(&aws.Config{
 		Retryer: client.DefaultRetryer{
 			NumMaxRetries: 20,
@@ -62,8 +62,8 @@ func (sp *S3SessionPool) createSession() (*session.Session, error) {
 	}
 
 	provider := &credentials.StaticProvider{Value: credentials.Value{
-		AccessKeyID:     sp.cnf.AccessKeyId,
-		SecretAccessKey: sp.cnf.SecretAccessKey,
+		AccessKeyID:     cr.AccessKeyId,
+		SecretAccessKey: cr.SecretAccessKey,
 	}}
 
 	ylogger.Zero.Debug().Str("endpoint", sp.cnf.StorageEndpoint).Msg("acquire external storage session")
@@ -130,7 +130,7 @@ func requestEndpoint(endpointSource, port string) (string, error) {
 	return string(body), err
 }
 
-func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
+func (s *S3SessionPool) GetSession(ctx context.Context, cr *config.StorageCredentials) (*s3.S3, error) {
 	_ = s.sem.Acquire(ctx, 1)
 	s.usedConnections.Add(1)
 	defer func() {
@@ -138,7 +138,7 @@ func (s *S3SessionPool) GetSession(ctx context.Context) (*s3.S3, error) {
 		s.usedConnections.Add(-1)
 	}()
 
-	sess, err := s.createSession()
+	sess, err := s.createSession(cr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create new session")
 	}
