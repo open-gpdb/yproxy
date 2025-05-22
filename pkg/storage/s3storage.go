@@ -317,7 +317,7 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 
 	_, err = sess.CopyObject(&inp)
 	if err != nil {
-		ylogger.Zero.Err(err).Msg("failed to copy object")
+		ylogger.Zero.Error().Str("bucket-from", fromStorageBucket).Str("bucket-to", toStorageBucket).Err(err).Msg("failed to copy object")
 		return err
 	}
 	ylogger.Zero.Debug().Str("path-from", from).Str("path-to", to).Msg("copied object")
@@ -326,7 +326,7 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 }
 
 func (s *S3StorageInteractor) MoveObject(bucket string, from string, to string) error {
-	if err := s.SScopyObject(bucket, from, to, s.cnf.StoragePrefix /* same for all buckets */, bucket); err != nil {
+	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix /* same for all buckets */, bucket, bucket); err != nil {
 		return err
 	}
 	return s.DeleteObject(bucket, from)
