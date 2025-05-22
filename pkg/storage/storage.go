@@ -21,17 +21,18 @@ type StorageWriter interface {
 
 type StorageLister interface {
 	ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error)
-	ListFailedMultipartUploads() (map[string]string, error)
+	ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error)
+	ListFailedMultipartUploads(bucket string) (map[string]string, error)
 }
 
 type StorageMover interface {
-	MoveObject(from string, to string) error
-	DeleteObject(key string) error
-	AbortMultipartUpload(key, uploadId string) error
+	MoveObject(bucket, from string, to string) error
+	DeleteObject(bucket, key string) error
+	AbortMultipartUpload(bucket, key, uploadId string) error
 }
 
 type StorageCopier interface {
-	CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error
+	CopyObject(from, to, fromStoragePrefix, fromStorageBucket, toStorageBucket string) error
 }
 
 //go:generate mockgen -destination=pkg/mock/storage.go -package=mock
@@ -41,6 +42,9 @@ type StorageInteractor interface {
 	StorageLister
 	StorageMover
 	StorageCopier
+
+	ListBuckets() []string
+	DefaultBucket() string
 }
 
 func NewStorage(cnf *config.Storage) (StorageInteractor, error) {

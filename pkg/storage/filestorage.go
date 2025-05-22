@@ -18,9 +18,30 @@ import (
 // WARNING "/path/to/folder" dont work
 // "/path/to/folder/" + "path/to/file.txt"
 type FileStorageInteractor struct {
-	StorageInteractor
 	cnf *config.Storage
 }
+
+// ListBucketPath implements StorageInteractor.
+func (s *FileStorageInteractor) ListBucketPath(bucket string, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+	return s.ListPath(prefix, false, nil)
+}
+
+// ListBuckets implements StorageInteractor.
+func (s *FileStorageInteractor) ListBuckets() []string {
+	keys := []string{s.cnf.StorageBucket}
+
+	for k := range s.cnf.CredentialMap {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// DefaultBucket implements StorageInteractor.
+func (s *FileStorageInteractor) DefaultBucket() string {
+	return s.cnf.StorageBucket
+}
+
+var _ StorageInteractor = &FileStorageInteractor{}
 
 func (s *FileStorageInteractor) CatFileFromStorage(name string, offset int64, _ []settings.StorageSettings) (io.ReadCloser, error) {
 	file, err := os.Open(path.Join(s.cnf.StoragePrefix, name))
@@ -83,7 +104,7 @@ func (s *FileStorageInteractor) PatchFile(name string, r io.ReadSeeker, startOff
 	return fmt.Errorf("TODO")
 }
 
-func (s *FileStorageInteractor) MoveObject(from string, to string) error {
+func (s *FileStorageInteractor) MoveObject(_ /*bucket*/, from string, to string) error {
 	fromPath := path.Join(s.cnf.StoragePrefix, from)
 	toPath := path.Join(s.cnf.StoragePrefix, to)
 	toDir := path.Dir(toPath)
@@ -93,7 +114,7 @@ func (s *FileStorageInteractor) MoveObject(from string, to string) error {
 	return os.Rename(fromPath, toPath)
 }
 
-func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _ string) error {
+func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _, _ string) error {
 	fromPath := path.Join(fromStoragePrefix, from)
 	toPath := path.Join(s.cnf.StoragePrefix, to)
 	toDir := path.Dir(toPath)
@@ -112,7 +133,7 @@ func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _ string
 	return err
 }
 
-func (s *FileStorageInteractor) DeleteObject(key string) error {
+func (s *FileStorageInteractor) DeleteObject(_ /*bucket*/, key string) error {
 	return os.Remove(path.Join(s.cnf.StoragePrefix, key))
 }
 
@@ -120,10 +141,10 @@ func (s *FileStorageInteractor) AbortMultipartUploads() error {
 	return nil
 }
 
-func (s *FileStorageInteractor) AbortMultipartUpload(key, uploadId string) error {
+func (s *FileStorageInteractor) AbortMultipartUpload(bucket, key, uploadId string) error {
 	return nil
 }
 
-func (s *FileStorageInteractor) ListFailedMultipartUploads() (map[string]string, error) {
+func (s *FileStorageInteractor) ListFailedMultipartUploads(string) (map[string]string, error) {
 	return nil, nil
 }

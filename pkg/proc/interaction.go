@@ -244,21 +244,21 @@ func ProcessCopyExtended(
 	ycl.SetExternalFilePath(name)
 
 	// get config for old bucket
-	instanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
+	sourceInstanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to complete request")
 
 		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
 		return nil
 	}
-	config.EmbedDefaults(&instanceCnf)
-	oldStorage, err := storage.NewStorage(&instanceCnf.StorageCnf)
+	config.EmbedDefaults(&sourceInstanceCnf)
+	oldStorage, err := storage.NewStorage(&sourceInstanceCnf.StorageCnf)
 	if err != nil {
 		return err
 	}
-	ylogger.Zero.Info().Interface("cnf", instanceCnf).Msg("loaded new config")
+	ylogger.Zero.Info().Interface("cnf", sourceInstanceCnf).Msg("loaded new config")
 
-	objectMetas, _, err := ListFilesToCopy(name, port, instanceCnf.StorageCnf, oldStorage, s)
+	objectMetas, _, err := ListFilesToCopy(name, port, sourceInstanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to list files to copy")
 		ylogger.Zero.Error().Err(err).Msg("failed to list files to copy")
@@ -268,7 +268,7 @@ func ProcessCopyExtended(
 	if confirm {
 		var my sync.Mutex
 
-		eq, err := cr.CmpKey(instanceCnf.CryptoCnf.GPGKeyPath)
+		eq, err := cr.CmpKey(sourceInstanceCnf.CryptoCnf.GPGKeyPath)
 		if err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func ProcessCopyExtended(
 			wg := sync.WaitGroup{}
 
 			for i := range len(objectMetas) {
-				path := strings.TrimPrefix(objectMetas[i].Path, instanceCnf.StorageCnf.StoragePrefix)
+				path := strings.TrimPrefix(objectMetas[i].Path, sourceInstanceCnf.StorageCnf.StoragePrefix)
 
 				_ = sem.Acquire(context.TODO(), 1)
 				wg.Add(1)
@@ -297,7 +297,13 @@ func ProcessCopyExtended(
 
 					// If keys are equal, try performing server-side copy
 					if ssCopy {
-						if err := s.CopyObject(path, path, instanceCnf.StorageCnf.StoragePrefix, instanceCnf.StorageCnf.StorageBucket); err == nil {
+						if err := s.CopyObject(
+							path,
+							path,
+							sourceInstanceCnf.StorageCnf.StoragePrefix,
+							sourceInstanceCnf.StorageCnf.StorageBucket,
+							/* XXX: we do copy always from source bucket to default bucket */
+							s.DefaultBucket()); err == nil {
 							return
 						}
 						ylogger.Zero.Error().Err(err).Msg("failed server-side copy")
@@ -310,7 +316,7 @@ func ProcessCopyExtended(
 					defer func() { _ = readerFromOldBucket.Close() }()
 
 					if decrypt {
-						oldCr, err := crypt.NewCrypto(&instanceCnf.CryptoCnf)
+						oldCr, err := crypt.NewCrypto(&sourceInstanceCnf.CryptoCnf)
 						if err != nil {
 							ylogger.Zero.Error().Err(err).Msg("failed to configure decrypter")
 							my.Lock()
@@ -458,6 +464,7 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 				return err
 			}
 		} else {
+			/* Todo: resolve bucket here */
 			err := dh.HandleDeleteFile(msg)
 			if err != nil {
 				_ = ycl.ReplyError(err, "failed to finish operation")
@@ -518,6 +525,7 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 
 	return nil
 }
+
 func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
 	dh := database.DatabaseHandler{}
 
@@ -626,7 +634,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		}
 
 		// TODO make deletion if crazy_drop
-		err = s.MoveObject(str, "/trash"+str)
+		err = s.MoveObject(s.DefaultBucket(), str, "/trash"+str)
 		if err != nil {
 			ylogger.Zero.Debug().Err(err).Str("delete candidate", str).Msg("not moved to trash")
 

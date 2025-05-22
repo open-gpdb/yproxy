@@ -25,8 +25,6 @@ import (
 )
 
 type S3StorageInteractor struct {
-	StorageInteractor
-
 	pool SessionPool
 
 	cnf *config.Storage
@@ -35,6 +33,23 @@ type S3StorageInteractor struct {
 	credentialMap    map[string]config.StorageCredentials
 	multipartUploads sync.Map
 }
+
+// ListBuckets implements StorageInteractor.
+func (s *S3StorageInteractor) ListBuckets() []string {
+	keys := []string{}
+
+	for k := range s.credentialMap {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// DefaultBucket implements StorageInteractor.
+func (s *S3StorageInteractor) DefaultBucket() string {
+	return s.cnf.StorageBucket
+}
+
+var _ StorageInteractor = &S3StorageInteractor{}
 
 func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, setts []settings.StorageSettings) (io.ReadCloser, error) {
 
@@ -61,8 +76,7 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 		Range:  aws.String(fmt.Sprintf("bytes=%d-", offset)),
 	}
 
-	ylogger.Zero.Debug().Str("key", objectPath).Int64("offset", offset).Str("bucket",
-		s.cnf.StorageBucket).Msg("requesting external storage")
+	ylogger.Zero.Debug().Str("key", objectPath).Int64("offset", offset).Str("bucket", bucket).Msg("requesting external storage")
 
 	object, err := sess.GetObject(input)
 	return object.Body, err
@@ -177,6 +191,11 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		return nil, err
 	}
 
+	return s.ListBucketPath(bucket, prefix, useCache)
+}
+
+func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+
 	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
@@ -189,7 +208,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 	prefix = strings.TrimLeft(path.Join(s.cnf.StoragePrefix, prefix), "/")
 	metas := make([]*object.ObjectInfo, 0)
 
-	ylogger.Zero.Debug().Str("tablespace", tableSpace).Str("bucket", bucket).Msg("listing bucket")
+	ylogger.Zero.Debug().Str("bucket", bucket).Str("bucket", bucket).Msg("listing bucket")
 
 	for {
 		input := &s3.ListObjectsV2Input{
@@ -236,10 +255,10 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 	return metas, nil
 }
 
-func (s *S3StorageInteractor) DeleteObject(key string) error {
+func (s *S3StorageInteractor) DeleteObject(bucket, key string) error {
 
 	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[s.cnf.StorageBucket]
+	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -253,7 +272,7 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 	key = strings.TrimLeft(key, "/")
 
 	input2 := s3.DeleteObjectInput{
-		Bucket: &s.cnf.StorageBucket,
+		Bucket: &bucket,
 		Key:    aws.String(key),
 	}
 
@@ -262,14 +281,14 @@ func (s *S3StorageInteractor) DeleteObject(key string) error {
 		ylogger.Zero.Err(err).Msg("failed to delete old object")
 		return err
 	}
-	ylogger.Zero.Debug().Str("path", key).Msg("deleted object")
+	ylogger.Zero.Debug().Str("bucket", bucket).Str("path", key).Msg("deleted object")
 	return nil
 }
 
-func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
+func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket, toStorageBucket string) error {
 
 	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[s.cnf.StorageBucket]
+	cr := s.credentialMap[toStorageBucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -291,7 +310,7 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
 	inp := s3.CopyObjectInput{
-		Bucket:     &s.cnf.StorageBucket,
+		Bucket:     &toStorageBucket,
 		CopySource: aws.String(from),
 		Key:        aws.String(to),
 	}
@@ -306,37 +325,37 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 	return nil
 }
 
-func (s *S3StorageInteractor) MoveObject(from string, to string) error {
-	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix, s.cnf.StorageBucket); err != nil {
+func (s *S3StorageInteractor) MoveObject(bucket string, from string, to string) error {
+	if err := s.SScopyObject(bucket, from, to, s.cnf.StoragePrefix /* same for all buckets */, bucket); err != nil {
 		return err
 	}
-	return s.DeleteObject(from)
+	return s.DeleteObject(bucket, from)
 }
 
-func (s *S3StorageInteractor) CopyObject(from, to, fromStoragePrefix, fromStorageBucket string) error {
-	return s.SScopyObject(from, to, fromStoragePrefix, fromStorageBucket)
+func (s *S3StorageInteractor) CopyObject(bucket, from, to, fromStoragePrefix, fromStorageBucket string) error {
+	return s.SScopyObject(bucket, from, to, fromStoragePrefix, fromStorageBucket)
 }
 
-func (s *S3StorageInteractor) AbortMultipartUpload(key, uploadId string) error {
+func (s *S3StorageInteractor) AbortMultipartUpload(bucket, key, uploadId string) error {
 
 	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[s.cnf.StorageBucket]
+	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return err
 	}
 
 	_, err = sess.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
-		Bucket:   aws.String(s.cnf.StorageBucket),
+		Bucket:   aws.String(bucket),
 		UploadId: aws.String(uploadId),
 		Key:      aws.String(key),
 	})
 	return err
 }
 
-func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, error) {
+func (s *S3StorageInteractor) ListFailedMultipartUploads(bucket string) (map[string]string, error) {
 	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[s.cnf.StorageBucket]
+	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return nil, err
@@ -346,7 +365,7 @@ func (s *S3StorageInteractor) ListFailedMultipartUploads() (map[string]string, e
 	var keyMarker *string
 	for {
 		out, err := sess.ListMultipartUploads(&s3.ListMultipartUploadsInput{
-			Bucket:    aws.String(s.cnf.StorageBucket),
+			Bucket:    aws.String(bucket),
 			KeyMarker: keyMarker,
 		})
 		if err != nil {

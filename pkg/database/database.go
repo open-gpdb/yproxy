@@ -203,11 +203,9 @@ func getDatabase(port uint64) ([]DB, error) {
 
 	for rows.Next() {
 		row := DB{}
-		ylogger.Zero.Debug().Msg("cycle 1")
 		if err := rows.Scan(&row.tablespace, &row.oid, &row.name); err != nil {
 			return nil, err
 		}
-		ylogger.Zero.Debug().Msg("cycle 2")
 		ylogger.Zero.Debug().Str("db", row.name).Int("db", int(row.oid)).Int("db", int(row.tablespace)).Msg("database")
 		if row.name == "postgres" {
 			continue
@@ -219,14 +217,12 @@ func getDatabase(port uint64) ([]DB, error) {
 			return nil, err
 		}
 		defer func() { _ = connDb.Close() }() //error
-		ylogger.Zero.Debug().Msg("cycle 3")
 
 		rowsdb, err := connDb.Query(`SELECT exists(SELECT * FROM information_schema.schemata WHERE schema_name='yezzey');`)
 		if err != nil {
 			return nil, err
 		}
 		defer rowsdb.Close()
-		ylogger.Zero.Debug().Msg("cycle 4")
 		var ans bool
 		rowsdb.Next()
 		err = rowsdb.Scan(&ans)
