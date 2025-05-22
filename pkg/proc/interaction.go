@@ -302,7 +302,7 @@ func ProcessCopyExtended(
 							path,
 							sourceInstanceCnf.StorageCnf.StoragePrefix,
 							sourceInstanceCnf.StorageCnf.StorageBucket,
-							/* XXX: we do copy alwyas from source bucket to defualt bucket */
+							/* XXX: we do copy always from source bucket to default bucket */
 							s.DefaultBucket()); err == nil {
 							return
 						}

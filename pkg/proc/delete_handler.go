@@ -99,7 +99,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	ylogger.Zero.Info().Str("bucket", bucket).Int("amount", len(uploads)).Msg("multipart uploads will be aborted")
 
 	for _, file := range fileList {
-		ylogger.Zero.Info().Str("bucket", bucket).Bool("crazymode", msg.CrazyDrop).Str("file", file).Msg("file will be deleted")
+		ylogger.Zero.Info().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
 		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
