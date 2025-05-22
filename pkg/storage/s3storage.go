@@ -281,7 +281,7 @@ func (s *S3StorageInteractor) DeleteObject(bucket, key string) error {
 		ylogger.Zero.Err(err).Msg("failed to delete old object")
 		return err
 	}
-	ylogger.Zero.Debug().Str("path", key).Msg("deleted object")
+	ylogger.Zero.Debug().Str("bucket", bucket).Str("path", key).Msg("deleted object")
 	return nil
 }
 
