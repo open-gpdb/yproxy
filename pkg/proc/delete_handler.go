@@ -77,7 +77,8 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 
 	for _, file := range objectMetas {
 		tp := RegPathFromTrasnPath(file.Path, int(msg.Segnum))
-		err = dh.StorageInterractor.MoveObject(file.Path, tp)
+		/* XXX: fix this */
+		err = dh.StorageInterractor.MoveObject(dh.StorageInterractor.DefaultBucket(), file.Path, tp)
 		if err != nil {
 			return err
 		}
@@ -86,22 +87,22 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	return nil
 }
 
-func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error {
+func (dh *BasicGarbageMgr) DeleteGabageInBucket(bucket string, msg message.DeleteMessage) error {
 	fileList, err := dh.ListGarbageFiles(msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
 	}
-	uploads, err := dh.StorageInterractor.ListFailedMultipartUploads()
+	uploads, err := dh.StorageInterractor.ListFailedMultipartUploads(bucket)
 	if err != nil {
 		return err
 	}
-	ylogger.Zero.Info().Int("amount", len(uploads)).Msg("multipart uploads will be aborted")
+	ylogger.Zero.Info().Str("bucket", bucket).Int("amount", len(uploads)).Msg("multipart uploads will be aborted")
 
 	for _, file := range fileList {
-		ylogger.Zero.Info().Str("file", file).Msg("file will be deleted")
+		ylogger.Zero.Info().Str("bucket", bucket).Bool("crazymode", msg.CrazyDrop).Str("file", file).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
-		ylogger.Zero.Info().Str("uploadId", upload).Msg("upload will be aborted")
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
 	}
 
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
@@ -116,15 +117,14 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 		for i := 0; i < len(fileList); i++ {
 
 			if msg.CrazyDrop {
-				ylogger.Zero.Debug().Str("path", fileList[i]).Msg("simply delete without any 'plan B'")
-				err = dh.StorageInterractor.DeleteObject(fileList[i])
-
+				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i]).Msg("simply delete without any 'plan B'")
+				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i])
 			} else {
 				tp := TrashPathFromRegPath(fileList[i], int(msg.Segnum))
-				err = dh.StorageInterractor.MoveObject(fileList[i], tp)
+				err = dh.StorageInterractor.MoveObject(bucket, fileList[i], tp)
 			}
 			if err != nil {
-				ylogger.Zero.Warn().AnErr("err", err).Str("file", fileList[i]).Msg("failed to obsolete file")
+				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", fileList[i]).Msg("failed to obsolete file")
 				failed = append(failed, fileList[i])
 			}
 		}
@@ -133,13 +133,13 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 	}
 
 	if len(fileList) > 0 {
-		ylogger.Zero.Error().Int("failed files count", len(fileList)).Msg("some files were not moved")
-		ylogger.Zero.Error().Any("failed files", fileList).Msg("failed to move some files")
+		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg("some files were not moved")
+		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg("failed to move some files")
 		return errors.Wrap(err, "failed to move some files")
 	}
 
 	for key, uploadId := range uploads {
-		if err := dh.StorageInterractor.AbortMultipartUpload(key, uploadId); err != nil {
+		if err := dh.StorageInterractor.AbortMultipartUpload(bucket, key, uploadId); err != nil {
 			return err
 		}
 	}
@@ -147,11 +147,22 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 	return nil
 }
 
+func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error {
+	for _, b := range dh.StorageInterractor.ListBuckets() {
+		if err := dh.DeleteGabageInBucket(b, msg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
-	err := dh.StorageInterractor.DeleteObject(msg.Name)
-	if err != nil {
-		ylogger.Zero.Error().AnErr("err", err).Str("name", msg.Name).Msg("failed to delete file")
-		return errors.Wrap(err, "failed to delete file")
+	for _, b := range dh.StorageInterractor.ListBuckets() {
+		err := dh.StorageInterractor.DeleteObject(b, msg.Name)
+		if err != nil {
+			ylogger.Zero.Error().AnErr("err", err).Str("name", msg.Name).Msg("failed to delete file")
+			return errors.Wrap(err, "failed to delete file")
+		}
 	}
 	return nil
 }
@@ -191,7 +202,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 	ylogger.Zero.Debug().Int("expire", len(ei)).Msg("expire index match count")
 
 	filesToDelete := make([]string, 0)
-	for i := 0; i < len(objectMetas); i++ {
+	for i := range objectMetas {
 		reworkedName := objectMetas[i].Path
 		ylogger.Zero.Debug().Str("reworked name", reworkedName).Msg("lookup chunk")
 
@@ -205,7 +216,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
 				Bool("file in expire index", ok).
 				Bool("lsn is less than in first backup", lsn < firstBackupLSN).
-				Msg("file does not persisnt in virtual index, nor needed for PITR, so will be deleted")
+				Msg("file does not persist in virtual index, nor needed for PITR, so will be deleted")
 			filesToDelete = append(filesToDelete, objectMetas[i].Path)
 		}
 	}
