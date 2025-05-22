@@ -30,7 +30,7 @@ func TestFilesToDeletion(t *testing.T) {
 		{Path: "some_trash"},
 	}
 	storage := mock.NewMockStorageInteractor(ctrl)
-	storage.EXPECT().ListPath(msg.Name, true, gomock.Any()).Return(filesInStorage, nil)
+	storage.EXPECT().ListBucketPath("", msg.Name, true).Return(filesInStorage, nil)
 
 	backup := mock.NewMockBackupInterractor(ctrl)
 	backup.EXPECT().GetFirstLSN(msg.Segnum).Return(uint64(1337), nil)
