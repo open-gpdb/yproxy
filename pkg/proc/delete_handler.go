@@ -87,7 +87,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	return nil
 }
 
-func (dh *BasicGarbageMgr) DeleteGabageInBucket(bucket string, msg message.DeleteMessage) error {
+func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.DeleteMessage) error {
 	fileList, err := dh.ListGarbageFiles(msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
@@ -149,7 +149,7 @@ func (dh *BasicGarbageMgr) DeleteGabageInBucket(bucket string, msg message.Delet
 
 func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error {
 	for _, b := range dh.StorageInterractor.ListBuckets() {
-		if err := dh.DeleteGabageInBucket(b, msg); err != nil {
+		if err := dh.DeleteGarbageInBucket(b, msg); err != nil {
 			return err
 		}
 	}
