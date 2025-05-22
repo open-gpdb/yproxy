@@ -525,6 +525,7 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 
 	return nil
 }
+
 func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
 	dh := database.DatabaseHandler{}
 

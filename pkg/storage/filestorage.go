@@ -21,6 +21,11 @@ type FileStorageInteractor struct {
 	cnf *config.Storage
 }
 
+// ListBucketPath implements StorageInteractor.
+func (s *FileStorageInteractor) ListBucketPath(bucket string, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+	return s.ListPath(prefix, false, nil)
+}
+
 // ListBuckets implements StorageInteractor.
 func (s *FileStorageInteractor) ListBuckets() []string {
 	keys := []string{s.cnf.StorageBucket}

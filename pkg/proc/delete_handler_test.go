@@ -55,7 +55,7 @@ func TestFilesToDeletion(t *testing.T) {
 		Cnf:                &config.Vacuum{CheckBackup: true},
 	}
 
-	list, err := handler.ListGarbageFiles(msg)
+	list, err := handler.ListGarbageFiles("", msg)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(list))

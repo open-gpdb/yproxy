@@ -191,6 +191,11 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 		return nil, err
 	}
 
+	return s.ListBucketPath(bucket, prefix, useCache)
+}
+
+func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+
 	/* XXX: fix usage of default bucket */
 	cr := s.credentialMap[bucket]
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
@@ -203,7 +208,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 	prefix = strings.TrimLeft(path.Join(s.cnf.StoragePrefix, prefix), "/")
 	metas := make([]*object.ObjectInfo, 0)
 
-	ylogger.Zero.Debug().Str("tablespace", tableSpace).Str("bucket", bucket).Msg("listing bucket")
+	ylogger.Zero.Debug().Str("bucket", bucket).Str("bucket", bucket).Msg("listing bucket")
 
 	for {
 		input := &s3.ListObjectsV2Input{

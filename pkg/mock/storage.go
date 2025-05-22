@@ -133,6 +133,21 @@ func (m *MockStorageLister) EXPECT() *MockStorageListerMockRecorder {
 	return m.recorder
 }
 
+// ListBucketPath mocks base method.
+func (m *MockStorageLister) ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBucketPath", bucket, prefix, useCache)
+	ret0, _ := ret[0].([]*object.ObjectInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBucketPath indicates an expected call of ListBucketPath.
+func (mr *MockStorageListerMockRecorder) ListBucketPath(bucket, prefix, useCache any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBucketPath", reflect.TypeOf((*MockStorageLister)(nil).ListBucketPath), bucket, prefix, useCache)
+}
+
 // ListFailedMultipartUploads mocks base method.
 func (m *MockStorageLister) ListFailedMultipartUploads(bucket string) (map[string]string, error) {
 	m.ctrl.T.Helper()
@@ -360,6 +375,21 @@ func (m *MockStorageInteractor) DeleteObject(bucket, key string) error {
 func (mr *MockStorageInteractorMockRecorder) DeleteObject(bucket, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockStorageInteractor)(nil).DeleteObject), bucket, key)
+}
+
+// ListBucketPath mocks base method.
+func (m *MockStorageInteractor) ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBucketPath", bucket, prefix, useCache)
+	ret0, _ := ret[0].([]*object.ObjectInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBucketPath indicates an expected call of ListBucketPath.
+func (mr *MockStorageInteractorMockRecorder) ListBucketPath(bucket, prefix, useCache any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBucketPath", reflect.TypeOf((*MockStorageInteractor)(nil).ListBucketPath), bucket, prefix, useCache)
 }
 
 // ListBuckets mocks base method.

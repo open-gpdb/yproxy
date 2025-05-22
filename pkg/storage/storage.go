@@ -21,6 +21,7 @@ type StorageWriter interface {
 
 type StorageLister interface {
 	ListPath(prefix string, useCache bool, settings []settings.StorageSettings) ([]*object.ObjectInfo, error)
+	ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error)
 	ListFailedMultipartUploads(bucket string) (map[string]string, error)
 }
 

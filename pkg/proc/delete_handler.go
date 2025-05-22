@@ -88,7 +88,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 }
 
 func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.DeleteMessage) error {
-	fileList, err := dh.ListGarbageFiles(msg)
+	fileList, err := dh.ListGarbageFiles(bucket, msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
 	}
@@ -167,7 +167,7 @@ func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 	return nil
 }
 
-func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string, error) {
+func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMessage) ([]string, error) {
 	//get first backup lsn
 	var firstBackupLSN uint64
 	var err error
@@ -186,7 +186,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(msg message.DeleteMessage) ([]string
 
 	//list files in storage
 	ylogger.Zero.Info().Str("path", msg.Name).Msg("listing prefix")
-	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true, nil)
+	objectMetas, err := dh.StorageInterractor.ListBucketPath(bucket, msg.Name, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list objects")
 	}
