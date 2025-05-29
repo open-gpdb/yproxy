@@ -29,7 +29,7 @@ type S3StorageInteractor struct {
 
 	cnf *config.Storage
 
-	bucketMap        map[string]string
+	TSToBucketMap    map[string]string
 	credentialMap    map[string]config.StorageCredentials
 	multipartUploads sync.Map
 }
@@ -38,8 +38,8 @@ type S3StorageInteractor struct {
 func (s *S3StorageInteractor) ListBuckets() []string {
 	keys := []string{}
 
-	for k := range s.credentialMap {
-		keys = append(keys, k)
+	for _, v := range s.TSToBucketMap {
+		keys = append(keys, v)
 	}
 	return keys
 }
@@ -56,7 +56,7 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
 	tableSpace := ResolveStorageSetting(setts, message.TableSpaceSetting, tablespace.DefaultTableSpace)
 
-	bucket, ok := s.bucketMap[tableSpace]
+	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)
@@ -98,7 +98,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		return err
 	}
 
-	bucket, ok := s.bucketMap[tableSpace]
+	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)
@@ -184,7 +184,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 
 	tableSpace := ResolveStorageSetting(settings, message.TableSpaceSetting, tablespace.DefaultTableSpace)
 
-	bucket, ok := s.bucketMap[tableSpace]
+	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
 		ylogger.Zero.Err(err)

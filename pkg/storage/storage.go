@@ -57,7 +57,7 @@ func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
 		return &S3StorageInteractor{
 			pool:          NewSessionPool(cnf),
 			cnf:           cnf,
-			bucketMap:     buildBucketMapFromCnf(cnf),
+			TSToBucketMap: buildBucketMapFromCnf(cnf),
 			credentialMap: buildCredMapFromCnf(cnf),
 		}, nil
 	default:
