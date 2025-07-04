@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/pkg/errors"
+	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/testutils"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
@@ -239,7 +240,7 @@ func getDatabase(port uint64) ([]DB, error) {
 
 		ylogger.Zero.Debug().Str("db", row.name).Msg("no yezzey schema in database")
 	}
-	if len(databases) == 0 {
+	if len(databases) == 0 && config.InstanceConfig().YezzeyRestoreParanoid {
 		return nil, fmt.Errorf("no yezzey schema across databases")
 
 	} else {
