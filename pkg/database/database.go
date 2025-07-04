@@ -240,7 +240,7 @@ func getDatabase(port uint64) ([]DB, error) {
 
 		ylogger.Zero.Debug().Str("db", row.name).Msg("no yezzey schema in database")
 	}
-	if len(databases) == 0 && config.InstanceConfig().YezzeyRestoreParanoic {
+	if len(databases) == 0 && config.InstanceConfig().YezzeyRestoreParanoid {
 		return nil, fmt.Errorf("no yezzey schema across databases")
 
 	} else {

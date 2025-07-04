@@ -29,7 +29,7 @@ type Instance struct {
 	DebugPort              int    `json:"debug_port" toml:"debug_port" yaml:"debug_port"`
 	DebugMinutes           int    `json:"debug_minutes" toml:"debug_minutes" yaml:"debug_minutes"`
 
-	YezzeyRestoreParanoic bool `json:"yezzey_restore_paranioc" toml:"yezzey_restore_paranioc" yaml:"yezzey_restore_paranioc"`
+	YezzeyRestoreParanoid bool `json:"yezzey_restore_paraniod" toml:"yezzey_restore_paraniod" yaml:"yezzey_restore_paraniod"`
 
 	SystemdNotificationsDebug bool `json:"sd_notifications_debug" toml:"sd_notifications_debug" yaml:"sd_notifications_debug"`
 	systemdSocketPath         string
@@ -97,7 +97,7 @@ func EmbedDefaults(cfgInstance *Instance) {
 	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
 		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
 	}
-	cfgInstance.YezzeyRestoreParanoic = false
+	cfgInstance.YezzeyRestoreParanoid = false
 }
 
 func LoadInstanceConfig(cfgPath string) (err error) {
