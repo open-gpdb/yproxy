@@ -29,7 +29,7 @@ type Instance struct {
 	DebugPort              int    `json:"debug_port" toml:"debug_port" yaml:"debug_port"`
 	DebugMinutes           int    `json:"debug_minutes" toml:"debug_minutes" yaml:"debug_minutes"`
 
-	YezzeyRestoreParanoid bool `json:"yezzey_restore_paraniod" toml:"yezzey_restore_paraniod" yaml:"yezzey_restore_paraniod"`
+	YezzeyRestoreParanoid bool `json:"yezzey_restore_paranoid" toml:"yezzey_restore_paranoid" yaml:"yezzey_restore_paranoid"`
 
 	SystemdNotificationsDebug bool `json:"sd_notifications_debug" toml:"sd_notifications_debug" yaml:"sd_notifications_debug"`
 	systemdSocketPath         string
