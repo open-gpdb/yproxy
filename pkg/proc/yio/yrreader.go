@@ -111,7 +111,11 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			return n, err
 		}
 		if err != nil || n < 0 {
-			ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("encounter read error")
+			ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Int("bytes half-read", n).Int("retry count", int(retry)).Msg("encounter read error")
+
+			if n > 0 {
+				y.offsetReached += int64(n)
+			}
 
 			// what if close failed?
 			_ = y.underlying.Close()
