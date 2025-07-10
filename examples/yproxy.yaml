@@ -6,3 +6,6 @@ storage:
   storage_prefix: "wal-e/6/"
   storage_bucket: "gpyezzey"
   storage_region: "us-west-2"
+
+vacuum:
+  check_backup: false
