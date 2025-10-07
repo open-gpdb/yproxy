@@ -231,7 +231,7 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 				ylogger.Zero.Debug().Str("path", path).Msg("skipping file")
 				continue
 			}
-			ylogger.Zero.Debug().Str("path", path).Msg("appending file")
+			ylogger.Zero.Debug().Str("path", path).Msg("appending file to s3 result")
 			metas = append(metas, &object.ObjectInfo{
 				Path: "/" + cPath,
 				Size: *obj.Size,
