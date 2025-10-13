@@ -189,6 +189,8 @@ func ProcessPutExtended(
 func ProcessListExtended(prefix string, settings []settings.StorageSettings, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(prefix)
 
+	ylogger.Zero.Debug().Str("prefix", prefix).Msg("listing for prefix")
+
 	objectMetas, err := s.ListPath(prefix, true, settings)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not list objects: %s", err), "failed to complete request")
