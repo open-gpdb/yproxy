@@ -507,11 +507,9 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 		Uint64("segment", msg.Segnum).
 		Bool("confirm", msg.Confirm).Msg("requested to perform untrashify")
 
-	if msg.Confirm {
-		if err := dh.HandleUntrashifyFile(msg); err != nil {
-			_ = ycl.ReplyError(err, "failed to upload")
-			return err
-		}
+	if err := dh.HandleUntrashifyFile(msg); err != nil {
+		_ = ycl.ReplyError(err, "failed to upload")
+		return err
 	}
 
 	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
