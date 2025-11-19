@@ -306,7 +306,7 @@ func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) e
 		return err
 	}
 
-	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete msg")
+	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed untrashify msg")
 
 	client := client.NewYClient(con)
 	protoReader := proc.NewProtoReader(client)
