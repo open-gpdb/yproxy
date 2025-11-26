@@ -157,6 +157,9 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 }
 
 func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
+	if !msg.Confirm {
+		return nil
+	}
 	for _, b := range dh.StorageInterractor.ListBuckets() {
 		err := dh.StorageInterractor.DeleteObject(b, msg.Name)
 		if err != nil {
