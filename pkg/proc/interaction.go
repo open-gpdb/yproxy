@@ -450,40 +450,37 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 			Uint64("segment", msg.Segnum).
 			Bool("confirm", msg.Confirm).Msg("requested to remove external chunk")
 	}
+	
+	if msg.Garbage {
+		// confirm
+		err := dh.HandleDeleteGarbage(msg)
+		if err != nil {
+			_ = ycl.ReplyError(err, "failed to finish operation")
+			return err
+		}
+	} else {
+		/* Todo: resolve bucket here */
+		err := dh.HandleDeleteFile(msg)
+		if err != nil {
+			_ = ycl.ReplyError(err, "failed to finish operation")
+			return err
+		}
+	}
 
+	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
+		_ = ycl.ReplyError(err, "failed to upload")
+		return err
+	}
 	if !msg.Confirm {
 		ylogger.Zero.Warn().Msg("It was a dry-run, nothing was deleted")
 
 		if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
 			_ = ycl.ReplyError(err, "failed to upload")
-			return err
-		}
+		return err
+	} else if msg.Garbage {
+		ylogger.Zero.Info().Msg("Deleted garbage successfully")
 	} else {
-		if msg.Garbage {
-			err := dh.HandleDeleteGarbage(msg)
-			if err != nil {
-				_ = ycl.ReplyError(err, "failed to finish operation")
-				return err
-			}
-		} else {
-			/* Todo: resolve bucket here */
-			err := dh.HandleDeleteFile(msg)
-			if err != nil {
-				_ = ycl.ReplyError(err, "failed to finish operation")
-				return err
-			}
-		}
-
-		if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
-			_ = ycl.ReplyError(err, "failed to upload")
-			return err
-		}
-
-		if msg.Garbage {
-			ylogger.Zero.Info().Msg("Deleted garbage successfully")
-		} else {
-			ylogger.Zero.Info().Msg("Deleted chunk successfully")
-		}
+		ylogger.Zero.Info().Msg("Deleted chunk successfully")
 	}
 
 	return nil
