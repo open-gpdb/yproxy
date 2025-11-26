@@ -450,9 +450,8 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 			Uint64("segment", msg.Segnum).
 			Bool("confirm", msg.Confirm).Msg("requested to remove external chunk")
 	}
-	
+
 	if msg.Garbage {
-		// confirm
 		err := dh.HandleDeleteGarbage(msg)
 		if err != nil {
 			_ = ycl.ReplyError(err, "failed to finish operation")
