@@ -472,10 +472,6 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 	}
 	if !msg.Confirm {
 		ylogger.Zero.Warn().Msg("It was a dry-run, nothing was deleted")
-
-		if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
-			_ = ycl.ReplyError(err, "failed to upload")
-		return err
 	} else if msg.Garbage {
 		ylogger.Zero.Info().Msg("Deleted garbage successfully")
 	} else {
