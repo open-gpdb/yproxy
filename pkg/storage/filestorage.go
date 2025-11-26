@@ -107,6 +107,9 @@ func (s *FileStorageInteractor) PatchFile(name string, r io.ReadSeeker, startOff
 func (s *FileStorageInteractor) MoveObject(_ /*bucket*/, from string, to string) error {
 	fromPath := path.Join(s.cnf.StoragePrefix, from)
 	toPath := path.Join(s.cnf.StoragePrefix, to)
+	if fromPath == toPath {
+		return nil
+	}
 	toDir := path.Dir(toPath)
 	if err := os.MkdirAll(toDir, 0700); err != nil {
 		return err

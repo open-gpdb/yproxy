@@ -331,6 +331,9 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 }
 
 func (s *S3StorageInteractor) MoveObject(bucket string, from string, to string) error {
+	if from == to {
+		return nil
+	}
 	if err := s.SScopyObject(from, to, s.cnf.StoragePrefix /* same for all buckets */, bucket, bucket); err != nil {
 		return err
 	}
