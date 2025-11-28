@@ -22,6 +22,7 @@ func (r *Reader) Close() error {
 
 func NewReader(reader io.ReadCloser, limiter *rate.Limiter) *Reader {
 	return &Reader{
+		ctx:     context.Background(),
 		reader:  reader,
 		limiter: limiter,
 	}
@@ -32,17 +33,11 @@ func (r *Reader) Read(buf []byte) (int, error) {
 		return 0, fmt.Errorf("empty buffer passed")
 	}
 
-	end := len(buf)
-	if r.limiter.Burst() < end {
-		end = r.limiter.Burst()
-	}
+	end := min(r.limiter.Burst(), len(buf))
 	n, err := r.reader.Read(buf[:end])
 
 	if err != nil {
-		N := n
-		if n < 0 {
-			N = 0
-		}
+		N := max(n, 0)
 		limiterErr := r.limiter.WaitN(r.ctx, N)
 		if limiterErr != nil {
 			ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
