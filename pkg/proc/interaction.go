@@ -312,7 +312,8 @@ func ProcessCopyExtended(
 					}
 
 					/* get reader */
-					readerFromOldBucket := yio.NewYRetryReader(yio.NewRestartReader(oldStorage, path, nil), ycl)
+					readerFromOldBucket := yio.NewYRetryReader(
+						yio.NewRestartReader(oldStorage, path, nil), ycl)
 					var fromReader io.Reader
 					fromReader = readerFromOldBucket
 					defer func() { _ = readerFromOldBucket.Close() }()

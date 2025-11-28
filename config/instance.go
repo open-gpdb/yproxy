@@ -73,6 +73,9 @@ const (
 	DefaultPsqlPort           = 8432
 
 	DefaultEndpointSourceScheme = "https"
+
+	/* 1 GB per  second */
+	DefaultStorageRateLimit = 1024 * 1024 * 1024
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -96,6 +99,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
 		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
+	}
+	if cfgInstance.StorageCnf.StorageRateLimit == 0 {
+		cfgInstance.StorageCnf.StorageRateLimit = DefaultStorageRateLimit
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }

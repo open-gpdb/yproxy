@@ -5,10 +5,13 @@ import (
 	"io"
 	"time"
 
+	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"golang.org/x/time/rate"
 )
 
 type RestartReader interface {
@@ -18,6 +21,7 @@ type RestartReader interface {
 
 type YRestartReader struct {
 	underlying io.ReadCloser
+	limiter    *rate.Limiter
 	s          storage.StorageInteractor
 	name       string
 	settings   []settings.StorageSettings
@@ -33,16 +37,24 @@ func (y *YRestartReader) Close() error {
 
 // Read implements RestartReader.
 func (y *YRestartReader) Read(p []byte) (n int, err error) {
+	/* read with rate limiter */
+
 	return y.underlying.Read(p)
 }
 
 func NewRestartReader(s storage.StorageInteractor,
 	name string, setts []settings.StorageSettings) RestartReader {
 
+	netLimit := config.InstanceConfig().StorageCnf.StorageRateLimit
+
+	l := rate.NewLimiter(rate.Limit(netLimit),
+		int(netLimit))
+
 	return &YRestartReader{
 		s:        s,
 		name:     name,
 		settings: setts,
+		limiter:  l,
 	}
 }
 
@@ -60,7 +72,9 @@ func (y *YRestartReader) Restart(offsetStart int64) error {
 		return err
 	}
 
-	y.underlying = r
+	/* with limiter */
+
+	y.underlying = limiter.NewReader(r, y.limiter)
 
 	return nil
 }
