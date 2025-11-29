@@ -4,12 +4,16 @@ import (
 	"io"
 
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"golang.org/x/time/rate"
 )
 
 /* TBD: support restart */
 type YproxyWriter struct {
 	underlying io.WriteCloser
+
+	lim *rate.Limiter
 
 	selfCl client.YproxyClient
 
@@ -34,11 +38,16 @@ func (y *YproxyWriter) Write(p []byte) (n int, err error) {
 }
 
 func NewYproxyWriter(under io.WriteCloser, selfCl client.YproxyClient) io.WriteCloser {
-	return &YproxyWriter{
+
+	w := &YproxyWriter{
 		underlying:    under,
+		lim:           limiter.GetLimiter(),
 		selfCl:        selfCl,
 		offsetReached: 0,
 	}
+
+	w.underlying = limiter.NewWriter(under, w.lim)
+	return w
 }
 
 var _ io.WriteCloser = &YproxyWriter{}
