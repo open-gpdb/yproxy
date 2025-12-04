@@ -32,6 +32,7 @@ const (
 	MessageTypeCopyV2
 	MessageTypeCopyComplete
 	MessageTypeListV2
+	MessageTypeDelete2
 
 	MessageCollectObsolete = MessageType(64)
 	MessageDeleteObsolete  = MessageType(65)
@@ -92,6 +93,8 @@ func (m MessageType) String() string {
 		return "DELETE OBSOLETE"
 	case MessageTypeCopyComplete:
 		return "COPY COMPLETE"
+	case MessageTypeDelete2:
+		return "DELETE2"
 	}
 	return "UNKNOWN"
 }

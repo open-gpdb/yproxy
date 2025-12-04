@@ -295,6 +295,33 @@ func deleteFunc(con net.Conn, instanceCnf *config.Instance, args []string) error
 
 	return nil
 }
+func delete2Func(con net.Conn, instanceCnf *config.Instance, args []string) error {
+	ylogger.Zero.Info().Msg("Execute delete2 command")
+
+	ylogger.Zero.Info().Str("name", args[0]).Msg("delete2")
+	msg := message.NewDelete2Message(args[0], confirm, garbage).Encode()
+	_, err := con.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete2 msg")
+
+	client := client.NewYClient(con)
+	protoReader := proc.NewProtoReader(client)
+
+	ansType, body, err := protoReader.ReadPacket()
+	if err != nil {
+		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
+		return err
+	}
+
+	if ansType != message.MessageTypeReadyForQuery {
+		return fmt.Errorf("failed to delete2, msg: %v", body)
+	}
+
+	return nil
+}
 
 func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute untrashify command")
@@ -408,6 +435,13 @@ var goolCmd = &cobra.Command{
 	RunE:  Runner(goolFunc),
 }
 
+var delete2Cmd = &cobra.Command{
+	Use:   "deleteTrash",
+	Short: "deleteTrash",
+	RunE:  Runner(delete2Func),
+	Args:  cobra.ExactArgs(1), // name_prefix
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "/etc/yproxy/yproxy.yaml", "path to yproxy config file")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "", "log level")
@@ -446,6 +480,10 @@ func init() {
 	untrashifyCmd.PersistentFlags().Uint64VarP(&segmentNum, "segnum", "s", 0, "logical number of a segment")
 	untrashifyCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
 	rootCmd.AddCommand(untrashifyCmd)
+
+	delete2Cmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
+	delete2Cmd.PersistentFlags().BoolVarP(&garbage, "garbage", "g", false, "delete garbage")
+	rootCmd.AddCommand(delete2Cmd)
 }
 
 func main() {
