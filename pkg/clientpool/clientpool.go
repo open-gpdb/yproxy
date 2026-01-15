@@ -7,6 +7,7 @@ import (
 
 	"github.com/caio/go-tdigest"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -92,6 +93,7 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 			}
 
 			_ = c.opSpeed[ct][optyp].Add(float64(total) / float64(timeTotal))
+			metrics.StoreLatencyAndSizeInfo(cl.OPType().String(), float64(total), float64(timeTotal))
 		}
 
 		delete(c.pool, id)

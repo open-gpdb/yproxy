@@ -18,6 +18,7 @@ import (
 	"github.com/yezzey-gp/aws-sdk-go/service/s3/s3manager"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/message"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/tablespace"
@@ -53,6 +54,7 @@ var _ StorageInteractor = &S3StorageInteractor{}
 
 func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, setts []settings.StorageSettings) (io.ReadCloser, error) {
 
+	timeStart := time.Now()
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
 	tableSpace := ResolveStorageSetting(setts, message.TableSpaceSetting, tablespace.DefaultTableSpace)
 
@@ -79,11 +81,18 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 	ylogger.Zero.Debug().Str("key", objectPath).Int64("offset", offset).Str("bucket", bucket).Msg("requesting external storage")
 
 	object, err := sess.GetObject(input)
+	getTime := time.Since(timeStart).Nanoseconds()
+	objLen := 1.0
+	if object.ContentLength != nil {
+		objLen = float64(*object.ContentLength)
+	}
+	metrics.StoreLatencyAndSizeInfo("S3_GET", objLen, float64(getTime))
 	return object.Body, err
 }
 
 func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings []settings.StorageSettings) error {
 
+	timeStart := time.Now()
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
 
 	storageClass := ResolveStorageSetting(settings, message.StorageClassSetting, "STANDARD")
@@ -116,7 +125,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		uploader.PartSize = int64(multipartChunkSize)
 		uploader.Concurrency = 1
 	})
-
+	putLen := int(multipartChunkSize)
 	if multipartUpload {
 		s.multipartUploads.Store(objectPath, true)
 		_, err = up.Upload(
@@ -134,6 +143,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		if err != nil {
 			return err
 		}
+		putLen = len(body)
 		_, err = sess.PutObject(&s3.PutObjectInput{
 			Bucket:       aws.String(bucket),
 			Key:          aws.String(objectPath),
@@ -142,6 +152,8 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		})
 	}
 
+	putTime := time.Since(timeStart).Nanoseconds()
+	metrics.StoreLatencyAndSizeInfo("S3_PUT", float64(putLen), float64(putTime))
 	return err
 }
 
