@@ -19,6 +19,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/core/pg"
 	"github.com/yezzey-gp/yproxy/pkg/crypt"
 	"github.com/yezzey-gp/yproxy/pkg/message"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
 	"github.com/yezzey-gp/yproxy/pkg/sdnotifier"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
@@ -68,6 +69,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	var listener net.Listener
 	var iclistener net.Listener
 	var dws *DebugWebServer
+	var mws *metrics.MetricsWebServer
 
 	go func() {
 		defer cancelCtx()
@@ -135,6 +137,14 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 	if instanceCnf.DebugPort != 0 {
 		debugAddr := fmt.Sprintf("[::1]:%d", instanceCnf.DebugPort)
 		dws = NewDebugWebServer(debugAddr)
+	}
+
+	if instanceCnf.MetricsPort != 0 {
+		metricsAddr := fmt.Sprintf("[::1]:%d", instanceCnf.MetricsPort)
+		mws = metrics.NewMetricsWebServer(metricsAddr)
+		if err := mws.Serve(); err != nil {
+			ylogger.Zero.Error().Err(err).Msg("failed to start metrics server")
+		}
 	}
 
 	s, err := storage.NewStorage(

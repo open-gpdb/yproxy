@@ -28,6 +28,7 @@ type Instance struct {
 	InterconnectSocketPath string `json:"interconnect_socket_path" toml:"interconnect_socket_path" yaml:"interconnect_socket_path"`
 	DebugPort              int    `json:"debug_port" toml:"debug_port" yaml:"debug_port"`
 	DebugMinutes           int    `json:"debug_minutes" toml:"debug_minutes" yaml:"debug_minutes"`
+	MetricsPort            int    `json:"metrics_port" toml:"metrics_port" yaml:"metrics_port"`
 
 	YezzeyRestoreParanoid bool `json:"yezzey_restore_paranoid" toml:"yezzey_restore_paranoid" yaml:"yezzey_restore_paranoid"`
 
@@ -71,11 +72,9 @@ const (
 	DefaultStorageConcurrency = 100
 	DefaultStatPort           = 7432
 	DefaultPsqlPort           = 8432
+	DefaultMetricsPort        = 2112
 
 	DefaultEndpointSourceScheme = "https"
-
-	/* 1 GB per  second */
-	DefaultStorageRateLimit = 1024 * 1024 * 1024
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -100,8 +99,8 @@ func EmbedDefaults(cfgInstance *Instance) {
 	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
 		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
 	}
-	if cfgInstance.StorageCnf.StorageRateLimit == 0 {
-		cfgInstance.StorageCnf.StorageRateLimit = DefaultStorageRateLimit
+	if cfgInstance.MetricsPort == 0 {
+		cfgInstance.MetricsPort = DefaultMetricsPort
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
