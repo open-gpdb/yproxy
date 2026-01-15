@@ -3,6 +3,7 @@ package yio
 import (
 	"io"
 
+	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -41,12 +42,19 @@ func NewYproxyWriter(under io.WriteCloser, selfCl client.YproxyClient) io.WriteC
 
 	w := &YproxyWriter{
 		underlying:    under,
-		lim:           limiter.GetLimiter(),
 		selfCl:        selfCl,
 		offsetReached: 0,
 	}
 
-	w.underlying = limiter.NewWriter(under, w.lim)
+	/* with limiter ? */
+
+	if config.InstanceConfig().StorageCnf.EnableRateLimiter {
+		w.lim = limiter.GetLimiter()
+		w.underlying = limiter.NewWriter(under, w.lim)
+	} else {
+		w.underlying = under
+	}
+
 	return w
 }
 
