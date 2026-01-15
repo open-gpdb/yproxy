@@ -76,18 +76,13 @@ func (r *Writer) Write(buf []byte) (int, error) {
 	}
 
 	end := min(r.limiter.Burst(), len(buf))
+	// in a case of write we should wait before handling query
+	limiterErr := r.limiter.WaitN(r.ctx, end)
+	if limiterErr != nil {
+		ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
+	}
 	n, err := r.writer.Write(buf[:end])
 
-	if err != nil {
-		N := max(n, 0)
-		limiterErr := r.limiter.WaitN(r.ctx, N)
-		if limiterErr != nil {
-			ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
-		}
-		return n, err
-	}
-
-	err = r.limiter.WaitN(r.ctx, n)
 	return n, err
 }
 
