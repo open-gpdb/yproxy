@@ -72,13 +72,13 @@ var (
 		Help: "The total number of errors during reads",
 	})
 	HisstogramLatencyVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "request_latency_seconds",
+		Name:    "request_latency",
 		Help:    "Request latency in seconds",
 		Buckets: latencyBuckets,
 	}, []string{"source"})
 
 	HisstogramSizeVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "request_latency_seconds",
+		Name:    "request_size",
 		Help:    "Request latency in seconds",
 		Buckets: sizeBuckets,
 	}, []string{"source"})
