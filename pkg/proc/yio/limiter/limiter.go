@@ -43,12 +43,19 @@ func (r *Reader) Wait(n int) error {
 	return err
 }
 
+func (r *Reader) getBurstableLimit(n int) int {
+	if r.limiter == nil {
+		return n
+	}
+	return min(r.limiter.Burst(), n)
+}
+
 func (r *Reader) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, fmt.Errorf("empty buffer passed")
 	}
 
-	end := min(r.limiter.Burst(), len(buf))
+	end := r.getBurstableLimit(len(buf))
 	// we do not know how many bytes we could read, so first - read data
 	n, err := r.reader.Read(buf[:end])
 
@@ -96,12 +103,19 @@ func (w *Writer) Wait(n int) error {
 	return err
 }
 
+func (w *Writer) getBurstableLimit(n int) int {
+	if w.limiter == nil {
+		return n
+	}
+	return min(w.limiter.Burst(), n)
+}
+
 func (r *Writer) Write(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, fmt.Errorf("empty buffer passed")
 	}
 
-	end := min(r.limiter.Burst(), len(buf))
+	end := r.getBurstableLimit(len(buf))
 	// in a case of write we should wait before handling query
 	limiterErr := r.Wait(end)
 	if limiterErr != nil {
@@ -128,6 +142,9 @@ func GetLimiter() *rate.Limiter {
 	}
 
 	netLimit := config.InstanceConfig().StorageCnf.StorageRateLimit
+	if netLimit == 0 {
+		return nil
+	}
 	ylogger.Zero.Debug().Uint64("bytes per sec", netLimit).Msg("allocate limiter")
 
 	netLimiter = rate.NewLimiter(rate.Limit(netLimit),
