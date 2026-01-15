@@ -5,7 +5,28 @@ import (
 
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	ReadReqProcessed = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "read_req_processed_total",
+		Help: "The total number of processed reads",
+	})
+	ReadReqErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "read_req_errors_total",
+		Help: "The total number of errors during reads",
+	})
+	WiteReqProcessed = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "write_req_processed_total",
+		Help: "The total number of processed writes",
+	})
+	WriteReqErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "write_req_errors_total",
+		Help: "The total number of errors during reads",
+	})
 )
 
 func NewMetricsWebServer(httpAddr string) *MetricsWebServer {

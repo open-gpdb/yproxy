@@ -36,8 +36,10 @@ func (r *Reader) Read(buf []byte) (int, error) {
 	}
 
 	end := min(r.limiter.Burst(), len(buf))
+	// we do not know how many bytes we could read, so first - read data
 	n, err := r.reader.Read(buf[:end])
 
+	// and then wait in a limiter to correct measure processed data
 	if err != nil {
 		N := max(n, 0)
 		limiterErr := r.limiter.WaitN(r.ctx, N)

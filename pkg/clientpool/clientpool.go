@@ -8,6 +8,9 @@ import (
 	"github.com/caio/go-tdigest"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Pool interface {
@@ -128,7 +131,7 @@ func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) 
 }
 
 func NewClientPool() Pool {
-	return &PoolImpl{
+	pool := &PoolImpl{
 		pool: map[uint]client.YproxyClient{},
 		mu:   sync.Mutex{},
 		opSpeed: map[int]map[string]*tdigest.TDigest{
@@ -137,4 +140,14 @@ func NewClientPool() Pool {
 			2: {},
 		},
 	}
+	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "client_connections",
+		Help: "The number of client connections to yproxy",
+	},
+		func() float64 {
+			pool.mu.Lock()
+			defer pool.mu.Unlock()
+			return float64(len(pool.pool))
+		})
+	return pool
 }
