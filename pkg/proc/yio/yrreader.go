@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
@@ -46,6 +47,8 @@ func NewRestartReader(s storage.StorageInteractor,
 
 	l := limiter.GetLimiter()
 
+	/* due to storage config "enable limiter" can change on read-restart, allocate
+	* limiter unconditionally */
 	return &YRestartReader{
 		s:        s,
 		name:     name,
@@ -68,9 +71,13 @@ func (y *YRestartReader) Restart(offsetStart int64) error {
 		return err
 	}
 
-	/* with limiter */
+	/* with limiter ? */
 
-	y.underlying = limiter.NewReader(r, y.lim)
+	if config.InstanceConfig().StorageCnf.EnableRateLimiter {
+		y.underlying = limiter.NewReader(r, y.lim)
+	} else {
+		y.underlying = r
+	}
 
 	return nil
 }
