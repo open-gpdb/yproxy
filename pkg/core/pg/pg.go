@@ -376,7 +376,7 @@ func ProcessCopy(conn *pgproto3.Backend, prefix string, port uint64, oldCfgPath 
 	}
 	config.EmbedDefaults(&instanceCnf)
 
-	oldStorage, err := storage.NewStorage(&instanceCnf.StorageCnf)
+	oldStorage, err := storage.NewStorage(&instanceCnf.StorageCnf, "")
 	if err != nil {
 		return err
 	}

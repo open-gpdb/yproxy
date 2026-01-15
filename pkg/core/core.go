@@ -147,14 +147,12 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		}
 	}
 
-	s, err := storage.NewStorage(
-		&instanceCnf.StorageCnf,
-	)
+	s, err := storage.NewStorage(&instanceCnf.StorageCnf, "yezzey")
 	if err != nil {
 		return err
 	}
 
-	bs, err := storage.NewStorage(&instanceCnf.BackupStorageCnf)
+	bs, err := storage.NewStorage(&instanceCnf.BackupStorageCnf, "backup")
 	if err != nil {
 		return err
 	}

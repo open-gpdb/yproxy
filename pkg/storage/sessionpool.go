@@ -44,16 +44,18 @@ func (sp *S3SessionPool) StorageUsedConcurrency() int {
 	return int(sp.usedConnections.Load())
 }
 
-func NewSessionPool(cnf *config.Storage) SessionPool {
+func NewSessionPool(cnf *config.Storage, poolName string) SessionPool {
 	pool := &S3SessionPool{
 		cnf: cnf,
 		sem: semaphore.NewWeighted(cnf.StorageConcurrency),
 	}
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "external_connections",
-		Help: "The number of external connections to S3 storage",
-	},
-		func() float64 { return float64(pool.StorageUsedConcurrency()) })
+	if poolName != "" {
+		promauto.NewGaugeFunc(prometheus.GaugeOpts{
+			Name: "external_connections_" + poolName,
+			Help: "The number of external connections to S3 storage",
+		},
+			func() float64 { return float64(pool.StorageUsedConcurrency()) })
+	}
 	return pool
 }
 

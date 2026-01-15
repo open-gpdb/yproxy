@@ -33,7 +33,7 @@ func TestEndpointSourceHTTP(t *testing.T) {
 		StorageRegion: "us-east-1",
 
 		StorageConcurrency: 1,
-	})
+	}, "s3")
 
 	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
@@ -72,7 +72,7 @@ func TestEndpointSourceHTTPS(t *testing.T) {
 		StorageRegion: "us-east-1",
 
 		StorageConcurrency: 1,
-	})
+	}, "https")
 
 	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
@@ -112,7 +112,7 @@ func TestEndpointSourceSetPort(t *testing.T) {
 		StorageRegion: "us-east-1",
 
 		StorageConcurrency: 1,
-	})
+	}, "seport")
 
 	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",
