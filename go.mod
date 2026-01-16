@@ -2,6 +2,8 @@ module github.com/yezzey-gp/yproxy
 
 go 1.25
 
+toolchain go1.25.6
+
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c
