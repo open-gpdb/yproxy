@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/yezzey-gp/yproxy/config"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"golang.org/x/time/rate"
 )
@@ -30,24 +32,44 @@ func NewReader(reader io.ReadCloser, limiter *rate.Limiter) *Reader {
 	}
 }
 
+func (r *Reader) Wait(n int) error {
+	if r.limiter == nil {
+		return nil
+	}
+	start := time.Now()
+	err := r.limiter.WaitN(r.ctx, n)
+	waitTime := time.Since(start).Nanoseconds()
+	metrics.StoreLatencyAndSizeInfo("LIMIT_READ", float64(n), float64(waitTime))
+	return err
+}
+
+func (r *Reader) getBurstableLimit(n int) int {
+	if r.limiter == nil {
+		return n
+	}
+	return min(r.limiter.Burst(), n)
+}
+
 func (r *Reader) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, fmt.Errorf("empty buffer passed")
 	}
 
-	end := min(r.limiter.Burst(), len(buf))
+	end := r.getBurstableLimit(len(buf))
+	// we do not know how many bytes we could read, so first - read data
 	n, err := r.reader.Read(buf[:end])
 
+	// and then wait in a limiter to correct measure processed data
 	if err != nil {
 		N := max(n, 0)
-		limiterErr := r.limiter.WaitN(r.ctx, N)
+		limiterErr := r.Wait(N)
 		if limiterErr != nil {
 			ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
 		}
 		return n, err
 	}
 
-	err = r.limiter.WaitN(r.ctx, n)
+	err = r.Wait(n)
 	return n, err
 }
 
@@ -70,24 +92,31 @@ func NewWriter(writer io.WriteCloser, limiter *rate.Limiter) *Writer {
 	}
 }
 
+func (w *Writer) Wait(n int) error {
+	start := time.Now()
+	err := w.limiter.WaitN(w.ctx, n)
+	waitTime := time.Since(start).Nanoseconds()
+	metrics.StoreLatencyAndSizeInfo("LIMIT_WRITE", float64(n), float64(waitTime))
+	return err
+}
+
+func (w *Writer) getBurstableLimit(n int) int {
+	return min(w.limiter.Burst(), n)
+}
+
 func (r *Writer) Write(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, fmt.Errorf("empty buffer passed")
 	}
 
-	end := min(r.limiter.Burst(), len(buf))
+	end := r.getBurstableLimit(len(buf))
+	// in a case of write we should wait before handling query
+	limiterErr := r.Wait(end)
+	if limiterErr != nil {
+		ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
+	}
 	n, err := r.writer.Write(buf[:end])
 
-	if err != nil {
-		N := max(n, 0)
-		limiterErr := r.limiter.WaitN(r.ctx, N)
-		if limiterErr != nil {
-			ylogger.Zero.Error().Err(limiterErr).Msg("Error happened while limiting")
-		}
-		return n, err
-	}
-
-	err = r.limiter.WaitN(r.ctx, n)
 	return n, err
 }
 

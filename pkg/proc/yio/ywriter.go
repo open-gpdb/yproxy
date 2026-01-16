@@ -2,9 +2,11 @@ package yio
 
 import (
 	"io"
+	"time"
 
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"golang.org/x/time/rate"
@@ -27,11 +29,17 @@ func (y *YproxyWriter) Close() error {
 }
 
 func (y *YproxyWriter) Write(p []byte) (n int, err error) {
+
+	start := time.Now()
 	n, err = y.underlying.Write(p)
+	writeTime := time.Since(start).Nanoseconds()
+	metrics.WiteReqProcessed.Inc()
+	metrics.StoreLatencyAndSizeInfo("WRITE", float64(n), float64(writeTime))
 	y.offsetReached += int64(n)
 	y.selfCl.SetByteOffset(y.offsetReached)
 
 	if err != nil {
+		metrics.WriteReqErrors.Inc()
 		ylogger.Zero.Error().Uint("client id", y.selfCl.ID()).Int("bytes write", n).Err(err).Msg("failed to write into underlying connection")
 	}
 

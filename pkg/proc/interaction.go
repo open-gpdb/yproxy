@@ -254,7 +254,7 @@ func ProcessCopyExtended(
 		return nil
 	}
 	config.EmbedDefaults(&sourceInstanceCnf)
-	oldStorage, err := storage.NewStorage(&sourceInstanceCnf.StorageCnf)
+	oldStorage, err := storage.NewStorage(&sourceInstanceCnf.StorageCnf, "")
 	if err != nil {
 		return err
 	}

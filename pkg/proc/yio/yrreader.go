@@ -7,6 +7,7 @@ import (
 
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
@@ -122,12 +123,16 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 
 			y.needReacquire = false
 		}
-
+		start := time.Now()
 		n, err := y.underlying.Read(p)
+		readTime := time.Since(start).Nanoseconds()
+		metrics.ReadReqProcessed.Inc()
+		metrics.StoreLatencyAndSizeInfo("READ", float64(n), float64(readTime))
 		if err == io.EOF {
 			return n, err
 		}
 		if err != nil || n < 0 {
+			metrics.ReadReqErrors.Inc()
 			ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Int("bytes half-read", n).Int("retry count", int(retry)).Msg("encounter read error")
 
 			if n > 0 {

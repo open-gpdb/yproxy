@@ -47,7 +47,7 @@ type StorageInteractor interface {
 	DefaultBucket() string
 }
 
-func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
+func NewStorage(cnf *config.Storage, storageName string) (StorageInteractor, error) {
 	switch cnf.StorageType {
 	case "fs":
 		return &FileStorageInteractor{
@@ -55,7 +55,7 @@ func NewStorage(cnf *config.Storage) (StorageInteractor, error) {
 		}, nil
 	case "s3":
 		return &S3StorageInteractor{
-			pool:          NewSessionPool(cnf),
+			pool:          NewSessionPool(cnf, storageName),
 			cnf:           cnf,
 			TSToBucketMap: buildBucketMapFromCnf(cnf),
 			credentialMap: buildCredMapFromCnf(cnf),

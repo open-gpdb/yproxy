@@ -22,6 +22,9 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 
 	"golang.org/x/sync/semaphore"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type SessionPool interface {
@@ -41,11 +44,19 @@ func (sp *S3SessionPool) StorageUsedConcurrency() int {
 	return int(sp.usedConnections.Load())
 }
 
-func NewSessionPool(cnf *config.Storage) SessionPool {
-	return &S3SessionPool{
+func NewSessionPool(cnf *config.Storage, poolName string) SessionPool {
+	pool := &S3SessionPool{
 		cnf: cnf,
 		sem: semaphore.NewWeighted(cnf.StorageConcurrency),
 	}
+	if poolName != "" {
+		promauto.NewGaugeFunc(prometheus.GaugeOpts{
+			Name: "external_connections_" + poolName,
+			Help: "The number of external connections to S3 storage",
+		},
+			func() float64 { return float64(pool.StorageUsedConcurrency()) })
+	}
+	return pool
 }
 
 // TODO : unit tests
