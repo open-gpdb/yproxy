@@ -112,7 +112,7 @@ func TestEndpointSourceSetPort(t *testing.T) {
 		StorageRegion: "us-east-1",
 
 		StorageConcurrency: 1,
-	}, "seport")
+	}, "setport")
 
 	sess, err := pool.GetSession(context.TODO(), &config.StorageCredentials{
 		AccessKeyId:     "mock_access_key",

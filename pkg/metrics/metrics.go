@@ -44,7 +44,7 @@ func StoreLatencyAndSizeInfo(opType string, size float64, latency float64) {
 	if _, ok := HandlerNames[opType]; !ok {
 		return
 	}
-	HisstogramSizeVec.With(map[string]string{
+	HistogramSizeVec.With(map[string]string{
 		"source": opType,
 	}).Observe(size)
 	if size != 0 {
@@ -77,7 +77,7 @@ var (
 		Buckets: latencyBuckets,
 	}, []string{"source"})
 
-	HisstogramSizeVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	HistogramSizeVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "request_size",
 		Help:    "Request latency in seconds",
 		Buckets: sizeBuckets,
