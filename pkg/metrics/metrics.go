@@ -48,7 +48,7 @@ func StoreLatencyAndSizeInfo(opType string, size float64, latency float64) {
 		"source": opType,
 	}).Observe(size)
 	if size != 0 {
-		HisstogramLatencyVec.With(map[string]string{
+		HistogramLatencyVec.With(map[string]string{
 			"source": opType,
 		}).Observe(latency / size)
 	}
@@ -71,7 +71,7 @@ var (
 		Name: "write_req_errors_total",
 		Help: "The total number of errors during reads",
 	})
-	HisstogramLatencyVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	HistogramLatencyVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "request_latency",
 		Help:    "Request latency in seconds",
 		Buckets: latencyBuckets,
