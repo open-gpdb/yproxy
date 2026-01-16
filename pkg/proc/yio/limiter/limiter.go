@@ -93,9 +93,6 @@ func NewWriter(writer io.WriteCloser, limiter *rate.Limiter) *Writer {
 }
 
 func (w *Writer) Wait(n int) error {
-	if w.limiter == nil {
-		return nil
-	}
 	start := time.Now()
 	err := w.limiter.WaitN(w.ctx, n)
 	waitTime := time.Since(start).Nanoseconds()
@@ -104,9 +101,6 @@ func (w *Writer) Wait(n int) error {
 }
 
 func (w *Writer) getBurstableLimit(n int) int {
-	if w.limiter == nil {
-		return n
-	}
 	return min(w.limiter.Burst(), n)
 }
 
@@ -142,9 +136,6 @@ func GetLimiter() *rate.Limiter {
 	}
 
 	netLimit := config.InstanceConfig().StorageCnf.StorageRateLimit
-	if netLimit == 0 {
-		return nil
-	}
 	ylogger.Zero.Debug().Uint64("bytes per sec", netLimit).Msg("allocate limiter")
 
 	netLimiter = rate.NewLimiter(rate.Limit(netLimit),

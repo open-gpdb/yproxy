@@ -75,6 +75,9 @@ const (
 	DefaultMetricsPort        = 2112
 
 	DefaultEndpointSourceScheme = "https"
+
+	/* 1 GB per  second */
+	DefaultStorageRateLimit = 1024 * 1024 * 1024
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -98,6 +101,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
 		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
+	}
+	if cfgInstance.StorageCnf.StorageRateLimit == 0 {
+		cfgInstance.StorageCnf.StorageRateLimit = DefaultStorageRateLimit
 	}
 	if cfgInstance.MetricsPort == 0 {
 		cfgInstance.MetricsPort = DefaultMetricsPort
