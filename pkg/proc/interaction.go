@@ -482,6 +482,49 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 	return nil
 }
 
+func ProcessDelete2Extended(msg message.Delete2Message, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient, cnf *config.Vacuum) error {
+	ycl.SetExternalFilePath(msg.Prefix)
+
+	dbInterractor := &database.DatabaseHandler{}
+	backupHandler := &backups.StorageBackupInteractor{Storage: bs}
+
+	var dh = &BasicGarbageMgr{
+		StorageInterractor: s,
+		DbInterractor:      dbInterractor,
+		BackupInterractor:  backupHandler,
+		Cnf:                cnf,
+	}
+
+	if msg.Garbage {
+		ylogger.Zero.Debug().
+			Str("Prefix", msg.Prefix).
+			Bool("confirm", msg.Confirm).Msg("requested to delete old trash files")
+	} else {
+		ylogger.Zero.Debug().
+			Str("Name", msg.Prefix).
+			Bool("confirm", msg.Confirm).Msg("requested to delete any files")
+	}
+	err := dh.HandleDelete2Prefix(msg)
+	if err != nil {
+		_ = ycl.ReplyError(err, "failed to finish operation")
+		return err
+	}
+
+	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
+		_ = ycl.ReplyError(err, "failed to upload")
+		return err
+	}
+	if !msg.Confirm {
+		ylogger.Zero.Warn().Msg("It was a dry-run, nothing was deleted")
+	} else if msg.Garbage {
+		ylogger.Zero.Info().Msg("Deleted garbage successfully")
+	} else {
+		ylogger.Zero.Info().Msg("Deleted chunk successfully")
+	}
+
+	return nil
+}
+
 func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient) error {
 	ycl.SetExternalFilePath(msg.Name)
 
@@ -769,7 +812,13 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		if err != nil {
 			return err
 		}
-
+	case message.MessageTypeDelete2:
+		msg := message.Delete2Message{}
+		msg.Decode(body)
+		err := ProcessDelete2Extended(msg, s, bs, ycl, cnf)
+		if err != nil {
+			return err
+		}
 	case message.MessageTypeUntrashify:
 		// receive message
 		msg := message.UntrashifyMessage{}

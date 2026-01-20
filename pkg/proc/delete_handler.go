@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/backups"
 	"github.com/yezzey-gp/yproxy/pkg/database"
 	"github.com/yezzey-gp/yproxy/pkg/message"
+	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
@@ -155,7 +157,112 @@ func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error 
 	}
 	return nil
 }
+func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Message) ([]*object.ObjectInfo, error) {
+	//get first backup lsn
+	var err error
 
+	//list files in storage
+	ylogger.Zero.Info().Str("path", msg.Prefix).Msg("listing prefix")
+	objectMetas, err := dh.StorageInterractor.ListBucketPath(bucket, msg.Prefix, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not list objects")
+	}
+	ylogger.Zero.Info().Int("amount", len(objectMetas)).Msg("objects count")
+
+	filesToDelete := make([]*object.ObjectInfo, 0)
+	for i := range objectMetas {
+		filename := objectMetas[i].Path
+		ylogger.Zero.Debug().Str("name", filename).Msg("lookup chunk")
+		if !strings.HasPrefix(filename, msg.Prefix) {
+			continue
+		}
+		ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
+			Str("has prefix so will be deleted", msg.Prefix)
+
+		filesToDelete = append(filesToDelete, objectMetas[i])
+
+	}
+
+	ylogger.Zero.Info().Int("amount", len(filesToDelete)).Msg("files will be deleted")
+
+	return filesToDelete, nil
+}
+
+func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delete2Message) error {
+	fileList, err := dh.ListDelete2Files(bucket, msg)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete file")
+	}
+	uploads, err := dh.StorageInterractor.ListFailedMultipartUploads(bucket)
+	if err != nil {
+		return err
+	}
+	ylogger.Zero.Info().Str("bucket", bucket).Int("amount", len(uploads)).Msg("multipart uploads will be aborted")
+
+	for _, file := range fileList {
+		ylogger.Zero.Info().Str("bucket", bucket).Str("file", file.Path).Msg("file will be deleted")
+	}
+	for _, upload := range uploads {
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
+	}
+
+	if !msg.Confirm { //do not delete files if no confirmation flag provided
+		ylogger.Zero.Info().Msg("do not perform actual delete files as no confirmation flag provided")
+		return nil
+	}
+	if !msg.Garbage {
+		ylogger.Zero.Info().Msg("delete any files blocked now")
+		msg.Garbage = true
+	}
+	if msg.Garbage && !strings.Contains(msg.Prefix, "trash") {
+		ylogger.Zero.Info().Msg("prefix doesnt contain trash aborted")
+		return nil
+	}
+	var failed []*object.ObjectInfo
+	retryCount := 0
+	for len(fileList) > 0 && retryCount < 10 {
+		retryCount++
+		for i := 0; i < len(fileList); i++ {
+			if !msg.Garbage {
+				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete without any 'plan B' (do nothing)")
+
+			} else if strings.Contains(fileList[i].Path, "trash") && fileList[i].LastMod.Add(time.Hour*24*7).Unix() < time.Now().Unix() {
+				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete without any 'plan B'")
+				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i].Path)
+
+			}
+			if err != nil {
+				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", fileList[i].Path).Msg("failed to delete file")
+				failed = append(failed, fileList[i])
+			}
+		}
+		fileList = failed
+		failed = make([]*object.ObjectInfo, 0)
+	}
+
+	if len(fileList) > 0 {
+		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg("some files were not moved")
+		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg("failed to move some files")
+		return errors.Wrap(err, "failed to move some files")
+	}
+
+	for key, uploadId := range uploads {
+		if err := dh.StorageInterractor.AbortMultipartUpload(bucket, key, uploadId); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (dh *BasicGarbageMgr) HandleDelete2Prefix(msg message.Delete2Message) error {
+	for _, b := range dh.StorageInterractor.ListBuckets() {
+		if err := dh.DeletePrefixInBucket(b, msg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 	if !msg.Confirm {
 		return nil
