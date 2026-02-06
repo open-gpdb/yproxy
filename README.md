@@ -12,34 +12,34 @@ yproxy - a service for efficient transfer data external storages.
 ## metrics
 
 yproxy gather and report various internal metrics in a prometheus format.
-To get metrics query yproxy using http, default metrics http port is 2112:
+To get metrics query yproxy use http, default metrics port is 2112, `curl` example:
 
 ```
 curl localhost:2112/metrics
 ```
 
-The output consists of 2 categories metrics:
+The output consists of 2 categories of metrics:
 
 1. Default go metrics:
 
-- Goroutines and Threads: go_goroutines (current number of goroutines) and go_threads (number of OS threads).
-- Garbage Collection: go_gc_duration_seconds provides a summary/histogram of GC pause durations.
-- Go Environment: go_info gives details about the Go version.
-- Memory Statistics (Memstats): A comprehensive set of metrics tracking memory allocation and usage, including go_memstats_alloc_bytes
+- Goroutines and Threads: `go_goroutines` (current number of goroutines) and `go_threads` (number of OS threads).
+- Garbage Collection: `go_gc_*` provides a summary/histogram of GC internals.
+- Go Environment: `go_info` gives details about the Go version.
+- Memory Statistics (Memstats): A comprehensive set of metrics tracking memory allocation and usage, including `go_memstats_alloc_bytes`
 
 2. Custom yproxy metrics:
 
 | Category  | Name | Type | Description |
 |-----------|------|------|-------------|
-| Connections | client_connections | gauge | The number of client (yezzey) connections to yproxy |
-|             | external_connections_backup | gauge | The number of external yproxy connections to S3 backup storage |
-|             | external_connections_yezzey | gauge | The number of external yproxy connections to S3 yezzey storage |
-| Requests    | read_req_processed_total | counter | The total number of processed read (download) requests to S3 storage |
-|             | read_req_errors_total | counter | The total number of errors occurred while processing read requests |
-|             | write_req_processed_total | counter | The total number of processed write (upload) requests to S3 storage | 
-|             | write_req_errors_total | counter | The total number of errors occurred while processing write requests |
-| Internal    | request_latency_bucket | histogram | The number of requests and requests time for each source request |
-|             | request_size_bucket | histogram | The number of requests and requests size for each source request |
+| Connections | `client_connections` | gauge | The number of client (yezzey) connections to yproxy |
+|             | `external_connections_backup` | gauge | The number of external yproxy connections to S3 backup storage |
+|             | `external_connections_yezzey` | gauge | The number of external yproxy connections to S3 yezzey storage |
+| Requests    | `read_req_processed_total` | counter | The total number of processed read (download) requests to S3 storage |
+|             | `read_req_errors_total` | counter | The total number of errors occurred while processing read requests |
+|             | `write_req_processed_total` | counter | The total number of processed write (upload) requests to S3 storage | 
+|             | `write_req_errors_total` | counter | The total number of errors occurred while processing write requests |
+| Internal    | `request_latency_bucket` | histogram | The number of requests and requests time for each source request |
+|             | `request_size_bucket` | histogram | The number of requests and requests size for each source request |
 
 Internal metrics show latency and size for each source request. Source request is the internal type of query from GP to yproxy. Yproxy performs mostly upload/download requests to S3. But yezzey perform requests multiple species. They are named as source request. We measure source requests:
 ```
