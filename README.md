@@ -68,7 +68,7 @@ DELETE OBSOLETE
 ```
 
 <details>
-  <summary>Example of gathered metrics for a simple yezzet query:</summary>
+  <summary>Example of gathered metrics for a simple yezzey query:</summary>
 
 ```
 query:
