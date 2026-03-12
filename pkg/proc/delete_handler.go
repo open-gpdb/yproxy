@@ -171,13 +171,8 @@ func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Me
 
 	filesToDelete := make([]*object.ObjectInfo, 0)
 	for i := range objectMetas {
-		filename := objectMetas[i].Path
-		ylogger.Zero.Debug().Str("name", filename).Msg("lookup chunk")
-		if !strings.HasPrefix(filename, msg.Prefix) {
-			continue
-		}
 		ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
-			Str("has prefix so will be deleted", msg.Prefix)
+			Str("will be deleted", msg.Prefix)
 
 		filesToDelete = append(filesToDelete, objectMetas[i])
 
