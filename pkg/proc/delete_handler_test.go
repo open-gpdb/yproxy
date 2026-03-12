@@ -86,3 +86,35 @@ func TestTrashPathConversion(t *testing.T) {
 		assert.Equal(t, tc.Path, resP2)
 	}
 }
+
+func TestListDelete2Files(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "1663_16530_not-deleted_18002_"},
+		{Path: "1663_16530_deleted-after-backup_18002_"},
+		{Path: "1663_16530_deleted-when-backup-start_18002_"},
+		{Path: "1663_16530_deleted-before-backup_18002_"},
+		{Path: "some_trash"},
+	}
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("", msg.Prefix, true).Return(filesInStorage, nil)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		DbInterractor:      nil,
+		BackupInterractor:  nil,
+		Cnf:                &config.Vacuum{CheckBackup: true},
+	}
+
+	actualFilesToDelete, err := handler.ListDelete2Files("", msg)
+	assert.NoError(t, err)
+	assert.Equal(t, len(filesInStorage), len(actualFilesToDelete))
+	assert.Equal(t, filesInStorage, actualFilesToDelete)
+}
