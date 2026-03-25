@@ -911,9 +911,14 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 		path := strings.TrimPrefix(objectMetas[i].Path, cfg.StoragePrefix)
 		reworked := path
 		if _, ok := vi[reworked]; !ok {
-			ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Msg("not in virtual index, skipping...")
+			skipCopy := config.InstanceConfig().StorageCnf.StorageOptimizeCopy
 			skipped = append(skipped, objectMetas[i])
-			continue
+
+			ylogger.Zero.Info().Int("index", i).Str("reworked name", reworked).Str("object path", objectMetas[i].Path).Bool("skipping", skipCopy).Msg("not in virtual index")
+
+			if skipCopy {
+				continue
+			}
 		}
 		if sz, ok := copiedSizes[objectMetas[i].Path]; ok {
 			ylogger.Zero.Info().

@@ -32,6 +32,9 @@ type Storage struct {
 
 	StorageRegion string `json:"storage_region" toml:"storage_region" yaml:"storage_region"`
 
+	// copy behaviour control option
+	StorageOptimizeCopy bool `json:"storage_optimize_copy" toml:"storage_optimize_copy" yaml:"storage_optimize_copy"`
+
 	// File storage default s3. Available: s3, fs
 	StorageType string `json:"storage_type" toml:"storage_type" yaml:"storage_type"`
 
