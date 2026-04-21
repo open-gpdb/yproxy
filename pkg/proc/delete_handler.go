@@ -119,7 +119,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		for i := 0; i < len(fileList); i++ {
 
 			if msg.CrazyDrop {
-				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i]).Msg("simply delete without any 'plan B'")
+				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i]).Msg("simply delete")
 				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i])
 			} else {
 				tp := TrashPathFromRegPath(fileList[i], int(msg.Segnum))
@@ -219,10 +219,10 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		retryCount++
 		for i := 0; i < len(fileList); i++ {
 			if !msg.Garbage {
-				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete without any 'plan B' (do nothing)")
+				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete (do nothing)")
 
 			} else if strings.Contains(fileList[i].Path, "trash") && fileList[i].LastMod.Add(time.Hour*24*7).Unix() < time.Now().Unix() {
-				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete without any 'plan B'")
+				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete")
 				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i].Path)
 
 			}
