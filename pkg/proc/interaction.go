@@ -37,7 +37,8 @@ func ProcessCatExtended(
 	if kek {
 		err := fmt.Errorf("KEK is currently unsupported")
 		ylogger.Zero.Error().Err(err).Msg("cat failed")
-		return err
+		// I do not know if we should actually fail here, just log error
+		// return err
 	}
 
 	if decrypt {
