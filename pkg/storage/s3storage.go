@@ -36,7 +36,10 @@ type S3StorageInteractor struct {
 	multipartUploads sync.Map
 }
 
-const maxUploadRetries = 3
+const (
+	maxUploadRetries = 3
+	listingDelay     = time.Second / 2
+)
 
 func (s *S3StorageInteractor) getCredentials(bucket string) (config.StorageCredentials, error) {
 	cr, ok := s.credentialMap[bucket]
