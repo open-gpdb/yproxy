@@ -2,10 +2,12 @@ package proc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/backups"
@@ -65,7 +67,11 @@ func ProcessCatExtended(
 
 	n, err := io.Copy(ycl.GetRW(), contentReader)
 	if err != nil {
-		ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to cat object")
+		if errors.Is(err, syscall.EPIPE) || errors.Is(err, io.ErrClosedPipe) {
+			ylogger.Zero.Warn().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("client disconnected during cat")
+		} else {
+			ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to cat object")
+		}
 		return err
 	}
 	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("decrypt object")
