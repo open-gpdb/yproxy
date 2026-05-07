@@ -105,6 +105,7 @@ func (y *YproxyRetryReader) Close() error {
 
 // Read implements io.ReadCloser.
 func (y *YproxyRetryReader) Read(p []byte) (int, error) {
+	var lastErr error
 
 	for retry := range y.retryLimit {
 
@@ -116,6 +117,7 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 				// log error and continue.
 				// Try to mitigate overload problems with random sleep
 				ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
+				lastErr = err
 
 				time.Sleep(time.Second)
 				continue
@@ -134,6 +136,9 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 		if err != nil || n < 0 {
 			metrics.ReadReqErrors.Inc()
 			ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Int("bytes half-read", n).Int("retry count", int(retry)).Msg("encounter read error")
+			if err != nil {
+				lastErr = err
+			}
 
 			if n > 0 {
 				y.offsetReached += int64(n)
@@ -154,6 +159,9 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 
 			return n, err
 		}
+	}
+	if lastErr != nil {
+		return -1, lastErr
 	}
 	return -1, fmt.Errorf("failed to upload within retries")
 }
