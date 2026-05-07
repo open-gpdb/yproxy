@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"golang.org/x/time/rate"
 )
 
 //go:generate mockgen -destination=../../../test/mocks/mock_object.go -package mocks -build_flags -mod=readonly github.com/wal-g/wal-g/pkg/storages/storage Object
@@ -112,11 +114,22 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		return nil
 	}
 
+	/* Burst at 20% of vacuum rate capacity. It is pretty arbitrary at this time,
+	* but its not like something we need config field for... */
+	limRate := config.InstanceConfig().VacuumCnf.FileChunkPerSec
+	limiter := rate.NewLimiter(rate.Limit(limRate), limRate/5)
+	ctx := context.Background()
+
 	var failed []string
 	retryCount := 0
 	for len(fileList) > 0 && retryCount < 10 {
 		retryCount++
 		for i := 0; i < len(fileList); i++ {
+
+			/* Dont move too fast */
+			if err := limiter.Wait(ctx); err != nil {
+				break
+			}
 
 			if msg.CrazyDrop {
 				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i]).Msg("simply delete")
@@ -141,6 +154,12 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	for key, uploadId := range uploads {
+
+		/* Dont move too fast */
+		if err := limiter.Wait(ctx); err != nil {
+			break
+		}
+
 		if err := dh.StorageInterractor.AbortMultipartUpload(bucket, key, uploadId); err != nil {
 			return err
 		}

@@ -23,6 +23,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/tablespace"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"golang.org/x/time/rate"
 )
 
 type S3StorageInteractor struct {
@@ -222,7 +223,13 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 
 	ylogger.Zero.Debug().Str("bucket", bucket).Str("bucket", bucket).Msg("listing bucket")
 
+	/* Use limiter to list files not too fast. */
+	limRate := config.InstanceConfig().VacuumCnf.FileChunkPerSec
+	limiter := rate.NewLimiter(rate.Limit(limRate), limRate/5)
+	ctx := context.Background()
+
 	for {
+
 		input := &s3.ListObjectsV2Input{
 			Bucket:            &bucket,
 			Prefix:            aws.String(prefix),
@@ -233,6 +240,11 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 		if err != nil {
 			ylogger.Zero.Debug().Err(err).Msg("failed to list prefix")
 			return nil, err
+		}
+
+		/* Dont move too fast */
+		if err := limiter.WaitN(ctx, len(out.Contents)); err != nil {
+			break
 		}
 
 		for _, obj := range out.Contents {
