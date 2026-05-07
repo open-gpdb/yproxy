@@ -163,7 +163,7 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 	if lastErr != nil {
 		return -1, lastErr
 	}
-	return -1, fmt.Errorf("failed to upload within retries")
+	return -1, fmt.Errorf("failed to read within retries")
 }
 
 const (
