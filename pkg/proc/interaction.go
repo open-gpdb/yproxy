@@ -2,10 +2,13 @@ package proc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/backups"
@@ -21,6 +24,8 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const catDecryptRetryLimit = 10
+
 func ProcessCatExtended(
 	s storage.StorageInteractor,
 	pr *ProtoReader,
@@ -29,32 +34,116 @@ func ProcessCatExtended(
 
 	ycl.SetExternalFilePath(name)
 
-	yr := yio.NewYRetryReader(yio.NewRestartReader(s, name, settings), ycl)
-
-	var contentReader io.Reader
-	contentReader = yr
-	defer func() { _ = yr.Close() }()
-	var err error
-
-	if decrypt {
-		if cr == nil {
-			err := fmt.Errorf("failed to decrypt object, decrypter not configured")
-
-			ylogger.Zero.Error().Err(err).Msg("cat failed")
-			return err
-		}
-		ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
-		contentReader, err = cr.Decrypt(yr)
-		if err != nil {
-			ylogger.Zero.Error().Err(err).Msg("failed to decrypt object")
-			return err
-		}
-	}
-
 	if kek {
 		err := fmt.Errorf("KEK is currently unsupported")
 		ylogger.Zero.Error().Err(err).Msg("cat failed")
 		// return err
+	}
+
+	if decrypt {
+		// When decryption is active, the retry reader cannot do mid-stream
+		// restarts because the GPG decryptor has internal cipher state that
+		// is initialized from the beginning of the encrypted stream. A restart
+		// from an arbitrary encrypted byte offset would feed raw ciphertext
+		// into a decryptor expecting continuation bytes, producing garbage.
+		//
+		// Instead, we handle retries at this level: on any read error, we
+		// re-create the entire pipeline (S3 reader → decryptor → discard →
+		// copy) from scratch.
+		return processCatDecrypted(s, name, startOffset, settings, cr, ycl)
+	}
+
+	// Non-decrypt path: the retry reader handles mid-stream restarts correctly
+	// since there is no cipher state to corrupt.
+	yr := yio.NewYRetryReader(yio.NewRestartReader(s, name, settings), ycl)
+	defer func() { _ = yr.Close() }()
+
+	var contentReader io.Reader = yr
+
+	if startOffset != 0 {
+		if _, err := io.CopyN(io.Discard, contentReader, int64(startOffset)); err != nil {
+			return err
+		}
+	}
+
+	n, err := io.Copy(ycl.GetRW(), contentReader)
+	if err != nil {
+		if errors.Is(err, syscall.EPIPE) || errors.Is(err, io.ErrClosedPipe) {
+			ylogger.Zero.Warn().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("client disconnected during cat")
+		} else {
+			ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to cat object")
+		}
+		return err
+	}
+	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("cat object completed")
+
+	return nil
+}
+
+// processCatDecrypted handles the cat operation when decryption is required.
+// It retries the entire pipeline (S3 read → decrypt → discard → copy) on
+// transient errors, because the GPG decryptor cannot survive mid-stream restarts.
+func processCatDecrypted(
+	s storage.StorageInteractor,
+	name string,
+	startOffset uint64,
+	settings []settings.StorageSettings,
+	cr crypt.Crypter,
+	ycl client.YproxyClient,
+) error {
+	if cr == nil {
+		err := fmt.Errorf("failed to decrypt object, decrypter not configured")
+		ylogger.Zero.Error().Err(err).Msg("cat failed")
+		return err
+	}
+
+	var lastErr error
+	for attempt := range catDecryptRetryLimit {
+		err := tryCatDecrypted(s, name, startOffset, settings, cr, ycl)
+		if err == nil {
+			return nil
+		}
+
+		// Client disconnected — not retryable
+		if errors.Is(err, syscall.EPIPE) || errors.Is(err, io.ErrClosedPipe) {
+			ylogger.Zero.Warn().Err(err).Uint("client id", ycl.ID()).Msg("client disconnected during encrypted cat")
+			return err
+		}
+
+		lastErr = err
+		ylogger.Zero.Warn().Err(err).
+			Str("object-path", name).
+			Int("attempt", attempt).
+			Msg("encrypted cat failed, retrying entire pipeline")
+
+		time.Sleep(time.Second)
+	}
+
+	ylogger.Zero.Error().Err(lastErr).
+		Str("object-path", name).
+		Int("retry-limit", catDecryptRetryLimit).
+		Msg("encrypted cat failed after all retries")
+	return lastErr
+}
+
+// tryCatDecrypted performs a single attempt of: open S3 → decrypt → discard startOffset → copy to client.
+func tryCatDecrypted(
+	s storage.StorageInteractor,
+	name string,
+	startOffset uint64,
+	setts []settings.StorageSettings,
+	cr crypt.Crypter,
+	ycl client.YproxyClient,
+) error {
+	// Use no-retry reader: errors propagate up so we can restart the full pipeline
+	yr := yio.NewYRetryReaderNoRetry(yio.NewRestartReader(s, name, setts), ycl)
+	defer func() { _ = yr.Close() }()
+
+	ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
+	contentReader, err := cr.Decrypt(yr)
+	if err != nil {
+		ylogger.Zero.Error().Err(err).Msg("failed to decrypt object")
+		return err
 	}
 
 	if startOffset != 0 {
@@ -65,10 +154,10 @@ func ProcessCatExtended(
 
 	n, err := io.Copy(ycl.GetRW(), contentReader)
 	if err != nil {
-		ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to cat object")
+		ylogger.Zero.Error().Err(err).Uint("client id", ycl.ID()).Int64("copied bytes", n).Msg("failed to cat decrypted object")
 		return err
 	}
-	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("decrypt object")
+	ylogger.Zero.Debug().Int64("copied bytes", n).Msg("cat decrypted object completed")
 
 	return nil
 }

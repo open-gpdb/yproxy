@@ -65,7 +65,7 @@ func (y *YRestartReader) Restart(offsetStart int64) error {
 	if offsetStart == 0 {
 		ylogger.Zero.Debug().Str("object-path", y.name).Msg("cat object with offset")
 	} else {
-		ylogger.Zero.Error().Str("object-path", y.name).Int64("offset", offsetStart).Msg("cat object with offset after possible error")
+		ylogger.Zero.Warn().Str("object-path", y.name).Int64("offset", offsetStart).Msg("cat object: restarting read from offset after transient error")
 	}
 	r, err := y.s.CatFileFromStorage(y.name, offsetStart, y.settings)
 	if err != nil {
@@ -169,6 +169,21 @@ func NewYRetryReader(r RestartReader, selfCl client.YproxyClient) io.ReadCloser 
 		selfCl:        selfCl,
 		offsetReached: 0,
 		needReacquire: true, /* do initial storage request */
+	}
+}
+
+// NewYRetryReaderNoRetry creates a retry reader that does not retry on errors.
+// Use this when the reader is wrapped by a decryptor (e.g. GPG) whose internal
+// cipher state cannot survive a mid-stream restart from an arbitrary offset.
+// In this case, retries must be handled at a higher level by re-creating the
+// entire pipeline (reader + decryptor).
+func NewYRetryReaderNoRetry(r RestartReader, selfCl client.YproxyClient) io.ReadCloser {
+	return &YproxyRetryReader{
+		underlying:    r,
+		retryLimit:    1, /* no retries — propagate errors immediately */
+		selfCl:        selfCl,
+		offsetReached: 0,
+		needReacquire: true,
 	}
 }
 
