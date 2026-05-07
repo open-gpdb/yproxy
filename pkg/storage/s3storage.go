@@ -154,7 +154,21 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 	putLen := int(multipartChunkSize)
 	if multipartUpload {
 		s.multipartUploads.Store(objectPath, true)
-		for attempt := 0; attempt < maxUploadRetries; attempt++ {
+		defer s.multipartUploads.Delete(objectPath)
+
+		seeker, canRetry := r.(io.Seeker)
+		attempts := 1
+		if canRetry {
+			attempts = maxUploadRetries
+		}
+
+		for attempt := 0; attempt < attempts; attempt++ {
+			if canRetry {
+				if _, seekErr := seeker.Seek(0, io.SeekStart); seekErr != nil {
+					return fmt.Errorf("failed to reset multipart upload reader: %w", seekErr)
+				}
+			}
+
 			_, err = up.Upload(
 				&s3manager.UploadInput{
 					Bucket:       aws.String(bucket),
@@ -163,16 +177,17 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 					StorageClass: aws.String(storageClass),
 				},
 			)
-			if err == nil {
+			if err == nil || !isNoSuchUploadError(err) {
 				break
 			}
-			if isNoSuchUploadError(err) {
-				ylogger.Zero.Warn().Str("name", name).Int("attempt", attempt).Err(err).Msg("multipart upload ID expired, retrying full upload")
-				continue
+
+			if !canRetry {
+				ylogger.Zero.Warn().Str("name", name).Err(err).Msg("multipart upload ID expired, cannot retry because upload source is not seekable")
+				break
 			}
-			break // non-retryable error
+
+			ylogger.Zero.Warn().Str("name", name).Int("attempt", attempt+1).Err(err).Msg("multipart upload ID expired, retrying full upload")
 		}
-		s.multipartUploads.Delete(objectPath)
 	} else {
 		var body []byte
 		body, err = io.ReadAll(r)
