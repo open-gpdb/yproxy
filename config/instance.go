@@ -78,6 +78,8 @@ const (
 
 	/* 1 GB per  second */
 	DefaultStorageRateLimit = 1024 * 1024 * 1024
+
+	DefaultFileChunkPerSec = 1000
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -107,6 +109,10 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.MetricsPort == 0 {
 		cfgInstance.MetricsPort = DefaultMetricsPort
+	}
+
+	if cfgInstance.VacuumCnf.FileChunkPerSec == 0 {
+		cfgInstance.VacuumCnf.FileChunkPerSec = DefaultFileChunkPerSec
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
