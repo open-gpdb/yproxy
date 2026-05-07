@@ -179,20 +179,3 @@ func NewYRetryReader(r RestartReader, selfCl client.YproxyClient) io.ReadCloser 
 		needReacquire: true, /* do initial storage request */
 	}
 }
-
-// NewYRetryReaderNoRetry creates a retry reader that does not retry on errors.
-// Use this when the reader is wrapped by a decryptor (e.g. GPG) whose internal
-// cipher state cannot survive a mid-stream restart from an arbitrary offset.
-// In this case, retries must be handled at a higher level by re-creating the
-// entire pipeline (reader + decryptor).
-func NewYRetryReaderNoRetry(r RestartReader, selfCl client.YproxyClient) io.ReadCloser {
-	return &YproxyRetryReader{
-		underlying:    r,
-		retryLimit:    1, /* no retries — propagate errors immediately */
-		selfCl:        selfCl,
-		offsetReached: 0,
-		needReacquire: true,
-	}
-}
-
-var _ io.ReadCloser = &YproxyRetryReader{}
