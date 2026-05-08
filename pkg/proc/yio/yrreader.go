@@ -65,7 +65,7 @@ func (y *YRestartReader) Restart(offsetStart int64) error {
 	if offsetStart == 0 {
 		ylogger.Zero.Debug().Str("object-path", y.name).Msg("cat object with offset")
 	} else {
-		ylogger.Zero.Error().Str("object-path", y.name).Int64("offset", offsetStart).Msg("cat object with offset after possible error")
+		ylogger.Zero.Warn().Str("object-path", y.name).Int64("offset", offsetStart).Msg("cat object: restarting read from offset after transient error")
 	}
 	r, err := y.s.CatFileFromStorage(y.name, offsetStart, y.settings)
 	if err != nil {
@@ -105,6 +105,7 @@ func (y *YproxyRetryReader) Close() error {
 
 // Read implements io.ReadCloser.
 func (y *YproxyRetryReader) Read(p []byte) (int, error) {
+	var lastErr error
 
 	for retry := range y.retryLimit {
 
@@ -116,6 +117,7 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 				// log error and continue.
 				// Try to mitigate overload problems with random sleep
 				ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
+				lastErr = err
 
 				time.Sleep(time.Second)
 				continue
@@ -134,6 +136,9 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 		if err != nil || n < 0 {
 			metrics.ReadReqErrors.Inc()
 			ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Int("bytes half-read", n).Int("retry count", int(retry)).Msg("encounter read error")
+			if err != nil {
+				lastErr = err
+			}
 
 			if n > 0 {
 				y.offsetReached += int64(n)
@@ -155,7 +160,10 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			return n, err
 		}
 	}
-	return -1, fmt.Errorf("failed to upload within retries")
+	if lastErr != nil {
+		return -1, lastErr
+	}
+	return -1, fmt.Errorf("failed to read within retries: no error captured")
 }
 
 const (

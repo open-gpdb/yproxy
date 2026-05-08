@@ -36,6 +36,17 @@ type S3StorageInteractor struct {
 	multipartUploads sync.Map
 }
 
+func (s *S3StorageInteractor) getCredentials(bucket string) (config.StorageCredentials, error) {
+	cr, ok := s.credentialMap[bucket]
+	if !ok {
+		return cr, fmt.Errorf("no credentials configured for bucket %q; check credential_map in config", bucket)
+	}
+	if cr.AccessKeyId == "" || cr.SecretAccessKey == "" {
+		ylogger.Zero.Warn().Str("bucket", bucket).Msg("credentials for bucket have empty access_key_id or secret_access_key, will fall back to ambient credentials (env/IAM)")
+	}
+	return cr, nil
+}
+
 // ListBuckets implements StorageInteractor.
 func (s *S3StorageInteractor) ListBuckets() []string {
 	keys := []string{}
@@ -66,8 +77,10 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 		return nil, err
 	}
 
-	// XXX: fix this
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return nil, err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -115,7 +128,10 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		return err
 	}
 
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -160,13 +176,14 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 
 func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffset int64) error {
 
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[s.cnf.StorageBucket]
-
+	cr, err := s.getCredentials(s.cnf.StorageBucket)
+	if err != nil {
+		return err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
-		return nil
+		return err
 	}
 
 	objectPath := strings.TrimLeft(path.Join(s.cnf.StoragePrefix, name), "/")
@@ -209,8 +226,10 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 
 func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache bool) ([]*object.ObjectInfo, error) {
 
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return nil, err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -286,8 +305,10 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 
 func (s *S3StorageInteractor) DeleteObject(bucket, key string) error {
 
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -316,8 +337,10 @@ func (s *S3StorageInteractor) DeleteObject(bucket, key string) error {
 
 func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStorageBucket, toStorageBucket string) error {
 
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[toStorageBucket]
+	cr, err := s.getCredentials(toStorageBucket)
+	if err != nil {
+		return err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		ylogger.Zero.Err(err).Msg("failed to acquire s3 session")
@@ -370,8 +393,10 @@ func (s *S3StorageInteractor) CopyObject(bucket, from, to, fromStoragePrefix, fr
 
 func (s *S3StorageInteractor) AbortMultipartUpload(bucket, key, uploadId string) error {
 
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return err
@@ -386,8 +411,10 @@ func (s *S3StorageInteractor) AbortMultipartUpload(bucket, key, uploadId string)
 }
 
 func (s *S3StorageInteractor) ListFailedMultipartUploads(bucket string) (map[string]string, error) {
-	/* XXX: fix usage of default bucket */
-	cr := s.credentialMap[bucket]
+	cr, err := s.getCredentials(bucket)
+	if err != nil {
+		return nil, err
+	}
 	sess, err := s.pool.GetSession(context.TODO(), &cr)
 	if err != nil {
 		return nil, err
