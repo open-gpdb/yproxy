@@ -36,11 +36,6 @@ type S3StorageInteractor struct {
 	multipartUploads sync.Map
 }
 
-const (
-	maxUploadRetries = 3
-	listingDelay     = time.Second / 2
-)
-
 func (s *S3StorageInteractor) getCredentials(bucket string) (config.StorageCredentials, error) {
 	cr, ok := s.credentialMap[bucket]
 	if !ok {
@@ -50,13 +45,6 @@ func (s *S3StorageInteractor) getCredentials(bucket string) (config.StorageCrede
 		ylogger.Zero.Warn().Str("bucket", bucket).Msg("credentials for bucket have empty access_key_id or secret_access_key, will fall back to ambient credentials (env/IAM)")
 	}
 	return cr, nil
-}
-
-func isNoSuchUploadError(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), "NoSuchUpload")
 }
 
 // ListBuckets implements StorageInteractor.
@@ -157,40 +145,15 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 	putLen := int(multipartChunkSize)
 	if multipartUpload {
 		s.multipartUploads.Store(objectPath, true)
-		defer s.multipartUploads.Delete(objectPath)
-
-		seeker, canRetry := r.(io.Seeker)
-		attempts := 1
-		if canRetry {
-			attempts = maxUploadRetries
-		}
-
-		for attempt := 0; attempt < attempts; attempt++ {
-			if canRetry {
-				if _, seekErr := seeker.Seek(0, io.SeekStart); seekErr != nil {
-					return fmt.Errorf("failed to reset multipart upload reader: %w", seekErr)
-				}
-			}
-
-			_, err = up.Upload(
-				&s3manager.UploadInput{
-					Bucket:       aws.String(bucket),
-					Key:          aws.String(objectPath),
-					Body:         r,
-					StorageClass: aws.String(storageClass),
-				},
-			)
-			if err == nil || !isNoSuchUploadError(err) {
-				break
-			}
-
-			if !canRetry {
-				ylogger.Zero.Warn().Str("name", name).Err(err).Msg("multipart upload ID expired, cannot retry because upload source is not seekable")
-				break
-			}
-
-			ylogger.Zero.Warn().Str("name", name).Int("attempt", attempt+1).Err(err).Msg("multipart upload ID expired, retrying full upload")
-		}
+		_, err = up.Upload(
+			&s3manager.UploadInput{
+				Bucket:       aws.String(bucket),
+				Key:          aws.String(objectPath),
+				Body:         r,
+				StorageClass: aws.String(storageClass),
+			},
+		)
+		s.multipartUploads.Delete(objectPath)
 	} else {
 		var body []byte
 		body, err = io.ReadAll(r)

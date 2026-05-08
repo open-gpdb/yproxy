@@ -179,3 +179,5 @@ func NewYRetryReader(r RestartReader, selfCl client.YproxyClient) io.ReadCloser 
 		needReacquire: true, /* do initial storage request */
 	}
 }
+
+var _ io.ReadCloser = &YproxyRetryReader{}
