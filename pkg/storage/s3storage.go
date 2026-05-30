@@ -263,6 +263,7 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 
 		/* Dont move too fast */
 		if err := limiter.WaitN(ctx, len(out.Contents)); err != nil {
+			ylogger.Zero.Error().Int("content len", len(out.Contents)).Err(err).Msg("failed to list prefix with limit")
 			break
 		}
 
@@ -369,7 +370,7 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 
 	_, err = sess.CopyObject(&inp)
 	if err != nil {
-		ylogger.Zero.Error().Str("bucket-from", fromStorageBucket).Str("bucket-to", toStorageBucket).Err(err).Msg("failed to copy object")
+		ylogger.Zero.Error().Str("bucket-from", fromStorageBucket).Str("bucket-to", toStorageBucket).Str("path", to).Err(err).Msg("failed to copy object")
 		return err
 	}
 	ylogger.Zero.Debug().Str("path-from", from).Str("path-to", to).Msg("copied object")
