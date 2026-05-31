@@ -69,10 +69,11 @@ func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
 }
 
 const (
-	DefaultStorageConcurrency = 100
-	DefaultStatPort           = 7432
-	DefaultPsqlPort           = 8432
-	DefaultMetricsPort        = 2112
+	DefaultStorageConcurrency     = 100
+	DefaultCopyStorageConcurrency = 200
+	DefaultStatPort               = 7432
+	DefaultPsqlPort               = 8432
+	DefaultMetricsPort            = 2112
 
 	DefaultEndpointSourceScheme = "https"
 
@@ -88,6 +89,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.StorageCnf.StorageConcurrency == 0 {
 		cfgInstance.StorageCnf.StorageConcurrency = DefaultStorageConcurrency
+	}
+	if cfgInstance.StorageCnf.CopyStorageConcurrency == 0 {
+		cfgInstance.StorageCnf.CopyStorageConcurrency = DefaultCopyStorageConcurrency
 	}
 	if cfgInstance.BackupStorageCnf.StorageType == "" {
 		cfgInstance.BackupStorageCnf.StorageType = "s3"
