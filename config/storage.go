@@ -24,7 +24,8 @@ type Storage struct {
 	TablespaceMap map[string]string `json:"tablespace_map" toml:"tablespace_map" yaml:"tablespace_map"`
 
 	// how many concurrent connection acquire allowed
-	StorageConcurrency int64 `json:"storage_concurrency" toml:"storage_concurrency" yaml:"storage_concurrency"`
+	StorageConcurrency     int64 `json:"storage_concurrency" toml:"storage_concurrency" yaml:"storage_concurrency"`
+	CopyStorageConcurrency int64 `json:"copy_storage_concurrency" toml:"copy_storage_concurrency" yaml:"copy_storage_concurrency"`
 
 	// default will be false
 	EnableRateLimiter bool   `json:"enable_rate_limiter" toml:"enable_rate_limiter" yaml:"enable_rate_limiter"`
