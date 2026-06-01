@@ -34,7 +34,7 @@ type LSN struct {
 }
 
 func checkVersion(c *pgx.Conn, exp string) (bool, error) {
-	rows, err := c.Query(`SELECT extversion FROM pg_extension WHERE extname = 'yezzey';`)
+	rows, err := c.Query(`SELECT extversion FROM pg_catalog.pg_extension WHERE extname OPERATOR(pg_catalog.=) 'yezzey';`)
 	if err != nil {
 		return false, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
 	}
@@ -124,7 +124,7 @@ func (database *DatabaseHandler) GetNextLSN(port uint64, dbname string) (uint64,
 	defer func() { _ = conn.Close() }() //error
 	ylogger.Zero.Debug().Str("database name", dbname).Msg("GetNextLSN: connected to database")
 
-	dbRow := conn.QueryRow(`select pg_current_xlog_location();`)
+	dbRow := conn.QueryRow(`select pg_catalog.pg_current_xlog_location();`)
 	ylogger.Zero.Debug().Msg("executed select")
 
 	row := LSN{}
@@ -179,7 +179,7 @@ func (database *DatabaseHandler) AddToExpireIndex(conn *pgx.Conn, port uint64, d
 }
 
 func (database *DatabaseHandler) DeleteFromExpireIndex(conn *pgx.Conn, port uint64, dbname string, filename string) error {
-	rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path = $1;`, filename)
+	rows, err := conn.Query(`DELETE FROM yezzey.yezzey_expire_hint WHERE x_path OPERATOR(pg_catalog.=) $1;`, filename)
 	if err != nil {
 		return fmt.Errorf("unable to delete from yezzey_expire_hint %v", err) //fix
 	}
@@ -195,7 +195,7 @@ func getDatabase(port uint64) ([]DB, error) {
 	}
 	defer func() { _ = conn.Close() }() //error
 	ylogger.Zero.Debug().Msg("connected to db")
-	rows, err := conn.Query(`SELECT dattablespace, oid, datname FROM pg_database WHERE datallowconn;`)
+	rows, err := conn.Query(`SELECT dattablespace, oid, datname FROM pg_catalog.pg_database WHERE datallowconn;`)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func getDatabase(port uint64) ([]DB, error) {
 		}
 		defer func() { _ = connDb.Close() }() //error
 
-		rowsdb, err := connDb.Query(`SELECT exists(SELECT * FROM information_schema.schemata WHERE schema_name='yezzey');`)
+		rowsdb, err := connDb.Query(`SELECT exists(SELECT * FROM information_schema.schemata WHERE schema_name OPERATOR(pg_catalog.=) 'yezzey');`)
 		if err != nil {
 			return nil, err
 		}
