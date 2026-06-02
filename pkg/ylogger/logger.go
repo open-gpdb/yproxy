@@ -33,18 +33,9 @@ func NewZeroLogger(filepath string) *zerolog.Logger {
 	return &logger
 }
 
-func UpdateZeroLogLevel(logLevel string) error {
+func ReloadLogger(filepath string, logLevel string) {
 	level := parseLevel(logLevel)
-	zeroLogger := Zero.With().Logger().Level(level)
-	Zero = &zeroLogger
-	return nil
-}
-
-func ReloadLogger(filepath string) {
-	if filepath == "" { //
-		return // this means os.Stdout, so no need to open new file
-	}
-	newLogger := NewZeroLogger(filepath).Level(Zero.GetLevel())
+	newLogger := NewZeroLogger(filepath).Level(level)
 	Zero = &newLogger
 }
 

@@ -121,7 +121,20 @@ func EmbedDefaults(cfgInstance *Instance) {
 	cfgInstance.YezzeyRestoreParanoid = false
 }
 
+var (
+	bootstrapCfgPath = ""
+)
+
+func ReloadInstanceConfig() (*Instance, error) {
+	LoadInstanceConfig(bootstrapCfgPath)
+	return InstanceConfig(), nil
+}
+
 func LoadInstanceConfig(cfgPath string) (err error) {
+	if bootstrapCfgPath != "" && bootstrapCfgPath != cfgPath {
+		return fmt.Errorf("bootrap config path already set")
+	}
+	bootstrapCfgPath = cfgPath
 	cfgInstance, err = ReadInstanceConfig(cfgPath)
 	if err != nil {
 		return
