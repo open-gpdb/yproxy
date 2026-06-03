@@ -134,7 +134,7 @@ func ReloadInstanceConfig() (*Instance, error) {
 
 func LoadInstanceConfig(cfgPath string) (err error) {
 	if bootstrapCfgPath != "" && bootstrapCfgPath != cfgPath {
-		return fmt.Errorf("bootrap config path already set")
+		return fmt.Errorf("bootstrap config path already set")
 	}
 	bootstrapCfgPath = cfgPath
 	cfgInstance, err = ReadInstanceConfig(cfgPath)
