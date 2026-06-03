@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -80,7 +81,15 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 
 			switch s {
 			case syscall.SIGUSR1:
-				ylogger.ReloadLogger(instanceCnf.LogPath)
+				instanceCnf, err := config.ReloadInstanceConfig()
+
+				if err != nil {
+					log.Printf("failed to update log level: %s\n", err)
+					continue
+				}
+
+				ylogger.ReloadLogger(instanceCnf.LogPath, instanceCnf.LogLevel)
+
 			case syscall.SIGHUP:
 				if dws != nil {
 					err := dws.ServeFor(time.Duration(instanceCnf.DebugMinutes) * time.Minute)

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
 
 	"github.com/yezzey-gp/yproxy/config"
@@ -30,14 +28,12 @@ var rootCmd = &cobra.Command{
 
 		instance := core.NewInstance()
 
-		if instanceCnf.LogPath != "" {
-			ylogger.ReloadLogger(instanceCnf.LogPath)
-		}
 		if logLevel == "" {
 			logLevel = instanceCnf.LogLevel
 		}
-		if err := ylogger.UpdateZeroLogLevel(logLevel); err != nil {
-			log.Printf("failed to update log level: %s\n", err)
+
+		if instanceCnf.LogPath != "" {
+			ylogger.ReloadLogger(instanceCnf.LogPath, logLevel)
 		}
 
 		return instance.Run(instanceCnf)
