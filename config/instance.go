@@ -126,7 +126,9 @@ var (
 )
 
 func ReloadInstanceConfig() (*Instance, error) {
-	LoadInstanceConfig(bootstrapCfgPath)
+	if err := LoadInstanceConfig(bootstrapCfgPath); err != nil {
+		return nil, err
+	}
 	return InstanceConfig(), nil
 }
 
