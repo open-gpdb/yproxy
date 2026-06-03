@@ -635,8 +635,11 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		return err
 	}
 	if first_backup_lsn == ^uint64(0) {
+		ylogger.Zero.Error().Err(err).Msg("Failed to acquire first backup LSN")
 		return fmt.Errorf("wal-g backups required for consistent deleting")
 	}
+
+	ylogger.Zero.Info().Uint64("lsn", first_backup_lsn).Msg("first backup LSN")
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("ProcessDeleteObsolete: get connection")
@@ -645,7 +648,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	defer func() { _ = conn.Close() }()
 
 	for str, v := range ei {
-		ylogger.Zero.Debug().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
+		ylogger.Zero.Info().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if v >= first_backup_lsn {
 			continue
 		}
@@ -682,8 +685,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 
 			continue
 		}
-		ylogger.Zero.Debug().Str("delete candidate", str).Msg("deleted successfully")
-
+		ylogger.Zero.Info().Str("delete candidate", str).Msg("deleted successfully")
 	}
 	return nil
 }
