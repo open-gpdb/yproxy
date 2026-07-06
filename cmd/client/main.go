@@ -40,7 +40,6 @@ var (
 	garbage     bool
 )
 
-// TODO
 func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Command, []string) error {
 
 	return func(cmd *cobra.Command, args []string) error {
@@ -265,7 +264,8 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	return nil
 }
 
-func deleteFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
+// Request to delete a specific storage object
+func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete command")
 
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
@@ -292,12 +292,14 @@ func deleteFunc(con net.Conn, instanceCnf *config.Instance, args []string) error
 
 	return nil
 }
-func delete2Func(con net.Conn, instanceCnf *config.Instance, args []string) error {
+
+// Request to delete a set of trash objects by prefix
+func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete2 command")
 
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete2")
 	msg := message.NewDelete2Message(args[0], confirm, garbage).Encode()
-	_, err := con.Write(msg)
+	_, err := con.Write(msg) // Send message with socket to server
 	if err != nil {
 		return err
 	}
@@ -402,7 +404,7 @@ var copyCmd = &cobra.Command{
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete",
-	RunE:  Runner(deleteFunc),
+	RunE:  Runner(sendDeleteChunkRequest),
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -435,7 +437,7 @@ var goolCmd = &cobra.Command{
 var delete2Cmd = &cobra.Command{
 	Use:   "deleteTrash",
 	Short: "deleteTrash",
-	RunE:  Runner(delete2Func),
+	RunE:  Runner(sendDeleteTrashRequest),
 	Args:  cobra.ExactArgs(1), // name_prefix
 }
 

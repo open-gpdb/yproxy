@@ -121,26 +121,22 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	ctx := context.Background()
 
 	var failed []string
-	retryCount := 0
-	for len(fileList) > 0 && retryCount < 10 {
-		retryCount++
-		for i := 0; i < len(fileList); i++ {
-
+	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
+		for _, file := range fileList {
 			/* Dont move too fast */
 			if err := limiter.Wait(ctx); err != nil {
 				break
 			}
-
 			if msg.CrazyDrop {
-				ylogger.Zero.Info().Str("bucket", bucket).Str("path", fileList[i]).Msg("simply delete")
-				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i])
+				ylogger.Zero.Info().Str("bucket", bucket).Str("path", file).Msg("simply delete")
+				err = dh.StorageInterractor.DeleteObject(bucket, file)
 			} else {
-				tp := TrashPathFromRegPath(fileList[i], int(msg.Segnum))
-				err = dh.StorageInterractor.MoveObject(bucket, fileList[i], tp)
+				tp := TrashPathFromRegPath(file, int(msg.Segnum))
+				err = dh.StorageInterractor.MoveObject(bucket, file, tp)
 			}
 			if err != nil {
-				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", fileList[i]).Msg("failed to obsolete file")
-				failed = append(failed, fileList[i])
+				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file).Msg("failed to obsolete file")
+				failed = append(failed, file)
 			}
 		}
 		fileList = failed
@@ -154,12 +150,10 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	for key, uploadId := range uploads {
-
 		/* Dont move too fast */
 		if err := limiter.Wait(ctx); err != nil {
 			break
 		}
-
 		if err := dh.StorageInterractor.AbortMultipartUpload(bucket, key, uploadId); err != nil {
 			return err
 		}
@@ -203,7 +197,7 @@ func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Me
 }
 
 func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delete2Message) error {
-	fileList, err := dh.ListDelete2Files(bucket, msg)
+	fileList, err := dh.ListDelete2Files(bucket, msg) // Return the list of files to be deleted
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
 	}
@@ -224,30 +218,21 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		ylogger.Zero.Info().Msg("do not perform actual delete files as no confirmation flag provided")
 		return nil
 	}
-	if !msg.Garbage {
-		ylogger.Zero.Info().Msg("delete any files blocked now")
-		msg.Garbage = true
-	}
-	if msg.Garbage && !strings.Contains(msg.Prefix, "trash") {
-		ylogger.Zero.Info().Msg("prefix doesnt contain trash aborted")
+	if !strings.Contains(msg.Prefix, "trash") {
+		ylogger.Zero.Info().Msg("prefix doesn't contain trash aborted")
 		return nil
 	}
+	trashRetention := time.Hour * 24 * time.Duration(dh.Cnf.TrashRetentionDays)
 	var failed []*object.ObjectInfo
-	retryCount := 0
-	for len(fileList) > 0 && retryCount < 10 {
-		retryCount++
-		for i := 0; i < len(fileList); i++ {
-			if !msg.Garbage {
-				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete (do nothing)")
-
-			} else if strings.Contains(fileList[i].Path, "trash") && fileList[i].LastMod.Add(time.Hour*24*7).Unix() < time.Now().Unix() {
-				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", fileList[i].Path).Msg("simply delete")
-				err = dh.StorageInterractor.DeleteObject(bucket, fileList[i].Path)
-
+	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
+		for _, file := range fileList {
+			if strings.Contains(file.Path, "trash") && file.LastMod.Add(trashRetention).Unix() < time.Now().Unix() {
+				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", file.Path).Msg("simply delete")
+				err = dh.StorageInterractor.DeleteObject(bucket, file.Path) // Actual deletion
 			}
 			if err != nil {
-				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", fileList[i].Path).Msg("failed to delete file")
-				failed = append(failed, fileList[i])
+				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file.Path).Msg("failed to delete file")
+				failed = append(failed, file)
 			}
 		}
 		fileList = failed

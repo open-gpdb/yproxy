@@ -40,7 +40,7 @@ func NewInstance() *Instance {
 	}
 }
 
-func (i *Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
+func (*Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
 	go func() {
 		defer func() { _ = listener.Close() }()
 		for {
@@ -59,7 +59,7 @@ func (i *Instance) DispatchServer(listener net.Listener, server func(net.Conn)) 
 	}()
 }
 
-func (i *Instance) Run(instanceCnf *config.Instance) error {
+func (instance *Instance) Run(instanceCnf *config.Instance) error {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2)
@@ -127,13 +127,13 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			return err
 		}
 
-		i.DispatchServer(statListener, func(clConn net.Conn) {
+		instance.DispatchServer(statListener, func(clConn net.Conn) {
 			defer func() { _ = clConn.Close() }()
 
 			_, _ = clConn.Write([]byte("Hello from stats server!!\n"))
 			_, _ = clConn.Write([]byte("Client id | Optype | External Path \n"))
 
-			if err := i.pool.ClientPoolForeach(func(cl client.YproxyClient) error {
+			if err := instance.pool.ClientPoolForeach(func(cl client.YproxyClient) error {
 				_, err := clConn.Write(fmt.Appendf(nil, "%v | %v | %v\n", cl.ID(), cl.OPType(), cl.ExternalFilePath()))
 				return err
 			}); err != nil {
@@ -174,8 +174,8 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 			return err
 		}
 
-		i.DispatchServer(psqlListener, func(c net.Conn) {
-			pg.PostgresIface(c, i.pool, i.startTs, s)
+		instance.DispatchServer(psqlListener, func(c net.Conn) {
+			pg.PostgresIface(c, instance.pool, instance.startTs, s)
 		})
 	}
 
@@ -204,20 +204,21 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		cr, err = crypt.NewCrypto(&instanceCnf.CryptoCnf)
 	}
 
-	i.DispatchServer(listener, func(clConn net.Conn) {
+	instance.DispatchServer(listener, func(clConn net.Conn) {
 		activeConnections.Add(1)
 		defer activeConnections.Done()
 		defer func() { _ = clConn.Close() }()
 		ycl := client.NewYClient(clConn)
-		if err := i.pool.Put(ycl); err != nil {
-			// ?? wtf
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error puting client to pool")
+		if err := instance.pool.Put(ycl); err != nil {
+			// This check is useless, but it's need to avoid violating the contract
+			// and making a mistake the below.
+			// Error return value of `instance.pool.Put` is not checked
+			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
 		}
 		if err := proc.ProcConn(s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
-		if _, err := i.pool.Pop(ycl.ID()); err != nil {
-			// ?? wtf
+		if _, err := instance.pool.Pop(ycl.ID()); err != nil {
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error erasing client from pool")
 		}
 	})
@@ -244,7 +245,7 @@ func (i *Instance) Run(instanceCnf *config.Instance) error {
 		return err
 	}
 
-	i.DispatchServer(iclistener, func(clConn net.Conn) {
+	instance.DispatchServer(iclistener, func(clConn net.Conn) {
 		activeConnections.Add(1)
 		defer activeConnections.Done()
 		defer func() { _ = clConn.Close() }()
