@@ -222,10 +222,11 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		ylogger.Zero.Info().Msg("prefix doesn't contain trash aborted")
 		return nil
 	}
+	trashRetention := time.Hour * 24 * time.Duration(dh.Cnf.TrashRetentionDays)
 	var failed []*object.ObjectInfo
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
 		for _, file := range fileList {
-			if strings.Contains(file.Path, "trash") && file.LastMod.Add(time.Hour*24*7).Unix() < time.Now().Unix() {
+			if strings.Contains(file.Path, "trash") && file.LastMod.Add(trashRetention).Unix() < time.Now().Unix() {
 				ylogger.Zero.Debug().Str("bucket", bucket).Str("path", file.Path).Msg("simply delete")
 				err = dh.StorageInterractor.DeleteObject(bucket, file.Path) // Actual deletion
 			}

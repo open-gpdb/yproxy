@@ -80,7 +80,8 @@ const (
 	/* 1 GB per  second */
 	DefaultStorageRateLimit = 1024 * 1024 * 1024
 
-	DefaultFileChunkPerSec = 1000
+	DefaultFileChunkPerSec    = 1000
+	DefaultTrashRetentionDays = 7
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -117,6 +118,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 
 	if cfgInstance.VacuumCnf.FileChunkPerSec == 0 {
 		cfgInstance.VacuumCnf.FileChunkPerSec = DefaultFileChunkPerSec
+	}
+	if cfgInstance.VacuumCnf.TrashRetentionDays == 0 {
+		cfgInstance.VacuumCnf.TrashRetentionDays = DefaultTrashRetentionDays
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
