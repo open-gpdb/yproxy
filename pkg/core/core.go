@@ -40,7 +40,7 @@ func NewInstance() *Instance {
 	}
 }
 
-func (_ *Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
+func (*Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
 	go func() {
 		defer func() { _ = listener.Close() }()
 		for {
@@ -209,7 +209,12 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 		defer activeConnections.Done()
 		defer func() { _ = clConn.Close() }()
 		ycl := client.NewYClient(clConn)
-		instance.pool.Put(ycl)
+		if err := instance.pool.Put(ycl); err != nil {
+			// This check is useless, but it's need to avoid violating the contract
+			// and making a mistake the below.
+			// Error return value of `instance.pool.Put` is not checked
+			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
+		}
 		if err := proc.ProcConn(s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
