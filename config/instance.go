@@ -82,7 +82,7 @@ const (
 
 	DefaultFileChunkPerSec    = 1000
 	DefaultTrashRetentionDays = 7
-	DefaultTrashDeleteWorkers = 8
+	DefaultTrashDeleteWorkers = 1
 )
 
 func EmbedDefaults(cfgInstance *Instance) {

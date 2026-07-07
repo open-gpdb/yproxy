@@ -115,40 +115,40 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	/* Burst at 20% of vacuum rate capacity. It is pretty arbitrary at this time,
-	* but its not like something we need config field for... */
+	 * but its not like something we need config field for...
+	 */
 	limRate := config.InstanceConfig().VacuumCnf.FileChunkPerSec
 	limiter := rate.NewLimiter(rate.Limit(limRate), limRate/5)
 	ctx := context.Background()
 
+	var failedActionMsg, failedFilesMsg string
+	var operate func(file string) error
+	if msg.CrazyDrop {
+		failedActionMsg = "failed to delete some files"
+		failedFilesMsg = "some files were not deleted"
+		operate = func(file string) error {
+			ylogger.Zero.Info().Str("bucket", bucket).Str("path", file).Msg("simply delete")
+			return dh.StorageInterractor.DeleteObject(bucket, file) // Actual delete
+		}
+	} else {
+		failedActionMsg = "failed to move some files"
+		failedFilesMsg = "some files were not moved"
+		operate = func(file string) error {
+			tp := TrashPathFromRegPath(file, int(msg.Segnum))
+			return dh.StorageInterractor.MoveObject(bucket, file, tp)
+		}
+	}
+
 	var failed []string
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
-		if msg.CrazyDrop {
-			for _, file := range fileList {
-				/* Don't move too fast */
-				if err := limiter.Wait(ctx); err != nil {
-					break
-				}
-				ylogger.Zero.Info().Str("bucket", bucket).Str("path", file).Msg("simply delete")
-				err = dh.StorageInterractor.DeleteObject(bucket, file) // Actual delete
-				if err != nil {
-					ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file).Msg("failed to obsolete file")
-					failed = append(failed, file)
-				}
-			}
-			fileList = failed
-			failed = make([]string, 0)
-			continue
-		}
-
 		for _, file := range fileList {
-			/* Dont move too fast */
+			/* Don't move too fast */
 			if err := limiter.Wait(ctx); err != nil {
 				break
 			}
-			tp := TrashPathFromRegPath(file, int(msg.Segnum))
-			err = dh.StorageInterractor.MoveObject(bucket, file, tp)
+			err = operate(file)
 			if err != nil {
-				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file).Msg("failed to obsolete file")
+				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file).Msg(failedActionMsg)
 				failed = append(failed, file)
 			}
 		}
@@ -157,9 +157,9 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	if len(fileList) > 0 {
-		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg("some files were not moved")
-		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg("failed to move some files")
-		return errors.Wrap(err, "failed to move some files")
+		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(failedFilesMsg)
+		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(failedActionMsg)
+		return errors.Wrap(err, failedActionMsg)
 	}
 
 	for key, uploadId := range uploads {
