@@ -4,13 +4,13 @@ import (
 	"encoding/binary"
 )
 
-type DeleteMessage struct { //seg port
-	Name      string
-	Port      uint64
-	Segnum    uint64
-	Confirm   bool
-	Garbage   bool
-	CrazyDrop bool
+type DeleteMessage struct { // Seg port
+	Name      string // File path
+	Port      uint64 // Port segment/instance DB
+	Segnum    uint64 // Segment number
+	Confirm   bool   // Execute or Dry-run
+	Garbage   bool   // Run vacuum-style garbage deletion instead of deleting a single file
+	CrazyDrop bool   // For garbage mode: delete immediately instead of moving to trash
 }
 
 var _ ProtoMessage = &DeleteMessage{}

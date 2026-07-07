@@ -82,6 +82,7 @@ const (
 
 	DefaultFileChunkPerSec    = 1000
 	DefaultTrashRetentionDays = 7
+	DefaultTrashDeleteWorkers = 8
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -121,6 +122,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.VacuumCnf.TrashRetentionDays == 0 {
 		cfgInstance.VacuumCnf.TrashRetentionDays = DefaultTrashRetentionDays
+	}
+	if cfgInstance.VacuumCnf.TrashDeleteWorkers == 0 {
+		cfgInstance.VacuumCnf.TrashDeleteWorkers = DefaultTrashDeleteWorkers
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
