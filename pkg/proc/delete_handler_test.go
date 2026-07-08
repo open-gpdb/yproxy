@@ -1,8 +1,11 @@
 package proc_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/message"
@@ -117,4 +120,200 @@ func TestListDelete2Files(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(filesInStorage), len(actualFilesToDelete))
 	assert.Equal(t, filesInStorage, actualFilesToDelete)
+}
+
+func TestDeletePrefixInBucketDeletesAllFilesOnceInParallelGarbagePass(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+		{Path: "trash/c"},
+		{Path: "trash/d"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+
+	var mu sync.Mutex
+	deleted := make(map[string]int)
+	storage.EXPECT().DeleteObject("bucket", gomock.Any()).DoAndReturn(func(bucket, key string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted[key]++
+		return nil
+	}).Times(len(filesInStorage))
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 4},
+	}
+
+	err := handler.DeletePrefixInBucket("bucket", msg)
+	assert.NoError(t, err)
+	for _, file := range filesInStorage {
+		assert.Equal(t, 1, deleted[file.Path], fmt.Sprintf("unexpected delete count for %s", file.Path))
+	}
+}
+
+func TestDeletePrefixInBucketRetriesFailedGarbageDeletes(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+		{Path: "trash/c"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+
+	var mu sync.Mutex
+	attempts := make(map[string]int)
+	storage.EXPECT().DeleteObject("bucket", gomock.Any()).DoAndReturn(func(bucket, key string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		attempts[key]++
+		if key == "trash/b" && attempts[key] == 1 {
+			return errors.New("transient delete failure")
+		}
+		return nil
+	}).Times(4)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 3},
+	}
+
+	err := handler.DeletePrefixInBucket("bucket", msg)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, attempts["trash/a"])
+	assert.Equal(t, 2, attempts["trash/b"])
+	assert.Equal(t, 1, attempts["trash/c"])
+}
+
+func TestDeletePrefixInBucketReturnsFailedGarbageDeletesAfterRetries(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+	storage.EXPECT().DeleteObject("bucket", gomock.Any()).DoAndReturn(func(bucket, key string) error {
+		if key == "trash/b" {
+			return errors.New("persistent delete failure")
+		}
+		return nil
+	}).Times(11)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 2},
+	}
+
+	err := handler.DeletePrefixInBucket("bucket", msg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete some files")
+}
+
+func TestDeletePrefixInBucketCapsWorkerCountToFileCount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+
+	var mu sync.Mutex
+	deleted := make(map[string]int)
+	storage.EXPECT().DeleteObject("bucket", gomock.Any()).DoAndReturn(func(bucket, key string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted[key]++
+		return nil
+	}).Times(len(filesInStorage))
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 10},
+	}
+
+	err := handler.DeletePrefixInBucket("bucket", msg)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, deleted["trash/a"])
+	assert.Equal(t, 1, deleted["trash/b"])
+}
+
+func TestDeletePrefixInBucketUsesDefaultWorkerCountWhenConfiguredZero(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+		{Path: "trash/c"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+
+	var mu sync.Mutex
+	deleted := make(map[string]int)
+	storage.EXPECT().DeleteObject("bucket", gomock.Any()).DoAndReturn(func(bucket, key string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted[key]++
+		return nil
+	}).Times(len(filesInStorage))
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 0},
+	}
+
+	err := handler.DeletePrefixInBucket("bucket", msg)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, deleted["trash/a"])
+	assert.Equal(t, 1, deleted["trash/b"])
+	assert.Equal(t, 1, deleted["trash/c"])
 }
