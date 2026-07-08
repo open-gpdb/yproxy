@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/yezzey-gp/yproxy/config"
@@ -257,8 +258,11 @@ func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []string
 
 func (dh *BasicGarbageMgr) extractObjectPaths(fileList []*object.ObjectInfo) []string {
 	paths := make([]string, 0, len(fileList))
+	trashRetention := time.Hour * 24 * time.Duration(dh.Cnf.TrashRetentionDays)
 	for _, file := range fileList {
-		paths = append(paths, file.Path)
+		if strings.Contains(file.Path, "trash") && file.LastMod.Add(trashRetention).Unix() < time.Now().Unix() {
+			paths = append(paths, file.Path)
+		}
 	}
 	return paths
 }
