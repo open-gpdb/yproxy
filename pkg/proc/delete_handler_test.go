@@ -350,8 +350,14 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 		StorageInterractor: storage,
 		DbInterractor:      database,
 		BackupInterractor:  nil,
-		Cnf:                &config.Vacuum{CheckBackup: false, FileChunkPerSec: 1000},
+		Cnf:                &config.InstanceConfig().VacuumCnf,
 	}
+
+	cnfBackup := *config.InstanceConfig()
+	defer func() {
+		*config.InstanceConfig() = cnfBackup
+	}()
+	config.EmbedDefaults(config.InstanceConfig())
 
 	err := handler.DeleteGarbageInBucket("bucket", msg)
 	assert.NoError(t, err)

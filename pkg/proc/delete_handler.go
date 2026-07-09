@@ -92,6 +92,13 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	return nil
 }
 
+/*
+ * The design looks an awkward,
+ * because the function depends on two different vacuum config:
+ * 	- the local dh.Cnf
+ * 	- the global config.InstanceConfig()
+ * Example: TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled
+ */
 func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.DeleteMessage) error {
 	fileList, err := dh.ListGarbageFiles(bucket, msg)
 	if err != nil {
@@ -119,10 +126,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	 * Burst at 20% of vacuum rate capacity. It is pretty arbitrary at this time,
 	 * but its not like something we need config field for...
 	 */
-	limRate := dh.Cnf.FileChunkPerSec
-	if limRate <= 0 {
-		limRate = config.DefaultFileChunkPerSec
-	}
+	limRate := config.InstanceConfig().VacuumCnf.FileChunkPerSec
 	limiter := rate.NewLimiter(rate.Limit(limRate), limRate/5)
 	ctx := context.Background()
 
