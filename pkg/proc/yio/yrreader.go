@@ -39,7 +39,6 @@ func (y *YRestartReader) Close() error {
 // Read implements RestartReader.
 func (y *YRestartReader) Read(p []byte) (n int, err error) {
 	/* read with rate limiter */
-
 	return y.underlying.Read(p)
 }
 
@@ -48,8 +47,10 @@ func NewRestartReader(s storage.StorageInteractor,
 
 	l := limiter.GetLimiter()
 
-	/* due to storage config "enable limiter" can change on read-restart, allocate
-	* limiter unconditionally */
+	/*
+	 * Due to storage config "enable limiter" can change on read-restart,
+	 * allocate limiter unconditionally
+	 */
 	return &YRestartReader{
 		s:        s,
 		name:     name,

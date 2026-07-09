@@ -287,7 +287,7 @@ func ProcessCopyExtended(
 		for len(objectMetas) > 0 && retryCount < 10 {
 			retryCount++
 
-			sem := semaphore.NewWeighted(config.InstanceConfig().StorageCnf.CopyStorageConcurrency)
+			sem := semaphore.NewWeighted(sourceInstanceCnf.StorageCnf.CopyStorageConcurrency)
 
 			wg := sync.WaitGroup{}
 
