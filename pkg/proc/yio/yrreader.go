@@ -47,7 +47,7 @@ func NewRestartReader(s storage.StorageInteractor,
 
 	l := limiter.GetLimiter()
 
-	/* 
+	/*
 	 * Due to storage config "enable limiter" can change on read-restart,
 	 * allocate limiter unconditionally
 	 */

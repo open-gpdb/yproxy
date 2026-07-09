@@ -335,10 +335,10 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 	}
 
 	storage := mock.NewMockStorageInteractor(ctrl)
-	storage.EXPECT().ListBucketPath("bucket", msg.Name, true).Return(filesInStorage, nil)
-	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
-	storage.EXPECT().MoveObject("bucket", filesInStorage[0].Path, proc.TrashPathFromRegPath(filesInStorage[0].Path, int(msg.Segnum))).Return(nil)
-	storage.EXPECT().MoveObject("bucket", filesInStorage[1].Path, proc.TrashPathFromRegPath(filesInStorage[1].Path, int(msg.Segnum))).Return(nil)
+	storage.EXPECT().ListBucketPath("trash", msg.Name, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("trash").Return(map[string]string{}, nil)
+	storage.EXPECT().MoveObject("trash", filesInStorage[0].Path, proc.TrashPathFromRegPath(filesInStorage[0].Path, int(msg.Segnum))).Return(nil)
+	storage.EXPECT().MoveObject("trash", filesInStorage[1].Path, proc.TrashPathFromRegPath(filesInStorage[1].Path, int(msg.Segnum))).Return(nil)
 
 	database := mock.NewMockDatabaseInterractor(ctrl)
 	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(map[string]bool{}, map[string]uint64{
@@ -359,6 +359,6 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 	}()
 	config.EmbedDefaults(config.InstanceConfig())
 
-	err := handler.DeleteGarbageInBucket("bucket", msg)
+	err := handler.DeleteGarbageInBucket("trash", msg)
 	assert.NoError(t, err)
 }
