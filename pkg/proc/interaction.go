@@ -287,7 +287,7 @@ func ProcessCopyExtended(
 		for len(objectMetas) > 0 && retryCount < 10 {
 			retryCount++
 
-			sem := semaphore.NewWeighted(config.InstanceConfig().StorageCnf.CopyStorageConcurrency)
+			sem := semaphore.NewWeighted(sourceInstanceCnf.StorageCnf.CopyStorageConcurrency)
 
 			wg := sync.WaitGroup{}
 
@@ -919,7 +919,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 		path := strings.TrimPrefix(objectMetas[i].Path, cfg.StoragePrefix)
 		reworked := path
 		if _, ok := vi[reworked]; !ok {
-			skipCopy := config.InstanceConfig().StorageCnf.StorageOptimizeCopy
+			skipCopy := cfg.StorageOptimizeCopy
 			skipped = append(skipped, objectMetas[i])
 
 			ylogger.Zero.Info().Int("index", i).Str("reworked name", reworked).Str("object path", objectMetas[i].Path).Bool("skipping", skipCopy).Msg("not in virtual index")

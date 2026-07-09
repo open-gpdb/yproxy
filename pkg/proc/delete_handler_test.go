@@ -62,8 +62,8 @@ func TestFilesToDeletion(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(list))
-	assert.Equal(t, "1663_16530_deleted-before-backup_18002_", list[0])
-	assert.Equal(t, "some_trash", list[1])
+	assert.Equal(t, "1663_16530_deleted-before-backup_18002_", list[0].Path)
+	assert.Equal(t, "some_trash", list[1].Path)
 }
 
 func TestTrashPathConversion(t *testing.T) {
@@ -316,4 +316,43 @@ func TestDeletePrefixInBucketUsesDefaultWorkerCountWhenConfiguredZero(t *testing
 	assert.Equal(t, 1, deleted["trash/a"])
 	assert.Equal(t, 1, deleted["trash/b"])
 	assert.Equal(t, 1, deleted["trash/c"])
+}
+
+func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.DeleteMessage{
+		Name:      "path",
+		Port:      6000,
+		Segnum:    0,
+		Confirm:   true,
+		CrazyDrop: false,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file1"},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file2"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("bucket", msg.Name, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("bucket").Return(map[string]string{}, nil)
+	storage.EXPECT().MoveObject("bucket", filesInStorage[0].Path, proc.TrashPathFromRegPath(filesInStorage[0].Path, int(msg.Segnum))).Return(nil)
+	storage.EXPECT().MoveObject("bucket", filesInStorage[1].Path, proc.TrashPathFromRegPath(filesInStorage[1].Path, int(msg.Segnum))).Return(nil)
+
+	database := mock.NewMockDatabaseInterractor(ctrl)
+	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(map[string]bool{}, map[string]uint64{
+		filesInStorage[0].Path: 0,
+		filesInStorage[1].Path: 0,
+	}, nil)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		DbInterractor:      database,
+		BackupInterractor:  nil,
+		Cnf:                &config.Vacuum{CheckBackup: false, FileChunkPerSec: 1000},
+	}
+
+	err := handler.DeleteGarbageInBucket("bucket", msg)
+	assert.NoError(t, err)
 }
