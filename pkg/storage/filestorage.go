@@ -79,7 +79,7 @@ func (s *FileStorageInteractor) ListPath(prefix string, _ bool, _ []settings.Sto
 		if !ok {
 			return err
 		}
-		data = append(data, &object.ObjectInfo{Path: "/" + cPath, Size: fileinfo.Size()})
+		data = append(data, &object.ObjectInfo{Path: "/" + cPath, Size: fileinfo.Size(), LastMod: fileinfo.ModTime()})
 		return nil
 	})
 	return data, err
