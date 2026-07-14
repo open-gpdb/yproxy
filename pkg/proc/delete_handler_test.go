@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,54 @@ func TestFilesToDeletion(t *testing.T) {
 	assert.Equal(t, 2, len(list))
 	assert.Equal(t, "1663_16530_deleted-before-backup_18002_", list[0].Path)
 	assert.Equal(t, "some_trash", list[1].Path)
+}
+
+func TestFilesToDeletionSkipsRecentlyCreatedFiles(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.DeleteMessage{
+		Name:    "path",
+		Port:    6000,
+		Segnum:  0,
+		Confirm: false,
+	}
+
+	oldFile := &object.ObjectInfo{
+		Path:    "1663_16530_old-garbage_18002_",
+		LastMod: time.Now().Add(-time.Hour),
+	}
+	recentFile := &object.ObjectInfo{
+		Path:    "1663_16530_recently-created_18002_",
+		LastMod: time.Now().Add(time.Hour), // created after vacuum started
+	}
+
+	filesInStorage := []*object.ObjectInfo{oldFile, recentFile}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("", msg.Name, true).Return(filesInStorage, nil)
+
+	backup := mock.NewMockBackupInterractor(ctrl)
+	backup.EXPECT().GetFirstLSN(msg.Segnum).Return(uint64(1337), nil)
+
+	// Neither file is present in virtual or expire index, so both would
+	// normally be considered garbage.
+	vi := map[string]bool{}
+	ei := map[string]uint64{}
+	database := mock.NewMockDatabaseInterractor(ctrl)
+	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(vi, ei, nil)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		DbInterractor:      database,
+		BackupInterractor:  backup,
+		Cnf:                &config.Vacuum{CheckBackup: true},
+	}
+
+	list, err := handler.ListGarbageFiles("", msg)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(list))
+	assert.Equal(t, oldFile.Path, list[0].Path)
 }
 
 func TestTrashPathConversion(t *testing.T) {

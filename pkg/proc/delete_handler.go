@@ -344,6 +344,8 @@ func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 }
 
 func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMessage) ([]*object.ObjectInfo, error) {
+	procStartTime := time.Now()
+
 	// Get first backup lsn
 	var firstBackupLSN uint64
 	var err error
@@ -381,6 +383,18 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 		ylogger.Zero.Debug().Str("reworked name", reworkedName).Msg("lookup chunk")
 
 		if vi[reworkedName] {
+			continue
+		}
+
+		// Never delete a file that was created/modified at or after the
+		// moment this vacuum procedure started listing storage. Such a file
+		// could not have been accounted for by the virtual/expire index
+		// snapshot taken above.
+		if objectMetas[i].LastMod.After(procStartTime) {
+			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
+				Time("last modified", objectMetas[i].LastMod).
+				Time("proc start", procStartTime).
+				Msg("file was created after vacuum procedure started, skipping")
 			continue
 		}
 
