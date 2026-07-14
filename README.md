@@ -2,6 +2,32 @@
 
 yproxy - a service for efficient transfer data external storages.
 
+## vacuum / garbage collection configuration
+
+The `vacuum` section of the yproxy configuration file controls the
+behaviour of garbage collection performed during
+`yezzey_vacuum_garbage` / `yezzey_vacuum_garbage_relation` and the `yezzey_collect_obsolete` /
+`yezzey_delete_obsolete` procedures.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `check_backup` | bool | `true` | Whether to take the first backup LSN into account when deciding if a file is safe to delete. |
+| `file_chunk_per_sec` | int | `1000` | Rate limit (files/sec) applied while listing and deleting objects. |
+| `trash_retention_days` | int | `7` | Number of days a file stays in `/trash` before being permanently removed. |
+| `trash_delete_workers` | int | `1` | Number of parallel workers used to delete files from `/trash`. |
+| `protection_window` | duration | `24h` | Minimum age a file must have, based on its storage `LastMod` timestamp, before it is eligible for garbage deletion. Accepts a duration string, e.g. `"1h"`, `"30m"`, `"24h"`. Set to `"0s"` to disable this extra protection window. |
+
+Regardless of the `protection_window` value, yproxy **always**
+unconditionally skips any file whose `LastMod` timestamp is at or
+after the moment the vacuum/garbage-collection procedure started
+listing storage. Such files could not have been accounted for by the
+virtual/expire index snapshot taken during that run, so deleting them
+could destroy data written concurrently with the vacuum (e.g. by an
+`INSERT`/`UPDATE`/`ALTER` running while `yezzey_vacuum_garbage_relation`
+is in progress). The `protection_window` parameter only extends this
+protection window *backwards* in time, additionally skipping files that
+are younger than the configured duration even if they were created
+before the procedure started.
 
 ## debugging
 

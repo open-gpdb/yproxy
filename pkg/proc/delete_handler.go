@@ -386,15 +386,16 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 			continue
 		}
 
-		// Never delete a file that was created/modified at or after the
-		// moment this vacuum procedure started listing storage. Such a file
-		// could not have been accounted for by the virtual/expire index
-		// snapshot taken above.
-		if objectMetas[i].LastMod.After(procStartTime) {
+		protectionWindow := dh.Cnf.ProtectionWindow
+		if protectionWindow < 0 {
+			protectionWindow = 0
+		}
+		if objectMetas[i].LastMod.After(procStartTime.Add(-protectionWindow)) {
 			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
 				Time("last modified", objectMetas[i].LastMod).
 				Time("proc start", procStartTime).
-				Msg("file was created after vacuum procedure started, skipping")
+				Dur("protection window", protectionWindow).
+				Msg("file is within the protection window, skipping")
 			continue
 		}
 
