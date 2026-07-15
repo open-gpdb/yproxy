@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v2"
@@ -83,6 +84,7 @@ const (
 	DefaultFileChunkPerSec    = 1000
 	DefaultTrashRetentionDays = 7
 	DefaultTrashDeleteWorkers = 1
+	DefaultProtectionWindow   = 24 * time.Hour
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -116,7 +118,6 @@ func EmbedDefaults(cfgInstance *Instance) {
 	if cfgInstance.MetricsPort == 0 {
 		cfgInstance.MetricsPort = DefaultMetricsPort
 	}
-
 	if cfgInstance.VacuumCnf.FileChunkPerSec == 0 {
 		cfgInstance.VacuumCnf.FileChunkPerSec = DefaultFileChunkPerSec
 	}
@@ -125,6 +126,9 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.VacuumCnf.TrashDeleteWorkers == 0 {
 		cfgInstance.VacuumCnf.TrashDeleteWorkers = DefaultTrashDeleteWorkers
+	}
+	if cfgInstance.VacuumCnf.ProtectionWindow == 0 {
+		cfgInstance.VacuumCnf.ProtectionWindow = DefaultProtectionWindow
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
