@@ -3,13 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
 )
 
 type Instance struct {
@@ -55,7 +53,7 @@ func InstanceConfig() *Instance {
 }
 
 func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
-	cfgInstance.VacuumCnf.CheckBackup = true
+	cfgInstance.VacuumCnf = *BuildVacuum()
 	if strings.HasSuffix(file.Name(), ".toml") {
 		_, err := toml.NewDecoder(file).Decode(cfgInstance)
 		return err
@@ -80,11 +78,6 @@ const (
 
 	/* 1 GB per  second */
 	DefaultStorageRateLimit = 1024 * 1024 * 1024
-
-	DefaultFileChunkPerSec    = 1000
-	DefaultTrashRetentionDays = 7
-	DefaultTrashDeleteWorkers = 1
-	DefaultProtectionWindow   = 24 * time.Hour
 )
 
 func EmbedDefaults(cfgInstance *Instance) {
@@ -117,18 +110,6 @@ func EmbedDefaults(cfgInstance *Instance) {
 	}
 	if cfgInstance.MetricsPort == 0 {
 		cfgInstance.MetricsPort = DefaultMetricsPort
-	}
-	if cfgInstance.VacuumCnf.FileChunkPerSec == 0 {
-		cfgInstance.VacuumCnf.FileChunkPerSec = DefaultFileChunkPerSec
-	}
-	if cfgInstance.VacuumCnf.TrashRetentionDays == 0 {
-		cfgInstance.VacuumCnf.TrashRetentionDays = DefaultTrashRetentionDays
-	}
-	if cfgInstance.VacuumCnf.TrashDeleteWorkers == 0 {
-		cfgInstance.VacuumCnf.TrashDeleteWorkers = DefaultTrashDeleteWorkers
-	}
-	if cfgInstance.VacuumCnf.ProtectionWindow == 0 {
-		cfgInstance.VacuumCnf.ProtectionWindow = DefaultProtectionWindow
 	}
 	cfgInstance.YezzeyRestoreParanoid = false
 }
