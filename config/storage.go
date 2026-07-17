@@ -44,6 +44,82 @@ type Storage struct {
 	EndpointSourceScheme string `json:"storage_endpoint_source_scheme" toml:"storage_endpoint_source_scheme" yaml:"storage_endpoint_source_scheme"`
 }
 
+const (
+	DefaultStorageType = "s3"
+	DefaultStorageConcurrency     = 100
+	DefaultCopyStorageConcurrency = 200
+
+	DefaultEndpointSourceScheme = "https"
+
+	/* 1 GB per  second */
+	DefaultStorageRateLimit = 1024 * 1024 * 1024
+)
+
+type StorageOption func(*Storage)
+
+func WithStorageType(storageType string) StorageOption {
+	return func(s *Storage) {
+		s.StorageType = storageType
+	}
+}
+
+func WithStorageConcurrency(storageConcurrency int64) StorageOption {
+	return func(s *Storage) {
+		s.StorageConcurrency = storageConcurrency
+	}
+}
+
+func WithCopyStorageConcurrency(copyStorageConcurrency int64) StorageOption {
+	return func(s *Storage) {
+		s.CopyStorageConcurrency = copyStorageConcurrency
+	}
+}
+
+func WithStorageRateLimit(storageRateLimit uint64) StorageOption {
+	return func(s *Storage) {
+		s.StorageRateLimit = storageRateLimit
+	}
+}
+
+func WithEndpointSourceScheme(endpointSourceScheme string) StorageOption {
+	return func(s *Storage) {
+		s.EndpointSourceScheme = endpointSourceScheme
+	}
+}
+
+func BuildStorage(opts ...StorageOption) *Storage {
+	s := &Storage{}
+
+	ApplyStorageOptions(s,
+		WithStorageType(DefaultStorageType),
+		WithStorageConcurrency(DefaultStorageConcurrency),
+		WithCopyStorageConcurrency(DefaultCopyStorageConcurrency),
+		WithStorageRateLimit(DefaultStorageRateLimit),
+		WithEndpointSourceScheme(DefaultEndpointSourceScheme),
+	)
+	ApplyStorageOptions(s, opts...)
+
+	return s
+}
+
+func BuildBackupStorage(opts ...StorageOption) *Storage {
+	s := &Storage{}
+
+	ApplyStorageOptions(s,
+		WithStorageType(DefaultStorageType),
+		WithStorageConcurrency(DefaultStorageConcurrency),
+	)
+	ApplyStorageOptions(s, opts...)
+
+	return s
+}
+
+func ApplyStorageOptions(s *Storage, opts ...StorageOption) {
+	for _, opt := range opts {
+		opt(s)
+	}
+}
+
 func (s Storage) ID() string {
 	id, _ := url.JoinPath(s.StorageEndpoint, s.StorageBucket, s.StoragePrefix)
 	return id

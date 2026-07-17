@@ -18,13 +18,64 @@ func writeTestConfig(t *testing.T, filename string, content string) string {
 	return path
 }
 
-func TestReadInstanceConfigUsesDefaultVacuumWhenUnset(t *testing.T) {
+func TestReadInstanceConfigUsesDefaultsWhenUnset(t *testing.T) {
 	cfg, err := ReadInstanceConfig(writeTestConfig(t, "yproxy.yaml", "socket_path: /tmp/yproxy.sock\n"))
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
 	}
 
+	assertDefaultStorage(t, cfg.StorageCnf)
+	assertDefaultBackupStorage(t, cfg.BackupStorageCnf)
 	assertDefaultVacuum(t, cfg.VacuumCnf)
+	if cfg.StatPort != DefaultStatPort {
+		t.Fatalf("expected default stat port %v, got %v", DefaultStatPort, cfg.StatPort)
+	}
+	if cfg.PsqlPort != DefaultPsqlPort {
+		t.Fatalf("expected default psql port %v, got %v", DefaultPsqlPort, cfg.PsqlPort)
+	}
+	if cfg.MetricsPort != DefaultMetricsPort {
+		t.Fatalf("expected default metrics port %v, got %v", DefaultMetricsPort, cfg.MetricsPort)
+	}
+}
+
+func TestReadInstanceConfigPreservesExplicitZeroPortsYAML(t *testing.T) {
+	cfg, err := ReadInstanceConfig(writeTestConfig(t, "yproxy.yaml", "stat_port: 0\npsql_port: 0\nmetrics_port: 0\n"))
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	if cfg.StatPort != 0 {
+		t.Fatalf("expected explicit zero stat port, got %v", cfg.StatPort)
+	}
+	if cfg.PsqlPort != 0 {
+		t.Fatalf("expected explicit zero psql port, got %v", cfg.PsqlPort)
+	}
+	if cfg.MetricsPort != 0 {
+		t.Fatalf("expected explicit zero metrics port, got %v", cfg.MetricsPort)
+	}
+}
+
+func TestReadInstanceConfigPreservesExplicitZeroStorageYAML(t *testing.T) {
+	cfg, err := ReadInstanceConfig(writeTestConfig(t, "yproxy.yaml", "storage:\n  storage_concurrency: 0\n  copy_storage_concurrency: 0\n  storage_rate_limit: 0\n  storage_endpoint_source_scheme: \"\"\nbackup_storage:\n  storage_concurrency: 0\n"))
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	if cfg.StorageCnf.StorageConcurrency != 0 {
+		t.Fatalf("expected explicit zero storage concurrency, got %v", cfg.StorageCnf.StorageConcurrency)
+	}
+	if cfg.StorageCnf.CopyStorageConcurrency != 0 {
+		t.Fatalf("expected explicit zero copy storage concurrency, got %v", cfg.StorageCnf.CopyStorageConcurrency)
+	}
+	if cfg.StorageCnf.StorageRateLimit != 0 {
+		t.Fatalf("expected explicit zero storage rate limit, got %v", cfg.StorageCnf.StorageRateLimit)
+	}
+	if cfg.StorageCnf.EndpointSourceScheme != "" {
+		t.Fatalf("expected explicit empty endpoint source scheme, got %q", cfg.StorageCnf.EndpointSourceScheme)
+	}
+	if cfg.BackupStorageCnf.StorageConcurrency != 0 {
+		t.Fatalf("expected explicit zero backup storage concurrency, got %v", cfg.BackupStorageCnf.StorageConcurrency)
+	}
 }
 
 func TestReadInstanceConfigPreservesExplicitZeroProtectionWindowYAML(t *testing.T) {
@@ -82,6 +133,46 @@ func TestReadInstanceConfigPreservesExplicitFalseCheckBackupTOML(t *testing.T) {
 	}
 	if cfg.VacuumCnf.ProtectionWindow != 0 {
 		t.Fatalf("expected explicit zero protection window, got %v", cfg.VacuumCnf.ProtectionWindow)
+	}
+}
+
+func assertDefaultStorage(t *testing.T, storage Storage) {
+	t.Helper()
+
+	if storage.StorageType != "s3" {
+		t.Fatalf("expected default storage type %q, got %q", "s3", storage.StorageType)
+	}
+	if storage.StorageConcurrency != DefaultStorageConcurrency {
+		t.Fatalf("expected default storage concurrency %v, got %v", DefaultStorageConcurrency, storage.StorageConcurrency)
+	}
+	if storage.CopyStorageConcurrency != DefaultCopyStorageConcurrency {
+		t.Fatalf("expected default copy storage concurrency %v, got %v", DefaultCopyStorageConcurrency, storage.CopyStorageConcurrency)
+	}
+	if storage.StorageRateLimit != DefaultStorageRateLimit {
+		t.Fatalf("expected default storage rate limit %v, got %v", DefaultStorageRateLimit, storage.StorageRateLimit)
+	}
+	if storage.EndpointSourceScheme != DefaultEndpointSourceScheme {
+		t.Fatalf("expected default endpoint source scheme %q, got %q", DefaultEndpointSourceScheme, storage.EndpointSourceScheme)
+	}
+}
+
+func assertDefaultBackupStorage(t *testing.T, storage Storage) {
+	t.Helper()
+
+	if storage.StorageType != "s3" {
+		t.Fatalf("expected default backup storage type %q, got %q", "s3", storage.StorageType)
+	}
+	if storage.StorageConcurrency != DefaultStorageConcurrency {
+		t.Fatalf("expected default backup storage concurrency %v, got %v", DefaultStorageConcurrency, storage.StorageConcurrency)
+	}
+	if storage.CopyStorageConcurrency != 0 {
+		t.Fatalf("expected default backup copy storage concurrency %v, got %v", 0, storage.CopyStorageConcurrency)
+	}
+	if storage.StorageRateLimit != 0 {
+		t.Fatalf("expected default backup storage rate limit %v, got %v", 0, storage.StorageRateLimit)
+	}
+	if storage.EndpointSourceScheme != "" {
+		t.Fatalf("expected default backup endpoint source scheme %q, got %q", "", storage.EndpointSourceScheme)
 	}
 }
 
