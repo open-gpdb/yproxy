@@ -500,18 +500,18 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 		filesInStorage[1].Path: 0,
 	}, nil)
 
+	cnfBackup := *config.InstanceConfig()
+	defer func() {
+		*config.InstanceConfig() = cnfBackup
+	}()
+	config.InstanceConfig().VacuumCnf = *config.BuildVacuum(config.WithCheckBackup(false))
+
 	handler := proc.BasicGarbageMgr{
 		StorageInterractor: storage,
 		DbInterractor:      database,
 		BackupInterractor:  nil,
 		Cnf:                &config.InstanceConfig().VacuumCnf,
 	}
-
-	cnfBackup := *config.InstanceConfig()
-	defer func() {
-		*config.InstanceConfig() = cnfBackup
-	}()
-	config.EmbedDefaults(config.InstanceConfig())
 
 	err := handler.DeleteGarbageInBucket("trash", msg)
 	assert.NoError(t, err)

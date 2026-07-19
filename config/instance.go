@@ -3,13 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
 )
 
 type Instance struct {
@@ -54,88 +52,88 @@ func InstanceConfig() *Instance {
 	return &cfgInstance
 }
 
+type InstanceOption func(*Instance)
+
+func WithStorageCnf(storage Storage) InstanceOption {
+	return func(i *Instance) {
+		i.StorageCnf = storage
+	}
+}
+
+func WithBackupStorageCnf(storage Storage) InstanceOption {
+	return func(i *Instance) {
+		i.BackupStorageCnf = storage
+	}
+}
+
+func WithVacuumCnf(vacuum Vacuum) InstanceOption {
+	return func(i *Instance) {
+		i.VacuumCnf = vacuum
+	}
+}
+
+func WithStatPort(statPort int) InstanceOption {
+	return func(i *Instance) {
+		i.StatPort = statPort
+	}
+}
+
+func WithPsqlPort(psqlPort int) InstanceOption {
+	return func(i *Instance) {
+		i.PsqlPort = psqlPort
+	}
+}
+
+func WithMetricsPort(metricsPort int) InstanceOption {
+	return func(i *Instance) {
+		i.MetricsPort = metricsPort
+	}
+}
+
+const (
+	DefaultStatPort    = 7432
+	DefaultPsqlPort    = 8432
+	DefaultMetricsPort = 2112
+)
+
+func BuildInstance(opts ...InstanceOption) *Instance {
+	i := &Instance{}
+
+	ApplyInstanceOptions(i,
+		WithStorageCnf(*BuildStorage()),
+		WithBackupStorageCnf(*BuildBackupStorage()),
+		WithVacuumCnf(*BuildVacuum()),
+		WithStatPort(DefaultStatPort),
+		WithPsqlPort(DefaultPsqlPort),
+		WithMetricsPort(DefaultMetricsPort),
+	)
+	ApplyInstanceOptions(i, opts...)
+
+	return i
+}
+
+func ApplyInstanceOptions(i *Instance, opts ...InstanceOption) {
+	for _, opt := range opts {
+		opt(i)
+	}
+}
+
 func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
-	cfgInstance.VacuumCnf.CheckBackup = true
+	*cfgInstance = *BuildInstance()
 	if strings.HasSuffix(file.Name(), ".toml") {
 		_, err := toml.NewDecoder(file).Decode(cfgInstance)
 		return err
 	}
 	if strings.HasSuffix(file.Name(), ".yaml") {
-		return yaml.NewDecoder(file).Decode(&cfgInstance)
+		return yaml.NewDecoder(file).Decode(cfgInstance)
 	}
 	if strings.HasSuffix(file.Name(), ".json") {
-		return json.NewDecoder(file).Decode(&cfgInstance)
+		return json.NewDecoder(file).Decode(cfgInstance)
 	}
 	return fmt.Errorf("unknown config format type: %s. Use .toml, .yaml or .json suffix in filename", file.Name())
 }
 
-const (
-	DefaultStorageConcurrency     = 100
-	DefaultCopyStorageConcurrency = 200
-	DefaultStatPort               = 7432
-	DefaultPsqlPort               = 8432
-	DefaultMetricsPort            = 2112
-
-	DefaultEndpointSourceScheme = "https"
-
-	/* 1 GB per  second */
-	DefaultStorageRateLimit = 1024 * 1024 * 1024
-
-	DefaultFileChunkPerSec    = 1000
-	DefaultTrashRetentionDays = 7
-	DefaultTrashDeleteWorkers = 1
-	DefaultProtectionWindow   = 24 * time.Hour
-)
-
-func EmbedDefaults(cfgInstance *Instance) {
-	if cfgInstance.StorageCnf.StorageType == "" {
-		cfgInstance.StorageCnf.StorageType = "s3"
-	}
-	if cfgInstance.StorageCnf.StorageConcurrency == 0 {
-		cfgInstance.StorageCnf.StorageConcurrency = DefaultStorageConcurrency
-	}
-	if cfgInstance.StorageCnf.CopyStorageConcurrency == 0 {
-		cfgInstance.StorageCnf.CopyStorageConcurrency = DefaultCopyStorageConcurrency
-	}
-	if cfgInstance.BackupStorageCnf.StorageType == "" {
-		cfgInstance.BackupStorageCnf.StorageType = "s3"
-	}
-	if cfgInstance.BackupStorageCnf.StorageConcurrency == 0 {
-		cfgInstance.BackupStorageCnf.StorageConcurrency = DefaultStorageConcurrency
-	}
-	if cfgInstance.StatPort == 0 {
-		cfgInstance.StatPort = DefaultStatPort
-	}
-	if cfgInstance.PsqlPort == 0 {
-		cfgInstance.PsqlPort = DefaultPsqlPort
-	}
-	if cfgInstance.StorageCnf.EndpointSourceScheme == "" {
-		cfgInstance.StorageCnf.EndpointSourceScheme = DefaultEndpointSourceScheme
-	}
-	if cfgInstance.StorageCnf.StorageRateLimit == 0 {
-		cfgInstance.StorageCnf.StorageRateLimit = DefaultStorageRateLimit
-	}
-	if cfgInstance.MetricsPort == 0 {
-		cfgInstance.MetricsPort = DefaultMetricsPort
-	}
-	if cfgInstance.VacuumCnf.FileChunkPerSec == 0 {
-		cfgInstance.VacuumCnf.FileChunkPerSec = DefaultFileChunkPerSec
-	}
-	if cfgInstance.VacuumCnf.TrashRetentionDays == 0 {
-		cfgInstance.VacuumCnf.TrashRetentionDays = DefaultTrashRetentionDays
-	}
-	if cfgInstance.VacuumCnf.TrashDeleteWorkers == 0 {
-		cfgInstance.VacuumCnf.TrashDeleteWorkers = DefaultTrashDeleteWorkers
-	}
-	if cfgInstance.VacuumCnf.ProtectionWindow == 0 {
-		cfgInstance.VacuumCnf.ProtectionWindow = DefaultProtectionWindow
-	}
-	cfgInstance.YezzeyRestoreParanoid = false
-}
-
-var (
-	bootstrapCfgPath = ""
-)
+var bootstrapCfgPath = ""
 
 func ReloadInstanceConfig() (*Instance, error) {
 	if err := LoadInstanceConfig(bootstrapCfgPath); err != nil {
@@ -155,7 +153,6 @@ func LoadInstanceConfig(cfgPath string) (err error) {
 	}
 
 	cfgInstance.ReadSystemdSocketPath()
-	EmbedDefaults(&cfgInstance)
 
 	configBytes, err := json.MarshalIndent(cfgInstance, "", "  ")
 	if err != nil {

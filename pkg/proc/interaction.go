@@ -259,7 +259,6 @@ func ProcessCopyExtended(
 		ylogger.Zero.Error().Err(err).Msg("failed to complete request")
 		return nil
 	}
-	config.EmbedDefaults(&sourceInstanceCnf)
 	oldStorage, err := storage.NewStorage(&sourceInstanceCnf.StorageCnf, "")
 	if err != nil {
 		return err
