@@ -45,7 +45,7 @@ type Storage struct {
 }
 
 const (
-	DefaultStorageType = "s3"
+	DefaultStorageType            = "s3"
 	DefaultStorageConcurrency     = 100
 	DefaultCopyStorageConcurrency = 200
 

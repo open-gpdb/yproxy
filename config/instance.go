@@ -125,10 +125,10 @@ func initInstanceConfig(file *os.File, cfgInstance *Instance) error {
 		return err
 	}
 	if strings.HasSuffix(file.Name(), ".yaml") {
-		return yaml.NewDecoder(file).Decode(&cfgInstance)
+		return yaml.NewDecoder(file).Decode(cfgInstance)
 	}
 	if strings.HasSuffix(file.Name(), ".json") {
-		return json.NewDecoder(file).Decode(&cfgInstance)
+		return json.NewDecoder(file).Decode(cfgInstance)
 	}
 	return fmt.Errorf("unknown config format type: %s. Use .toml, .yaml or .json suffix in filename", file.Name())
 }
