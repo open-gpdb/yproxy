@@ -21,7 +21,7 @@ jobs:
 
       - name: Get dependencies
         run:
-          sudo apt update && sudo apt install -y debhelper
+          sudo apt update && sudo apt install -y build-essential debhelper
 
       - name: Set env
         run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
