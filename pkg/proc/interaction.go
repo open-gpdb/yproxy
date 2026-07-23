@@ -850,10 +850,15 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		if err := ProcessDeleteObsolete(msg, s, bs, ycl); err != nil {
 			return err
 		}
+	case message.MessageTypeCopyDone:
+		msg := message.CopyDoneMessage{}
+		msg.Decode(body)
+		return nil
 
 	default:
-		ylogger.Zero.Error().Any("type", tp).Msg("unknown message type")
-		_ = ycl.ReplyError(nil, "wrong request type")
+		err := fmt.Errorf("wrong request type: %d (%s)", tp, tp.String())
+		ylogger.Zero.Error().Any("type", tp).Err(err).Msg("unknown message type")
+		_ = ycl.ReplyError(err, "wrong request type")
 
 		return nil
 	}
