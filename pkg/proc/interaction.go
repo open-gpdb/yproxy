@@ -856,7 +856,7 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		return nil
 
 	default:
-		err := fmt.Errorf("wrong request type: %s", tp.String())
+		err := fmt.Errorf("wrong request type: %d (%s)", tp, tp.String())
 		ylogger.Zero.Error().Any("type", tp).Err(err).Msg("unknown message type")
 		_ = ycl.ReplyError(err, "wrong request type")
 
