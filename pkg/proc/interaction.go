@@ -172,7 +172,7 @@ func ProcessPutExtended(
 	/* Should go after reader dispatch! */
 	if err := s.PutFileToDest(name, r, settings); err != nil {
 		ylogger.Zero.Error().Err(err).Bool("encrypt", encrypt).Str("name", name).Msg("failed to upload")
-		wg.Wait()
+		pr.c.Close()
 		return err
 	}
 
