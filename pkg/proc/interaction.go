@@ -172,6 +172,7 @@ func ProcessPutExtended(
 	/* Should go after reader dispatch! */
 	if err := s.PutFileToDest(name, r, settings); err != nil {
 		ylogger.Zero.Error().Err(err).Bool("encrypt", encrypt).Str("name", name).Msg("failed to upload")
+		wg.Wait()
 		return err
 	}
 
@@ -852,10 +853,9 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		}
 
 	default:
-		ylogger.Zero.Error().Any("type", tp).Msg("unknown message type")
-		_ = ycl.ReplyError(nil, "wrong request type")
+		_ = ycl.ReplyError(fmt.Errorf("wrong request type"), "protocol sync lost, close client connection")
 
-		return nil
+		return ycl.Close()
 	}
 
 	return nil
