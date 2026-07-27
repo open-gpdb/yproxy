@@ -117,12 +117,13 @@ func TestProcConnUnknownMessageTypeRepliesErrorWithoutPanic(t *testing.T) {
 	require.Contains(t, errorMessage.Error, "wrong request type")
 }
 
-func TestProcConnCopyDoneDoesNothing(t *testing.T) {
+func TestProcConnCopyDoneRepliesErrorWithoutPanic(t *testing.T) {
 	ycl := newProcConnTestClient(testPacket(message.MessageTypeCopyDone))
 
 	require.NotPanics(t, func() {
 		err := proc.ProcConn(nil, nil, nil, ycl, &config.Vacuum{})
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "not expected here")
 	})
 	require.True(t, ycl.closed)
 	require.Equal(t, message.MessageTypeCopyDone, ycl.OPType())
