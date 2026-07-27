@@ -858,7 +858,10 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 	default:
 		err := fmt.Errorf("wrong request type: %d (%s)", tp, tp.String())
 		ylogger.Zero.Error().Any("type", tp).Err(err).Msg("unknown message type")
-		_ = ycl.ReplyError(err, "wrong request type")
+if replyErr := ycl.ReplyError(err, "wrong request type"); replyErr != nil {
+    ylogger.Zero.Error().Err(replyErr).Msg("failed to send error reply")
+}
+
 
 		return nil
 	}
