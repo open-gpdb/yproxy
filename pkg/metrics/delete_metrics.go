@@ -1,11 +1,17 @@
 package metrics
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+// ProgressLogInterval is how often (in cumulative processed items) callers
+// should emit an Info-level progress log line, to keep log volume bounded
+// during long-running delete/untrashify operations.
+const ProgressLogInterval = 50000
 
 var (
 	itemCountBuckets = []float64{1, 10, 50, 100, 500, 1000, 5000, 10000, 50000}
@@ -53,6 +59,7 @@ var (
 type DeleteOpTracker struct {
 	bucket    string
 	operation string
+	processed atomic.Int64
 }
 
 func NewDeleteOpTracker(bucket, operation string) *DeleteOpTracker {
@@ -80,8 +87,11 @@ func (t *DeleteOpTracker) ObserveDelete(d time.Duration) {
 	DeleteRequestLatency.With(prometheus.Labels{"bucket": t.bucket, "operation": t.operation, "stage": "delete"}).Observe(d.Seconds())
 }
 
-func (t *DeleteOpTracker) AddProcessed(n int) {
+// AddProcessed records n more processed items and returns the cumulative
+// processed count for this tracker, for use with ProgressLogInterval.
+func (t *DeleteOpTracker) AddProcessed(n int) int64 {
 	DeleteProcessProcessed.With(t.labels()).Add(float64(n))
+	return t.processed.Add(int64(n))
 }
 
 func (t *DeleteOpTracker) AddDeleted(n int) {

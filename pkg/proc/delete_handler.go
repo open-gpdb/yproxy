@@ -95,7 +95,12 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 		opStart := time.Now()
 		err = dh.StorageInterractor.MoveObject(bucket, file.Path, tp)
 		t.ObserveDelete(time.Since(opStart))
-		t.AddProcessed(1)
+		processedTotal := t.AddProcessed(1)
+		if processedTotal%metrics.ProgressLogInterval == 0 {
+			ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "UNTRASHIFY").
+				Int64("processed", processedTotal).Int("deleted", deleted).
+				Int("remaining", len(objectMetas)-deleted).Msg("untrashify progress")
+		}
 		if err != nil {
 			t.AddKept(len(objectMetas) - deleted)
 			t.SetRemaining(len(objectMetas) - deleted)
@@ -173,6 +178,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		}
 	}
 
+	totalFiles := len(fileList)
 	deleted := 0
 	var failed []*object.ObjectInfo
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
@@ -184,7 +190,12 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 			opStart := time.Now()
 			err = operate(file)
 			t.ObserveDelete(time.Since(opStart))
-			t.AddProcessed(1)
+			processedTotal := t.AddProcessed(1)
+			if processedTotal%metrics.ProgressLogInterval == 0 {
+				ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "DELETE_GARBAGE").
+					Int64("processed", processedTotal).Int("deleted", deleted).
+					Int("remaining", totalFiles-deleted).Msg("garbage delete progress")
+			}
 			if err != nil {
 				ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file.Path).Msg(failedActionMsg)
 				failed = append(failed, file)
@@ -275,7 +286,11 @@ func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*objec
 				opStart := time.Now()
 				err := dh.StorageInterractor.DeleteObject(bucket, file.Path)
 				t.ObserveDelete(time.Since(opStart))
-				t.AddProcessed(1)
+				processedTotal := t.AddProcessed(1)
+				if processedTotal%metrics.ProgressLogInterval == 0 {
+					ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "DELETE_PREFIX").
+						Int64("processed", processedTotal).Msg("prefix delete progress")
+				}
 				if err != nil {
 					ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file.Path).Msg("failed to delete garbage file")
 					failedCh <- file
