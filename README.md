@@ -66,6 +66,13 @@ The output consists of 2 categories of metrics:
 |             | `write_req_errors_total` | counter | The total number of errors occurred while processing write requests |
 | Internal    | `request_latency_bucket` | histogram | The number of requests and requests time for each source request |
 |             | `request_size_bucket` | histogram | The number of requests and requests size for each source request |
+| Delete / garbage collection | `delete_process_items` | gauge | Size of the current batch of items found to process by delete handlers |
+|             | `delete_process_remaining` | gauge | Items left to process by delete handlers |
+|             | `delete_process_processed_total` | counter | Cumulative number of items delete handlers attempted to delete or move |
+|             | `delete_process_deleted_total` | counter | Cumulative number of items successfully deleted or moved |
+|             | `delete_process_kept_total` | counter | Cumulative number of items intentionally left in place (skipped, e.g. by the protection window/trash filter, or failed after retries) |
+|             | `delete_request_latency_seconds_bucket` | histogram | Latency of delete-handler list/delete operations |
+|             | `delete_request_size_bucket` | histogram | Number of items returned by a delete-handler list operation |
 
 Internal metrics show latency and size for each source request. Source request is the internal type of query from GP to yproxy. Yproxy performs mostly upload/download requests to S3. But yezzey perform requests multiple species. They are named as source request. We measure source requests:
 ```
@@ -92,6 +99,21 @@ UNTRASHIFY
 COLLECT OBSOLETE
 DELETE OBSOLETE
 ```
+
+Delete/garbage-collection metrics are labeled per `bucket` (since yproxy can
+manage multiple storage buckets) and per `operation`, one of:
+```
+DELETE_GARBAGE  # DeleteGarbageInBucket
+DELETE_PREFIX   # DeletePrefixInBucket
+```
+`delete_request_latency_seconds` is additionally labeled by `stage`
+(`list` or `delete`), distinguishing the time spent listing objects from the
+time spent on each individual delete/move call.
+
+`HandleUntrashifyFile` restores files from trash rather than deleting them,
+so it does not report these metrics - it still logs an Info-level line when
+it starts and finishes, plus a periodic Info-level progress line every
+50000 processed items.
 
 <details>
   <summary>Example of gathered metrics for a simple yezzey query:</summary>
