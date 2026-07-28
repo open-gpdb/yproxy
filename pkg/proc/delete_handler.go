@@ -85,6 +85,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	}
 
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
+		t.SetRemaining(0)
 		return nil
 	}
 
