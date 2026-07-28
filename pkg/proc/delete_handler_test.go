@@ -7,14 +7,35 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/message"
+	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	mock "github.com/yezzey-gp/yproxy/pkg/mock"
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
 	"go.uber.org/mock/gomock"
 )
+
+// histogramSampleCount returns how many observations were recorded for the
+// given label set of a HistogramVec, by reading back the collected metric.
+func histogramSampleCount(t *testing.T, vec *prometheus.HistogramVec, labels prometheus.Labels) uint64 {
+	t.Helper()
+
+	hist, ok := vec.With(labels).(prometheus.Histogram)
+	if !ok {
+		t.Fatalf("observer for labels %v is not a prometheus.Histogram", labels)
+	}
+
+	var m dto.Metric
+	if err := hist.Write(&m); err != nil {
+		t.Fatalf("failed to write histogram metric: %v", err)
+	}
+	return m.GetHistogram().GetSampleCount()
+}
 
 func TestFilesToDeletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -515,4 +536,222 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 
 	err := handler.DeleteGarbageInBucket("trash", msg)
 	assert.NoError(t, err)
+}
+
+func TestHandleUntrashifyFileRecordsMetrics(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "untrashify-metrics-bucket"
+
+	msg := message.UntrashifyMessage{
+		Name:    "path",
+		Segnum:  60,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/segments_005/seg60/basebackups_005/yezzey/file1"},
+		{Path: "trash/segments_005/seg60/basebackups_005/yezzey/file2"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().DefaultBucket().Return(bucket)
+	storage.EXPECT().ListPath(msg.Name, true, nil).Return(filesInStorage, nil)
+	storage.EXPECT().MoveObject(bucket, filesInStorage[0].Path, proc.RegPathFromTrasnPath(filesInStorage[0].Path, int(msg.Segnum))).Return(nil)
+	storage.EXPECT().MoveObject(bucket, filesInStorage[1].Path, proc.RegPathFromTrasnPath(filesInStorage[1].Path, int(msg.Segnum))).Return(nil)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+	}
+
+	err := handler.HandleUntrashifyFile(msg)
+	assert.NoError(t, err)
+
+	labels := prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY"}
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "list"}))
+	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "delete"}))
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestSize, labels))
+}
+
+func TestHandleUntrashifyFileRecordsKeptOnFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "untrashify-metrics-failure-bucket"
+
+	msg := message.UntrashifyMessage{
+		Name:    "path",
+		Segnum:  60,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/segments_005/seg60/basebackups_005/yezzey/file1"},
+		{Path: "trash/segments_005/seg60/basebackups_005/yezzey/file2"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().DefaultBucket().Return(bucket)
+	storage.EXPECT().ListPath(msg.Name, true, nil).Return(filesInStorage, nil)
+	storage.EXPECT().MoveObject(bucket, filesInStorage[0].Path, proc.RegPathFromTrasnPath(filesInStorage[0].Path, int(msg.Segnum))).Return(errors.New("move failed"))
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+	}
+
+	err := handler.HandleUntrashifyFile(msg)
+	assert.Error(t, err)
+
+	labels := prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY"}
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+}
+
+func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "garbage-metrics-bucket"
+
+	msg := message.DeleteMessage{
+		Name:      "path",
+		Port:      6000,
+		Segnum:    0,
+		Confirm:   true,
+		CrazyDrop: false,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file1"},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file2"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath(bucket, msg.Name, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads(bucket).Return(map[string]string{}, nil)
+	storage.EXPECT().MoveObject(bucket, filesInStorage[0].Path, proc.TrashPathFromRegPath(filesInStorage[0].Path, int(msg.Segnum))).Return(nil)
+	storage.EXPECT().MoveObject(bucket, filesInStorage[1].Path, proc.TrashPathFromRegPath(filesInStorage[1].Path, int(msg.Segnum))).Return(nil)
+
+	database := mock.NewMockDatabaseInterractor(ctrl)
+	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(map[string]bool{}, map[string]uint64{
+		filesInStorage[0].Path: 0,
+		filesInStorage[1].Path: 0,
+	}, nil)
+
+	cnfBackup := *config.InstanceConfig()
+	defer func() {
+		*config.InstanceConfig() = cnfBackup
+	}()
+	config.InstanceConfig().VacuumCnf = *config.BuildVacuum(config.WithCheckBackup(false))
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		DbInterractor:      database,
+		Cnf:                &config.InstanceConfig().VacuumCnf,
+	}
+
+	err := handler.DeleteGarbageInBucket(bucket, msg)
+	assert.NoError(t, err)
+
+	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE"}
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE", "stage": "list"}))
+	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE", "stage": "delete"}))
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestSize, labels))
+}
+
+func TestDeletePrefixInBucketRecordsMetrics(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "prefix-metrics-bucket"
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	// "other/x" does not contain "trash" and must be skipped (counted as kept)
+	// before any delete attempt, unlike "trash/a" and "trash/b" which get deleted.
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+		{Path: "other/x"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath(bucket, msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads(bucket).Return(map[string]string{}, nil)
+	storage.EXPECT().DeleteObject(bucket, gomock.Any()).Return(nil).Times(2)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 2},
+	}
+
+	err := handler.DeletePrefixInBucket(bucket, msg)
+	assert.NoError(t, err)
+
+	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX"}
+	assert.Equal(t, float64(3), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX", "stage": "list"}))
+	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX", "stage": "delete"}))
+	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestSize, labels))
+}
+
+func TestDeletePrefixInBucketRecordsKeptAfterRetriesExhausted(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "prefix-metrics-retry-bucket"
+
+	msg := message.Delete2Message{
+		Prefix:  "trash",
+		Garbage: true,
+		Confirm: true,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "trash/a"},
+		{Path: "trash/b"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath(bucket, msg.Prefix, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads(bucket).Return(map[string]string{}, nil)
+	storage.EXPECT().DeleteObject(bucket, gomock.Any()).DoAndReturn(func(_, key string) error {
+		if key == "trash/b" {
+			return errors.New("persistent delete failure")
+		}
+		return nil
+	}).Times(11)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		Cnf:                &config.Vacuum{TrashDeleteWorkers: 2},
+	}
+
+	err := handler.DeletePrefixInBucket(bucket, msg)
+	assert.Error(t, err)
+
+	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX"}
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
 }
