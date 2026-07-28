@@ -66,7 +66,7 @@ The output consists of 2 categories of metrics:
 |             | `write_req_errors_total` | counter | The total number of errors occurred while processing write requests |
 | Internal    | `request_latency_bucket` | histogram | The number of requests and requests time for each source request |
 |             | `request_size_bucket` | histogram | The number of requests and requests size for each source request |
-| Delete / garbage collection | `delete_process_total` | gauge | Size of the current batch of items found to process by delete/untrashify handlers |
+| Delete / garbage collection | `delete_process_items` | gauge | Size of the current batch of items found to process by delete/untrashify handlers |
 |             | `delete_process_remaining` | gauge | Items left to process by delete/untrashify handlers |
 |             | `delete_process_processed_total` | counter | Cumulative number of items delete/untrashify handlers attempted to delete or move |
 |             | `delete_process_deleted_total` | counter | Cumulative number of items successfully deleted or moved |

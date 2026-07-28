@@ -17,7 +17,7 @@ var (
 	itemCountBuckets = []float64{1, 10, 50, 100, 500, 1000, 5000, 10000, 50000}
 
 	DeleteProcessTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "delete_process_total",
+		Name: "delete_process_items",
 		Help: "Size of the current batch of items found to process by delete/untrashify handlers",
 	}, []string{"bucket", "operation"})
 
