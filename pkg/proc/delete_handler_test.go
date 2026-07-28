@@ -1,7 +1,9 @@
 package proc_test
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/message"
@@ -17,6 +20,7 @@ import (
 	mock "github.com/yezzey-gp/yproxy/pkg/mock"
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
+	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"go.uber.org/mock/gomock"
 )
 
@@ -538,10 +542,10 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestHandleUntrashifyFileRecordsMetrics(t *testing.T) {
+func TestHandleUntrashifyFileDoesNotRecordDeleteMetrics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	const bucket = "untrashify-metrics-bucket"
+	const bucket = "untrashify-no-metrics-bucket"
 
 	msg := message.UntrashifyMessage{
 		Name:    "path",
@@ -567,22 +571,25 @@ func TestHandleUntrashifyFileRecordsMetrics(t *testing.T) {
 	err := handler.HandleUntrashifyFile(msg)
 	assert.NoError(t, err)
 
+	// HandleUntrashifyFile restores files, it does not delete them, so it
+	// must not report through the delete/garbage-collection metrics - none
+	// of these series should exist for this bucket+operation.
 	labels := prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY"}
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
 
-	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "list"}))
-	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "delete"}))
-	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestSize, labels))
+	assert.EqualValues(t, 0, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "list"}))
+	assert.EqualValues(t, 0, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY", "stage": "delete"}))
+	assert.EqualValues(t, 0, histogramSampleCount(t, metrics.DeleteRequestSize, labels))
 }
 
-func TestHandleUntrashifyFileRecordsKeptOnFailure(t *testing.T) {
+func TestHandleUntrashifyFileReturnsErrorWithoutRecordingMetrics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	const bucket = "untrashify-metrics-failure-bucket"
+	const bucket = "untrashify-no-metrics-failure-bucket"
 
 	msg := message.UntrashifyMessage{
 		Name:    "path",
@@ -608,10 +615,47 @@ func TestHandleUntrashifyFileRecordsKeptOnFailure(t *testing.T) {
 	assert.Error(t, err)
 
 	labels := prometheus.Labels{"bucket": bucket, "operation": "UNTRASHIFY"}
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+}
+
+func TestHandleUntrashifyFileLogsProgressEveryInterval(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	const bucket = "untrashify-progress-bucket"
+	const totalFiles = metrics.ProgressLogInterval*2 + 5
+
+	msg := message.UntrashifyMessage{
+		Name:    "path",
+		Segnum:  60,
+		Confirm: true,
+	}
+
+	filesInStorage := make([]*object.ObjectInfo, totalFiles)
+	for i := range filesInStorage {
+		filesInStorage[i] = &object.ObjectInfo{Path: fmt.Sprintf("trash/segments_005/seg60/basebackups_005/yezzey/file%d", i)}
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().DefaultBucket().Return(bucket)
+	storage.EXPECT().ListPath(msg.Name, true, nil).Return(filesInStorage, nil)
+	storage.EXPECT().MoveObject(bucket, gomock.Any(), gomock.Any()).Return(nil).Times(totalFiles)
+
+	var logBuf bytes.Buffer
+	origLogger := ylogger.Zero
+	progressLogger := zerolog.New(&logBuf)
+	ylogger.Zero = &progressLogger
+	defer func() { ylogger.Zero = origLogger }()
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+	}
+
+	err := handler.HandleUntrashifyFile(msg)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, strings.Count(logBuf.String(), "untrashify progress"))
 }
 
 func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {

@@ -65,19 +65,19 @@ func RegPathFromTrasnPath(p string, segnum int) string {
 }
 
 // HandleUntrashifyFile implements GarbageMgr.
+//
+// This restores files from trash rather than deleting them, so it
+// intentionally does not report the delete/garbage-collection Prometheus
+// metrics (those count deletions, not restores) - only progress logging is
+// kept.
 func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) error {
 	start := time.Now()
 	bucket := dh.StorageInterractor.DefaultBucket()
-	t := metrics.NewDeleteOpTracker(bucket, "UNTRASHIFY")
 
-	listStart := time.Now()
 	objectMetas, err := dh.StorageInterractor.ListPath(msg.Name, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not list objects")
 	}
-	t.ObserveList(time.Since(listStart), len(objectMetas))
-	t.SetTotal(len(objectMetas))
-	t.SetRemaining(len(objectMetas))
 	ylogger.Zero.Info().Str("bucket", bucket).Str("path", msg.Name).Int("amount", len(objectMetas)).Msg("untrashify started")
 
 	for _, file := range objectMetas {
@@ -85,31 +85,24 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	}
 
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
-		t.SetRemaining(0)
 		return nil
 	}
 
 	deleted := 0
-	for _, file := range objectMetas {
+	for i, file := range objectMetas {
 		tp := RegPathFromTrasnPath(file.Path, int(msg.Segnum))
 		/* XXX: fix this */
-		opStart := time.Now()
 		err = dh.StorageInterractor.MoveObject(bucket, file.Path, tp)
-		t.ObserveDelete(time.Since(opStart))
-		processedTotal := t.AddProcessed(1)
-		if processedTotal%metrics.ProgressLogInterval == 0 {
+		processed := i + 1
+		if processed%metrics.ProgressLogInterval == 0 {
 			ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "UNTRASHIFY").
-				Int64("processed", processedTotal).Int("deleted", deleted).
+				Int("processed", processed).Int("deleted", deleted).
 				Int("remaining", len(objectMetas)-deleted).Msg("untrashify progress")
 		}
 		if err != nil {
-			t.AddKept(len(objectMetas) - deleted)
-			t.SetRemaining(len(objectMetas) - deleted)
 			return err
 		}
 		deleted++
-		t.AddDeleted(1)
-		t.SetRemaining(len(objectMetas) - deleted)
 	}
 
 	ylogger.Zero.Info().Str("bucket", bucket).Int("deleted", deleted).Dur("elapsed", time.Since(start)).Msg("untrashify finished")
@@ -166,7 +159,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		failedActionMsg = "failed to delete some files"
 		failedFilesMsg = "some files were not deleted"
 		operate = func(file *object.ObjectInfo) error {
-			ylogger.Zero.Debug().Str("bucket", bucket).Str("path", file.Path).Msg("immediately delete garbage file")
+			ylogger.Zero.Info().Str("bucket", bucket).Str("path", file.Path).Msg("immediately delete garbage file")
 			return dh.StorageInterractor.DeleteObject(bucket, file.Path)
 		}
 	} else {
