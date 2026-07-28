@@ -64,12 +64,8 @@ func RegPathFromTrasnPath(p string, segnum int) string {
 	return destPath
 }
 
-// HandleUntrashifyFile implements GarbageMgr.
-//
-// This restores files from trash rather than deleting them, so it
-// intentionally does not report the delete/garbage-collection Prometheus
-// metrics (those count deletions, not restores) - only progress logging is
-// kept.
+// This restores files from trash rather than deleting them,
+// Just logging progress logging here
 func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) error {
 	start := time.Now()
 	bucket := dh.StorageInterractor.DefaultBucket()
@@ -81,7 +77,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	ylogger.Zero.Info().Str("bucket", bucket).Str("path", msg.Name).Int("amount", len(objectMetas)).Msg("untrashify started")
 
 	for _, file := range objectMetas {
-		ylogger.Zero.Debug().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
+		ylogger.Zero.Info().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
 	}
 
 	if !msg.Confirm { //do not delete files if no confirmation flag provided
@@ -134,10 +130,10 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	ylogger.Zero.Info().Str("bucket", bucket).Int("files", len(fileList)).Int("uploads", len(uploads)).Msg("garbage delete started")
 
 	for _, file := range fileList {
-		ylogger.Zero.Debug().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
+		ylogger.Zero.Info().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
-		ylogger.Zero.Debug().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
 	}
 
 	if !msg.Confirm { // Do not delete files if no confirmation flag provided
@@ -332,7 +328,7 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		ylogger.Zero.Debug().Str("bucket", bucket).Str("file", file.Path).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
-		ylogger.Zero.Debug().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
 	}
 
 	if !msg.Confirm { // Do not delete files if no confirmation flag provided
