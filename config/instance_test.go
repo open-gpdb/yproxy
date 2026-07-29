@@ -188,6 +188,9 @@ func assertDefaultVacuum(t *testing.T, vacuum Vacuum) {
 	if vacuum.TrashRetentionDays != DefaultTrashRetentionDays {
 		t.Fatalf("expected default trash retention days %v, got %v", DefaultTrashRetentionDays, vacuum.TrashRetentionDays)
 	}
+	if vacuum.TrashMoveWorkers != DefaultTrashMoveWorkers {
+		t.Fatalf("expected default trash move workers %v, got %v", DefaultTrashMoveWorkers, vacuum.TrashMoveWorkers)
+	}
 	if vacuum.TrashDeleteWorkers != DefaultTrashDeleteWorkers {
 		t.Fatalf("expected default trash delete workers %v, got %v", DefaultTrashDeleteWorkers, vacuum.TrashDeleteWorkers)
 	}

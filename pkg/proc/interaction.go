@@ -443,33 +443,29 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 		Cnf:                cnf,
 	}
 
-	if msg.Garbage {
-		ylogger.Zero.Debug().
-			Str("Name", msg.Name).
-			Uint64("port", msg.Port).
-			Uint64("segment", msg.Segnum).
-			Bool("confirm", msg.Confirm).Msg("requested to perform external storage VACUUM")
-	} else {
-		ylogger.Zero.Debug().
-			Str("Name", msg.Name).
-			Uint64("port", msg.Port).
-			Uint64("segment", msg.Segnum).
-			Bool("confirm", msg.Confirm).Msg("requested to remove external chunk")
-	}
+	var (
+		logMsg       string
+		handleDelete func(msg message.DeleteMessage) error
+	)
 
 	if msg.Garbage {
-		err := dh.HandleDeleteGarbage(msg)
-		if err != nil {
-			_ = ycl.ReplyError(err, "failed to finish operation")
-			return err
-		}
+		logMsg = "requested to perform external storage VACUUM"
+		handleDelete = dh.HandleDeleteGarbage
 	} else {
-		/* Todo: resolve bucket here */
-		err := dh.HandleDeleteFile(msg)
-		if err != nil {
-			_ = ycl.ReplyError(err, "failed to finish operation")
-			return err
-		}
+		logMsg = "requested to remove external chunk"
+		handleDelete = dh.HandleDeleteFile
+	}
+
+	ylogger.Zero.Debug().
+		Str("Name", msg.Name).
+		Uint64("port", msg.Port).
+		Uint64("segment", msg.Segnum).
+		Bool("confirm", msg.Confirm).
+		Msg(logMsg)
+
+	if err := handleDelete(msg); err != nil {
+		_ = ycl.ReplyError(err, "failed to finish operation")
+		return err
 	}
 
 	if _, err := ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode()); err != nil {
@@ -673,7 +669,6 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 		if err != nil {
 			ylogger.Zero.Debug().Err(err).Str("delete candidate", str).Msg("not deleted from expire hint")
-
 			continue
 		}
 
@@ -681,7 +676,6 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 		err = s.MoveObject(s.DefaultBucket(), str, "/trash"+str)
 		if err != nil {
 			ylogger.Zero.Debug().Err(err).Str("delete candidate", str).Msg("not moved to trash")
-
 			continue
 		}
 		ylogger.Zero.Info().Str("delete candidate", str).Msg("deleted successfully")

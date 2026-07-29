@@ -799,3 +799,67 @@ func TestDeletePrefixInBucketRecordsKeptAfterRetriesExhausted(t *testing.T) {
 	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
 	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
 }
+
+func TestDeleteGarbageInBucketRetriesFailedTrashMoves(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	msg := message.DeleteMessage{
+		Name:      "path",
+		Port:      6000,
+		Segnum:    0,
+		Confirm:   true,
+		CrazyDrop: false,
+	}
+
+	filesInStorage := []*object.ObjectInfo{
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file1"},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file2"},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file3"},
+	}
+
+	storage := mock.NewMockStorageInteractor(ctrl)
+	storage.EXPECT().ListBucketPath("trash", msg.Name, true).Return(filesInStorage, nil)
+	storage.EXPECT().ListFailedMultipartUploads("trash").Return(map[string]string{}, nil)
+
+	var mu sync.Mutex
+	attempts := make(map[string]int)
+	storage.EXPECT().MoveObject("trash", gomock.Any(), gomock.Any()).DoAndReturn(func(bucket, from, to string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		attempts[from]++
+		assert.Equal(t, proc.TrashPathFromRegPath(from, int(msg.Segnum)), to)
+		if from == filesInStorage[1].Path && attempts[from] == 1 {
+			return errors.New("transient move failure")
+		}
+		return nil
+	}).Times(4)
+
+	database := mock.NewMockDatabaseInterractor(ctrl)
+	database.EXPECT().GetVirtualExpireIndexes(msg.Port).Return(map[string]bool{}, map[string]uint64{
+		filesInStorage[0].Path: 0,
+		filesInStorage[1].Path: 0,
+		filesInStorage[2].Path: 0,
+	}, nil)
+
+	cnfBackup := *config.InstanceConfig()
+	defer func() {
+		*config.InstanceConfig() = cnfBackup
+	}()
+	config.InstanceConfig().VacuumCnf = *config.BuildVacuum(
+		config.WithCheckBackup(false),
+		config.WithTrashMoveWorkers(3),
+	)
+
+	handler := proc.BasicGarbageMgr{
+		StorageInterractor: storage,
+		DbInterractor:      database,
+		BackupInterractor:  nil,
+		Cnf:                &config.InstanceConfig().VacuumCnf,
+	}
+
+	err := handler.DeleteGarbageInBucket("trash", msg)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, attempts[filesInStorage[0].Path])
+	assert.Equal(t, 2, attempts[filesInStorage[1].Path])
+	assert.Equal(t, 1, attempts[filesInStorage[2].Path])
+}
