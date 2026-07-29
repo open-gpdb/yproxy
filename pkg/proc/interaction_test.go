@@ -122,12 +122,18 @@ func TestProcConnCopyDoneRepliesErrorWithoutPanic(t *testing.T) {
 
 	require.NotPanics(t, func() {
 		err := proc.ProcConn(nil, nil, nil, ycl, &config.Vacuum{})
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "not expected here")
+		require.NoError(t, err)
 	})
 	require.True(t, ycl.closed)
 	require.Equal(t, message.MessageTypeCopyDone, ycl.OPType())
-	require.Empty(t, ycl.rw.Written())
+
+	body := decodeWrittenPacket(t, ycl.rw.Written())
+	require.Equal(t, message.MessageTypeError, message.MessageType(body[0]))
+
+	errorMessage := message.ErrorMessage{}
+	require.NotPanics(t, func() { errorMessage.Decode(body) })
+	require.Equal(t, "message is unsupported in ProcConn", errorMessage.Message)
+	require.Contains(t, errorMessage.Error, "wrong request type")
 }
 
 func testPacket(tp message.MessageType) []byte {
