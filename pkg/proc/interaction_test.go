@@ -113,7 +113,7 @@ func TestProcConnUnknownMessageTypeRepliesErrorWithoutPanic(t *testing.T) {
 
 	errorMessage := message.ErrorMessage{}
 	require.NotPanics(t, func() { errorMessage.Decode(body) })
-	require.Equal(t, "wrong request type", errorMessage.Message)
+	require.Equal(t, "message is unsupported in ProcConn", errorMessage.Message)
 	require.Contains(t, errorMessage.Error, "wrong request type")
 }
 

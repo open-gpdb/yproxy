@@ -855,10 +855,9 @@ func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr cryp
 		msg.Decode(body)
 		return fmt.Errorf("%s is not expected here", tp.String())
 	default:
-		if replyErr := ycl.ReplyError(fmt.Errorf("wrong request type: %s", tp.String()), "wrong request type"); replyErr != nil {
-			ylogger.Zero.Error().Err(replyErr).Msg("failed to send error reply")
-		}
-		return nil
+		unsupErr := ycl.ReplyError(fmt.Errorf("wrong request type: %s", tp.String()), "message is unsupported in ProcConn")
+		ylogger.Zero.Error().Err(unsupErr).Msg("failed to send error reply")
+		return unsupErr
 	}
 
 	return nil
