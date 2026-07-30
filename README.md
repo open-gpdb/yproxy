@@ -14,6 +14,7 @@ behaviour of garbage collection performed during
 | `check_backup` | bool | `true` | Whether to take the first backup LSN into account when deciding if a file is safe to delete. |
 | `file_chunk_per_sec` | int | `1000` | Rate limit (files/sec) applied while listing and deleting objects. |
 | `trash_retention_days` | int | `7` | Number of days a file stays in `/trash` before being permanently removed. |
+| `trash_move_workers` | int | `1` | Number of parallel workers used to move files to `/trash`. |
 | `trash_delete_workers` | int | `1` | Number of parallel workers used to delete files from `/trash`. |
 | `protection_window` | duration | `24h` | Minimum age a file must have, based on its storage `LastMod` timestamp, before it is eligible for garbage deletion. Accepts a duration string, e.g. `"1h"`, `"30m"`, `"24h"`. Set to `"0s"` to disable this extra protection window. |
 
