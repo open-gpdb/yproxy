@@ -180,7 +180,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		run = func(file *object.ObjectInfo) error {
 			trashPath := TrashPathFromRegPath(file.Path, int(msg.Segnum))
 
-			ylogger.Zero.Info().
+			ylogger.Zero.Debug().
 				Str("bucket", bucket).
 				Str("path", file.Path).
 				Str("trash_path", trashPath).
@@ -189,6 +189,8 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 			return dh.StorageInterractor.MoveObject(bucket, file.Path, trashPath)
 		}
 	}
+
+	deleted := 0
 
 	operate := func(file *object.ObjectInfo) error {
 		// Don't move too fast.
@@ -200,7 +202,10 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
-		fileList, err = dh.garbageFilesParallel(bucket, fileList, workerCount, defaultWorkerCount, operate, failedActionMsg)
+		batch := fileList
+		fileList, err = dh.garbageFilesParallel(bucket, batch, workerCount, defaultWorkerCount, operate, failedActionMsg, t)
+		deleted += len(batch) - len(fileList)
+		t.SetRemaining(len(fileList))
 		if err == nil {
 			break
 		}
@@ -291,7 +296,7 @@ func (dh *BasicGarbageMgr) garbageFilesParallel(
 				err := operate(file)
 				t.ObserveDelete(time.Since(opStart))
 				processedTotal := t.AddProcessed(1)
-				if processedTotal % metrics.ProgressLogInterval == 0 {
+				if processedTotal%metrics.ProgressLogInterval == 0 {
 					ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "DELETE_PREFIX").
 						Int64("processed", processedTotal).Msg("prefix delete progress")
 				}
@@ -325,7 +330,7 @@ func (dh *BasicGarbageMgr) garbageFilesParallel(
 	return nil, nil
 }
 
-func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*object.ObjectInfo) ([]*object.ObjectInfo, error) {
+func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*object.ObjectInfo, t *metrics.DeleteOpTracker) ([]*object.ObjectInfo, error) {
 	return dh.garbageFilesParallel(
 		bucket,
 		fileList,
@@ -335,6 +340,7 @@ func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*objec
 			return dh.StorageInterractor.DeleteObject(bucket, file.Path)
 		},
 		"failed to delete garbage file",
+		t,
 	)
 }
 
