@@ -15,7 +15,6 @@ func copyData(b []byte) *message.CopyDataMessage {
 	return &message.CopyDataMessage{Sz: uint64(len(b)), Data: b}
 }
 
-
 func TestPutSimple(t *testing.T) {
 	s := newServer(t)
 
@@ -86,4 +85,3 @@ func TestUnsupportedMessageType(t *testing.T) {
 		}},
 	}})
 }
-
