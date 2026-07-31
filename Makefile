@@ -14,10 +14,17 @@ build:
 ####################### TESTS #######################
 
 unittest:
-	go test -race ./pkg/message/... ./pkg/proc/... ./pkg/core/... ./pkg/storage/...
+	go test -race -coverprofile=coverage.out -covermode=atomic ./pkg/... ./config/...
 
 xproto:
 	go test -race -tags xproto ./test/xproto/...
+
+vet:
+	go vet `go list ./... | grep -v /pkg/core/parser`
+
+tidycheck:
+	go mod tidy
+	git diff --exit-code -- go.mod go.sum
 
 regress:
 	docker compose -f test/regress/docker-compose.yaml down
