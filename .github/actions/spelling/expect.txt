@@ -272,3 +272,6 @@ dto
 testutil
 unsup
 vec
+tidycheck
+covermode
+coverprofile
