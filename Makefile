@@ -16,6 +16,9 @@ build:
 unittest:
 	go test -race ./pkg/message/... ./pkg/proc/... ./pkg/core/... ./pkg/storage/...
 
+xproto:
+	go test -race -tags xproto ./test/xproto/...
+
 regress:
 	docker compose -f test/regress/docker-compose.yaml down
 	docker compose -f test/regress/docker-compose.yaml run --remove-orphans --build yproxy
