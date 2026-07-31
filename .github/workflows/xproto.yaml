@@ -1,0 +1,23 @@
+name: xproto
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: "*"
+
+jobs:
+  xproto:
+    name: Run protocol (xproto) tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Run xproto protocol tests
+        run: make xproto
