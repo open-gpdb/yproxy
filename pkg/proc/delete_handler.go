@@ -1,7 +1,6 @@
 package proc
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
-	"golang.org/x/time/rate"
 )
 
 //go:generate mockgen -destination=../../../test/mocks/mock_object.go -package mocks -build_flags -mod=readonly github.com/wal-g/wal-g/pkg/storages/storage Object
@@ -141,20 +139,12 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		return nil
 	}
 
-	/*
-	 * Burst at 20% of vacuum rate capacity. It is pretty arbitrary at this time,
-	 * but its not like something we need config field for...
-	 */
-	limRate := config.InstanceConfig().VacuumCnf.FileChunkPerSec
-	limiter := rate.NewLimiter(rate.Limit(limRate), limRate/5)
-	ctx := context.Background()
-
 	var (
 		failedActionMsg    string
 		failedFilesMsg     string
 		workerCount        int
 		defaultWorkerCount int
-		run                func(file *object.ObjectInfo) error
+		operate            func(file *object.ObjectInfo) error
 	)
 
 	if msg.CrazyDrop {
@@ -163,7 +153,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		workerCount = dh.Cnf.TrashDeleteWorkers
 		defaultWorkerCount = config.DefaultTrashDeleteWorkers
 
-		run = func(file *object.ObjectInfo) error {
+		operate = func(file *object.ObjectInfo) error {
 			ylogger.Zero.Info().
 				Str("bucket", bucket).
 				Str("path", file.Path).
@@ -177,7 +167,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		workerCount = dh.Cnf.TrashMoveWorkers
 		defaultWorkerCount = config.DefaultTrashMoveWorkers
 
-		run = func(file *object.ObjectInfo) error {
+		operate = func(file *object.ObjectInfo) error {
 			trashPath := TrashPathFromRegPath(file.Path, int(msg.Segnum))
 
 			ylogger.Zero.Debug().
@@ -191,15 +181,6 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	deleted := 0
-
-	operate := func(file *object.ObjectInfo) error {
-		// Don't move too fast.
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		return run(file)
-	}
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
 		batch := fileList
@@ -219,10 +200,6 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	}
 
 	for key, uploadId := range uploads {
-		/* Don't move too fast */
-		if err := limiter.Wait(ctx); err != nil {
-			break
-		}
 		if err := dh.StorageInterractor.AbortMultipartUpload(bucket, key, uploadId); err != nil {
 			return err
 		}
