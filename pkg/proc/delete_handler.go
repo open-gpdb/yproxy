@@ -80,7 +80,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 		ylogger.Zero.Info().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
 	}
 
-	if !msg.Confirm { //do not delete files if no confirmation flag provided
+	if !msg.Confirm { // Do not delete files if no confirmation flag provided
 		return nil
 	}
 
@@ -206,8 +206,8 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		fileList, err = dh.garbageFilesParallel(bucket, batch, workerCount, defaultWorkerCount, operate, failedActionMsg, t)
 		deleted += len(batch) - len(fileList)
 		t.SetRemaining(len(fileList))
-		if err == nil {
-			break
+		if err != nil {
+			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err)
 		}
 	}
 
@@ -297,8 +297,8 @@ func (dh *BasicGarbageMgr) garbageFilesParallel(
 				t.ObserveDelete(time.Since(opStart))
 				processedTotal := t.AddProcessed(1)
 				if processedTotal%metrics.ProgressLogInterval == 0 {
-					ylogger.Zero.Info().Str("bucket", bucket).Str("operation", "DELETE_PREFIX").
-						Int64("processed", processedTotal).Msg("prefix delete progress")
+					ylogger.Zero.Info().Str("bucket", bucket).Str("operation", t.Operation()).
+						Int64("processed", processedTotal).Msg("delete progress")
 				}
 
 				if err != nil {
@@ -395,8 +395,8 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
 		fileList, err = dh.garbageTrashParallel(bucket, fileList, t)
 		t.SetRemaining(len(fileList))
-		if err == nil {
-			break
+		if err != nil {
+			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg("failed to delete garbage file")
 		}
 	}
 
@@ -450,7 +450,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 	if dh.Cnf.CheckBackup {
 		firstBackupLSN, err = dh.BackupInterractor.GetFirstLSN(msg.Segnum)
 		if err != nil {
-			ylogger.Zero.Error().AnErr("err", err).Msg("failed to get first lsn") //return or just assume there are no backups?
+			ylogger.Zero.Error().AnErr("err", err).Msg("failed to get first lsn") // Return or just assume there are no backups?
 			return nil, err
 		}
 		ylogger.Zero.Info().Uint64("lsn", firstBackupLSN).Msg("first backup LSN")
@@ -499,7 +499,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 
 		lsn, ok := ei[reworkedName]
 		ylogger.Zero.Debug().Uint64("lsn", lsn).Uint64("backup lsn", firstBackupLSN).Str("path", objectMetas[i].Path).Msg("comparing lsn")
-		if lsn < firstBackupLSN || !ok {
+		if !ok || lsn < firstBackupLSN {
 			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
 				Bool("file in expire index", ok).
 				Bool("lsn is less than in first backup", lsn < firstBackupLSN).
