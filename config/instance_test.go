@@ -111,6 +111,17 @@ func TestReadInstanceConfigPreservesExplicitFalseCheckBackupYAML(t *testing.T) {
 	}
 }
 
+func TestReadInstanceConfigReadsTrashMoveWorkersYAML(t *testing.T) {
+	cfg, err := ReadInstanceConfig(writeTestConfig(t, "yproxy.yaml", "vacuum:\n  trash_move_workers: 3\n"))
+	if err != nil {
+		t.Fatalf("failed to read config: %v", err)
+	}
+
+	if cfg.VacuumCnf.TrashMoveWorkers != 3 {
+		t.Fatalf("expected trash_move_workers from config %v, got %v", 3, cfg.VacuumCnf.TrashMoveWorkers)
+	}
+}
+
 func TestReadInstanceConfigPreservesExplicitZeroProtectionWindowJSON(t *testing.T) {
 	cfg, err := ReadInstanceConfig(writeTestConfig(t, "yproxy.json", `{"vacuum":{"protection_window":0}}`))
 	if err != nil {
@@ -187,6 +198,9 @@ func assertDefaultVacuum(t *testing.T, vacuum Vacuum) {
 	}
 	if vacuum.TrashRetentionDays != DefaultTrashRetentionDays {
 		t.Fatalf("expected default trash retention days %v, got %v", DefaultTrashRetentionDays, vacuum.TrashRetentionDays)
+	}
+	if vacuum.TrashMoveWorkers != DefaultTrashMoveWorkers {
+		t.Fatalf("expected default trash move workers %v, got %v", DefaultTrashMoveWorkers, vacuum.TrashMoveWorkers)
 	}
 	if vacuum.TrashDeleteWorkers != DefaultTrashDeleteWorkers {
 		t.Fatalf("expected default trash delete workers %v, got %v", DefaultTrashDeleteWorkers, vacuum.TrashDeleteWorkers)

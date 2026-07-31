@@ -267,3 +267,7 @@ ncheck
 nmetrics
 nprotection
 npsql
+dto
+testutil
+unsup
+vec

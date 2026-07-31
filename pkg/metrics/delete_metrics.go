@@ -70,6 +70,10 @@ func (t *DeleteOpTracker) labels() prometheus.Labels {
 	return prometheus.Labels{"bucket": t.bucket, "operation": t.operation}
 }
 
+func (t *DeleteOpTracker) Operation() string {
+	return t.operation
+}
+
 func (t *DeleteOpTracker) SetTotal(n int) {
 	DeleteProcessTotal.With(t.labels()).Set(float64(n))
 }
