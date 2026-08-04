@@ -84,5 +84,6 @@
 ^\Qbuild.Dockerfile\E$
 ^test/regress/gpg/
 ignore$
+^\Q.github/workflows/go.yml\E$
 pkg/message/message.go
 test/regress/pg-init/create-db.sh
