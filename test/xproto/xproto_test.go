@@ -94,7 +94,7 @@ func TestCatNonExistent(t *testing.T) {
 	conn := s.dial(t)
 	defer func() { _ = conn.Close() }()
 
-	_, err := conn.Write(message.NewCatMessageV2("offset.bin-nosuch", false, false, 67, nil).Encode())
+	_, err := conn.Write(message.NewCatMessageV2("offset.bin-no-such", false, false, 67, nil).Encode())
 	require.NoError(t, err)
 
 	b := make([]byte, 10000)
