@@ -6,7 +6,7 @@ toolchain go1.25.6
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c
+	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/pkg/errors v0.9.1
@@ -51,7 +51,7 @@ require (
 
 require (
 	github.com/caio/go-tdigest v3.1.0+incompatible
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgx v3.6.2+incompatible
