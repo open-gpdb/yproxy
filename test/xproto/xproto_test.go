@@ -64,6 +64,46 @@ func TestCatWithStartOffset(t *testing.T) {
 	assert.Equal(t, payload[offset:], readRaw(t, conn, len(payload)-offset))
 }
 
+func TestCatV2WithStartOffset(t *testing.T) {
+	s := newServer(t)
+
+	payload := []byte("any random bytes")
+	const offset = 6
+
+	protoTestRunner(t, s, []MessageGroup{{
+		Name: "put",
+		Request: []wireMessage{
+			message.NewPutMessage("offset.bin", false),
+			copyData(payload),
+			message.NewCopyDoneMessage(),
+		},
+		Response: []wireMessage{message.NewReadyForQueryMessage()},
+	}})
+
+	conn := s.dial(t)
+	defer func() { _ = conn.Close() }()
+
+	_, err := conn.Write(message.NewCatMessageV2("offset.bin", false, false, offset, nil).Encode())
+	require.NoError(t, err)
+	assert.Equal(t, payload[offset:], readRaw(t, conn, len(payload)-offset))
+}
+
+func TestCatNonExistent(t *testing.T) {
+	s := newServer(t)
+
+	conn := s.dial(t)
+	defer func() { _ = conn.Close() }()
+
+	_, err := conn.Write(message.NewCatMessageV2("offset.bin-no-such", false, false, 67, nil).Encode())
+	require.NoError(t, err)
+
+	b := make([]byte, 10000)
+
+	_, err = conn.Read(b)
+
+	require.Error(t, err)
+}
+
 type badMessage struct{}
 
 func (b *badMessage) Encode() []byte {
