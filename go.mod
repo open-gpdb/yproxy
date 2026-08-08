@@ -7,7 +7,7 @@ toolchain go1.25.6
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/ProtonMail/go-crypto v1.4.1
-	github.com/jackc/pgx/v5 v5.6.0
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jarcoal/httpmock v1.4.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
@@ -23,7 +23,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require golang.org/x/text v0.28.0 // indirect
+require golang.org/x/text v0.29.0 // indirect
 
 require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
