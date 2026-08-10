@@ -8,7 +8,7 @@ const (
 	DefaultTrashRetentionDays = 7
 	DefaultTrashMoveWorkers   = 1
 	DefaultTrashDeleteWorkers = 1
-	DefaultProtectionWindow   = 24 * time.Hour
+	DefaultProtectionWindow   = 0 * time.Second
 )
 
 type Vacuum struct {
