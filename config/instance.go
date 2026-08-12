@@ -3,11 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v2"
 )
 
 type Instance struct {
@@ -30,6 +31,8 @@ type Instance struct {
 	MetricsPort            int    `json:"metrics_port" toml:"metrics_port" yaml:"metrics_port"`
 
 	YezzeyRestoreParanoid bool `json:"yezzey_restore_paranoid" toml:"yezzey_restore_paranoid" yaml:"yezzey_restore_paranoid"`
+
+	YezzeyCleanupParanoid bool `json:"yezzey_cleanup_paranoid" toml:"yezzey_cleanup_paranoid" yaml:"yezzey_cleanup_paranoid"`
 
 	SystemdNotificationsDebug bool `json:"sd_notifications_debug" toml:"sd_notifications_debug" yaml:"sd_notifications_debug"`
 	systemdSocketPath         string
@@ -57,6 +60,12 @@ type InstanceOption func(*Instance)
 func WithStorageCnf(storage Storage) InstanceOption {
 	return func(i *Instance) {
 		i.StorageCnf = storage
+	}
+}
+
+func WithCleanupOpts(p bool) InstanceOption {
+	return func(i *Instance) {
+		i.YezzeyCleanupParanoid = p
 	}
 }
 
@@ -94,6 +103,8 @@ const (
 	DefaultStatPort    = 7432
 	DefaultPsqlPort    = 8432
 	DefaultMetricsPort = 2112
+
+	DefaultCleanupParanoid = true
 )
 
 func BuildInstance(opts ...InstanceOption) *Instance {
@@ -106,6 +117,7 @@ func BuildInstance(opts ...InstanceOption) *Instance {
 		WithStatPort(DefaultStatPort),
 		WithPsqlPort(DefaultPsqlPort),
 		WithMetricsPort(DefaultMetricsPort),
+		WithCleanupOpts(DefaultCleanupParanoid),
 	)
 	ApplyInstanceOptions(i, opts...)
 

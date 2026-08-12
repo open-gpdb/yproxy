@@ -36,6 +36,9 @@ func TestReadInstanceConfigUsesDefaultsWhenUnset(t *testing.T) {
 	if cfg.MetricsPort != DefaultMetricsPort {
 		t.Fatalf("expected default metrics port %v, got %v", DefaultMetricsPort, cfg.MetricsPort)
 	}
+	if cfg.YezzeyCleanupParanoid != DefaultCleanupParanoid {
+		t.Fatalf("expected default cleanup paranoid opt %v, got %v", DefaultCleanupParanoid, cfg.YezzeyCleanupParanoid)
+	}
 }
 
 func TestReadInstanceConfigPreservesExplicitZeroPortsYAML(t *testing.T) {
