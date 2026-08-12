@@ -108,7 +108,9 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 			return fmt.Errorf("unable to parse query output %v", err)
 		}
 		(*virtualIndex)[xpath] = true
-		ylogger.Zero.Info().Str("x_path", xpath).Msg("added to virtual index")
+		if config.InstanceConfig().YezzeyCleanupParanoid {
+			ylogger.Zero.Info().Str("x_path", xpath).Msg("added to virtual index")
+		}
 	}
 	ylogger.Zero.Debug().Msg("fetched virtual index info")
 
