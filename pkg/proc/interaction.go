@@ -14,6 +14,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/crypt"
 	"github.com/yezzey-gp/yproxy/pkg/database"
+	pio "github.com/yezzey-gp/yproxy/pkg/io"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio"
@@ -25,9 +26,14 @@ import (
 
 func ProcessCatExtended(
 	s storage.StorageInteractor,
-	pr *ProtoReader,
+	pr *pio.ProtoReader,
 	name string,
-	decrypt bool, kek bool, startOffset uint64, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient) error {
+	decrypt bool,
+	kek bool,
+	startOffset uint64,
+	settings []settings.StorageSettings,
+	cr crypt.Crypter,
+	ycl client.YproxyClient) error {
 
 	ycl.SetExternalFilePath(name)
 
@@ -81,7 +87,7 @@ func ProcessCatExtended(
 
 func ProcessPutExtended(
 	s storage.StorageInteractor,
-	pr *ProtoReader,
+	pr *pio.ProtoReader,
 	name string,
 	encrypt bool, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient,
 	replyKV bool) error {
@@ -683,13 +689,18 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 	return nil
 }
 
-func ProcConn(s storage.StorageInteractor, bs storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
+func ProcConn(
+	s storage.StorageInteractor,
+	bs storage.StorageInteractor,
+	cr crypt.Crypter,
+	ycl client.YproxyClient,
+	cnf *config.Vacuum) error {
 
 	defer func() {
 		_ = ycl.Close()
 	}()
 
-	pr := NewProtoReader(ycl)
+	pr := pio.NewProtoReader(ycl)
 	tp, body, err := pr.ReadPacket()
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to read request packet")
@@ -859,7 +870,7 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 		_ = ycl.Close()
 	}()
 
-	pr := NewProtoReader(ycl)
+	pr := pio.NewProtoReader(ycl)
 	tp, body, err := pr.ReadPacket()
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to read request packet")

@@ -19,6 +19,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/clientpool"
 	"github.com/yezzey-gp/yproxy/pkg/core/pg"
 	"github.com/yezzey-gp/yproxy/pkg/crypt"
+	pio "github.com/yezzey-gp/yproxy/pkg/io"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
@@ -250,7 +251,7 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 		defer activeConnections.Done()
 		defer func() { _ = clConn.Close() }()
 		ycl := client.NewYClient(clConn)
-		r := proc.NewProtoReader(ycl)
+		r := pio.NewProtoReader(ycl)
 
 		mt, _, err := r.ReadPacket()
 

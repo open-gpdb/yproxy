@@ -272,6 +272,7 @@ dto
 testutil
 unsup
 vec
+pio
 tidycheck
 covermode
 coverprofile

@@ -1,11 +1,13 @@
-package proc
+package io
 
 import (
-	"encoding/binary"
-	"fmt"
 	"io"
 
+	"encoding/binary"
+	"fmt"
+
 	"github.com/yezzey-gp/yproxy/pkg/client"
+
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )

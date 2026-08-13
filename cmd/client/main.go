@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	pio "github.com/yezzey-gp/yproxy/pkg/io"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/object"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/tablespace"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -99,7 +99,7 @@ func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed copy msg")
 
 	client := client.NewYClient(con)
-	protoReader := proc.NewProtoReader(client)
+	protoReader := pio.NewProtoReader(client)
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
@@ -135,7 +135,7 @@ func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 
 func putFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ycl := client.NewYClient(con)
-	r := proc.NewProtoReader(ycl)
+	r := pio.NewProtoReader(ycl)
 
 	msg := message.NewPutMessageV3(args[0], encrypt, []settings.StorageSettings{
 		{
@@ -235,7 +235,7 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed list message")
 
 	ycl := client.NewYClient(con)
-	r := proc.NewProtoReader(ycl)
+	r := pio.NewProtoReader(ycl)
 
 	done := false
 	res := make([]*object.ObjectInfo, 0)
@@ -278,7 +278,7 @@ func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []s
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete msg")
 
 	client := client.NewYClient(con)
-	protoReader := proc.NewProtoReader(client)
+	protoReader := pio.NewProtoReader(client)
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
@@ -307,7 +307,7 @@ func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []s
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete2 msg")
 
 	client := client.NewYClient(con)
-	protoReader := proc.NewProtoReader(client)
+	protoReader := pio.NewProtoReader(client)
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
@@ -335,7 +335,7 @@ func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) e
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed untrashify msg")
 
 	client := client.NewYClient(con)
-	protoReader := proc.NewProtoReader(client)
+	protoReader := pio.NewProtoReader(client)
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
@@ -361,7 +361,7 @@ func goolFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed gool message")
 
 	ycl := client.NewYClient(con)
-	r := proc.NewProtoReader(ycl)
+	r := pio.NewProtoReader(ycl)
 
 	done := false
 	for !done {
