@@ -1,5 +1,3 @@
-//go:build xproto || all
-
 package xproto
 
 import (
@@ -16,6 +14,7 @@ import (
 
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
+	pio "github.com/yezzey-gp/yproxy/pkg/io"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
@@ -101,7 +100,7 @@ func (s *server) dial(t *testing.T) net.Conn {
 func readMessage(t *testing.T, conn net.Conn) wireMessage {
 	t.Helper()
 
-	tp, body, err := proc.NewProtoReader(client.NewYClient(conn)).ReadPacket()
+	tp, body, err := pio.NewProtoReader(client.NewYClient(conn)).ReadPacket()
 	require.NoError(t, err)
 
 	switch tp {
