@@ -18,13 +18,19 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/object"
 	"github.com/yezzey-gp/yproxy/pkg/proc/yio"
+	"github.com/yezzey-gp/yproxy/pkg/proto"
 	"github.com/yezzey-gp/yproxy/pkg/settings"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"golang.org/x/sync/semaphore"
 )
 
-func ProcessCatExtended(
+type ProtoMgrImpl struct {
+}
+
+var _ proto.ProtoMgr = &ProtoMgrImpl{}
+
+func (*ProtoMgrImpl) ProcessCatExtended(
 	s storage.StorageInteractor,
 	pr *pio.ProtoReader,
 	name string,
@@ -85,11 +91,14 @@ func ProcessCatExtended(
 	return nil
 }
 
-func ProcessPutExtended(
+func (*ProtoMgrImpl) ProcessPutExtended(
 	s storage.StorageInteractor,
 	pr *pio.ProtoReader,
 	name string,
-	encrypt bool, settings []settings.StorageSettings, cr crypt.Crypter, ycl client.YproxyClient,
+	encrypt bool,
+	settings []settings.StorageSettings,
+	cr crypt.Crypter,
+	ycl client.YproxyClient,
 	replyKV bool) error {
 
 	ycl.SetExternalFilePath(name)
@@ -198,7 +207,12 @@ func ProcessPutExtended(
 	return nil
 }
 
-func ProcessListExtended(prefix string, settings []settings.StorageSettings, s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient, cnf *config.Vacuum) error {
+func (*ProtoMgrImpl) ProcessListExtended(prefix string,
+	settings []settings.StorageSettings,
+	s storage.StorageInteractor,
+	cr crypt.Crypter,
+	ycl client.YproxyClient,
+	cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(prefix)
 
 	ylogger.Zero.Debug().Str("prefix", prefix).Msg("listing for prefix")
@@ -230,7 +244,8 @@ func ProcessListExtended(prefix string, settings []settings.StorageSettings, s s
 
 	return nil
 }
-func ProcessCopyExtended(
+
+func (*ProtoMgrImpl) ProcessCopyExtended(
 	name string,
 	oldCfgPath string,
 	port uint64,
@@ -240,7 +255,9 @@ func ProcessCopyExtended(
 	kEKDecrypt,
 	serverSide,
 	replyKV bool,
-	s storage.StorageInteractor, cr crypt.Crypter, ycl client.YproxyClient) error {
+	s storage.StorageInteractor,
+	cr crypt.Crypter,
+	ycl client.YproxyClient) error {
 	if kEKDecrypt {
 		err := fmt.Errorf("KEK decryption in Copy not supported")
 		_ = ycl.ReplyError(err, "failed to complete request")
@@ -436,7 +453,12 @@ func ProcessCopyExtended(
 	return nil
 }
 
-func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient, cnf *config.Vacuum) error {
+func (*ProtoMgrImpl) ProcessDeleteExtended(
+	msg message.DeleteMessage,
+	s storage.StorageInteractor,
+	bs storage.StorageInteractor,
+	ycl client.YproxyClient,
+	cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(msg.Name)
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -489,7 +511,12 @@ func ProcessDeleteExtended(msg message.DeleteMessage, s storage.StorageInteracto
 	return nil
 }
 
-func ProcessDelete2Extended(msg message.Delete2Message, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient, cnf *config.Vacuum) error {
+func (*ProtoMgrImpl) ProcessDelete2Extended(
+	msg message.Delete2Message,
+	s storage.StorageInteractor,
+	bs storage.StorageInteractor,
+	ycl client.YproxyClient,
+	cnf *config.Vacuum) error {
 	ycl.SetExternalFilePath(msg.Prefix)
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -532,7 +559,11 @@ func ProcessDelete2Extended(msg message.Delete2Message, s storage.StorageInterac
 	return nil
 }
 
-func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient) error {
+func (*ProtoMgrImpl) ProcessUntrashify(
+	msg message.UntrashifyMessage,
+	s storage.StorageInteractor,
+	bs storage.StorageInteractor,
+	ycl client.YproxyClient) error {
 	ycl.SetExternalFilePath(msg.Name)
 
 	dbInterractor := &database.DatabaseHandler{}
@@ -569,7 +600,9 @@ func ProcessUntrashify(msg message.UntrashifyMessage, s storage.StorageInteracto
 	return nil
 }
 
-func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.StorageInteractor, ycl client.YproxyClient) error {
+func (*ProtoMgrImpl) ProcessCollectObsolete(msg message.CollectObsoleteMessage,
+	s storage.StorageInteractor,
+	ycl client.YproxyClient) error {
 	dh := database.DatabaseHandler{}
 
 	files, err := s.ListPath(msg.Message, true, nil)
@@ -623,7 +656,10 @@ func ProcessCollectObsolete(msg message.CollectObsoleteMessage, s storage.Storag
 	return nil
 }
 
-func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageInteractor, bs storage.StorageInteractor, ycl client.YproxyClient) error {
+func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
+	s storage.StorageInteractor,
+	bs storage.StorageInteractor,
+	ycl client.YproxyClient) error {
 	bh := &backups.StorageBackupInteractor{Storage: bs}
 
 	dh := database.DatabaseHandler{}
@@ -690,6 +726,7 @@ func ProcessDeleteObsolete(msg message.DeleteObsoleteMessage, s storage.StorageI
 }
 
 func ProcConn(
+	m proto.ProtoMgr,
 	s storage.StorageInteractor,
 	bs storage.StorageInteractor,
 	cr crypt.Crypter,
@@ -718,7 +755,7 @@ func ProcConn(
 		msg := message.CatMessage{}
 		msg.Decode(body)
 
-		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, false, msg.StartOffset, nil, cr, ycl); err != nil {
+		if err := m.ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, false, msg.StartOffset, nil, cr, ycl); err != nil {
 			return err
 		}
 
@@ -727,7 +764,7 @@ func ProcConn(
 		msg := message.CatMessageV2{}
 		msg.Decode(body)
 
-		if err := ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, msg.KEK, msg.StartOffset, msg.Settings, cr, ycl); err != nil {
+		if err := m.ProcessCatExtended(s, pr, msg.Name, msg.Decrypt, msg.KEK, msg.StartOffset, msg.Settings, cr, ycl); err != nil {
 			return err
 		}
 
@@ -736,7 +773,7 @@ func ProcConn(
 		msg := message.PutMessage{}
 		msg.Decode(body)
 
-		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, nil, cr, ycl, false); err != nil {
+		if err := m.ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, nil, cr, ycl, false); err != nil {
 			return err
 		}
 
@@ -745,7 +782,7 @@ func ProcConn(
 		msg := message.PutMessageV2{}
 		msg.Decode(body)
 
-		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, false); err != nil {
+		if err := m.ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, false); err != nil {
 			return err
 		}
 
@@ -753,7 +790,7 @@ func ProcConn(
 		msg := message.PutMessageV3{}
 		msg.Decode(body)
 
-		if err := ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, true); err != nil {
+		if err := m.ProcessPutExtended(s, pr, msg.Name, msg.Encrypt, msg.Settings, cr, ycl, true); err != nil {
 			return err
 		}
 
@@ -761,7 +798,7 @@ func ProcConn(
 		msg := message.ListMessage{}
 		msg.Decode(body)
 
-		err := ProcessListExtended(msg.Prefix, nil, s, cr, ycl, cnf)
+		err := m.ProcessListExtended(msg.Prefix, nil, s, cr, ycl, cnf)
 		if err != nil {
 			return err
 		}
@@ -773,7 +810,7 @@ func ProcConn(
 			ylogger.Zero.Debug().Str("name", s.Name).Str("value", s.Value).Msg("list request setting")
 		}
 
-		err := ProcessListExtended(msg.Prefix, msg.Settings, s, cr, ycl, cnf)
+		err := m.ProcessListExtended(msg.Prefix, msg.Settings, s, cr, ycl, cnf)
 		if err != nil {
 			return err
 		}
@@ -782,7 +819,7 @@ func ProcConn(
 		msg := message.CopyMessage{}
 		msg.Decode(body)
 
-		err := ProcessCopyExtended(
+		err := m.ProcessCopyExtended(
 			msg.Name,
 			msg.OldCfgPath,
 			msg.Port,
@@ -801,7 +838,7 @@ func ProcConn(
 		msg := message.CopyMessageV2{}
 		msg.Decode(body)
 
-		err := ProcessCopyExtended(
+		err := m.ProcessCopyExtended(
 			msg.Name,
 			msg.OldCfgPath,
 			msg.Port,
@@ -820,14 +857,14 @@ func ProcConn(
 		// receive message
 		msg := message.DeleteMessage{}
 		msg.Decode(body)
-		err := ProcessDeleteExtended(msg, s, bs, ycl, cnf)
+		err := m.ProcessDeleteExtended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}
 	case message.MessageTypeDelete2:
 		msg := message.Delete2Message{}
 		msg.Decode(body)
-		err := ProcessDelete2Extended(msg, s, bs, ycl, cnf)
+		err := m.ProcessDelete2Extended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}
@@ -835,24 +872,25 @@ func ProcConn(
 		// receive message
 		msg := message.UntrashifyMessage{}
 		msg.Decode(body)
-		err := ProcessUntrashify(msg, s, bs, ycl)
+		err := m.ProcessUntrashify(msg, s, bs, ycl)
 		if err != nil {
 			return err
 		}
 
 	case message.MessageTypeGool:
+		/* Deprecated */
 		return ProcMotion(s, cr, ycl)
 
 	case message.MessageCollectObsolete:
 		msg := message.CollectObsoleteMessage{}
 		msg.Decode(body)
-		if err := ProcessCollectObsolete(msg, s, ycl); err != nil {
+		if err := m.ProcessCollectObsolete(msg, s, ycl); err != nil {
 			return err
 		}
 	case message.MessageDeleteObsolete:
 		msg := message.DeleteObsoleteMessage{}
 		msg.Decode(body)
-		if err := ProcessDeleteObsolete(msg, s, bs, ycl); err != nil {
+		if err := m.ProcessDeleteObsolete(msg, s, bs, ycl); err != nil {
 			return err
 		}
 	default:

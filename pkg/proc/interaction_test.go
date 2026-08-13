@@ -102,7 +102,7 @@ func TestProcConnUnknownMessageTypeRepliesErrorWithoutPanic(t *testing.T) {
 	ycl := newProcConnTestClient(testPacket(unknownType))
 
 	require.NotPanics(t, func() {
-		err := proc.ProcConn(nil, nil, nil, ycl, &config.Vacuum{})
+		err := proc.ProcConn(&proc.ProtoMgrImpl{}, nil, nil, nil, ycl, &config.Vacuum{})
 		require.NoError(t, err)
 	})
 	require.True(t, ycl.closed)
@@ -121,7 +121,7 @@ func TestProcConnCopyDoneRepliesErrorWithoutPanic(t *testing.T) {
 	ycl := newProcConnTestClient(testPacket(message.MessageTypeCopyDone))
 
 	require.NotPanics(t, func() {
-		err := proc.ProcConn(nil, nil, nil, ycl, &config.Vacuum{})
+		err := proc.ProcConn(&proc.ProtoMgrImpl{}, nil, nil, nil, ycl, &config.Vacuum{})
 		require.NoError(t, err)
 	})
 	require.True(t, ycl.closed)
