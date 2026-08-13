@@ -1,5 +1,3 @@
-//go:build xproto || all
-
 package xproto
 
 import (

@@ -83,7 +83,7 @@ func (s *server) serve() {
 			return
 		}
 		go func(c net.Conn) {
-			_ = proc.ProcConn(s.st, s.st, nil, client.NewYClient(c), &config.Vacuum{})
+			_ = proc.ProcConn(&proc.ProtoMgrImpl{}, s.st, s.st, nil, client.NewYClient(c), &config.Vacuum{})
 		}(conn)
 	}
 }
