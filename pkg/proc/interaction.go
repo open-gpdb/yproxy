@@ -274,7 +274,7 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 
 	ycl.SetExternalFilePath(name)
 
-	// get config for old bucket
+	// Get config for old bucket
 	sourceInstanceCnf, err := config.ReadInstanceConfig(oldCfgPath)
 	if err != nil {
 		_ = ycl.ReplyError(fmt.Errorf("could not read old config: %s", err), "failed to complete request")
@@ -286,7 +286,7 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 	if err != nil {
 		return err
 	}
-	ylogger.Zero.Info().Interface("cnf", sourceInstanceCnf).Msg("loaded new config")
+	ylogger.Zero.Debug().Interface("cnf", sourceInstanceCnf).Msg("loaded new config")
 
 	objectMetas, _, err := ListFilesToCopy(name, port, sourceInstanceCnf.StorageCnf, oldStorage, s)
 	if err != nil {
@@ -323,7 +323,7 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 					defer sem.Release(1)
 					defer wg.Done()
 
-					ylogger.Zero.Info().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
+					ylogger.Zero.Debug().Int("index", i).Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("copying...")
 
 					// If keys are equal, try performing server-side copy
 					if ssCopy {
@@ -406,7 +406,7 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 						}
 					}()
 
-					//write file
+					// Write file
 					err = s.PutFileToDest(path, readerEncrypt, nil)
 					if err != nil {
 						ylogger.Zero.Error().Err(err).Msg("failed to upload file")
@@ -419,18 +419,17 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 			}
 			wg.Wait()
 			objectMetas = failed
-			ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
 			failed = make([]*object.ObjectInfo, 0)
 		}
 
 		if len(objectMetas) > 0 {
-			ylogger.Zero.Info().Int("count", len(objectMetas)).Msg("failed files count")
 			fmt.Printf("failed files: %v\n", objectMetas)
-			ylogger.Zero.Error().Int("failed files count", len(objectMetas)).Msg("failed to upload some files")
-			ylogger.Zero.Error().Any("failed files", objectMetas).Msg("failed to upload some files")
+			ylogger.Zero.Error().
+				Int("failed files count", len(objectMetas)).
+				Any("failed files", objectMetas).
+				Msg("failed to upload some files")
 
 			err := fmt.Errorf("failed to copy some files")
-
 			_ = ycl.ReplyError(err, "failed files")
 			return err
 		}
@@ -676,7 +675,7 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 		return fmt.Errorf("wal-g backups required for consistent deleting")
 	}
 
-	ylogger.Zero.Info().Uint64("lsn", first_backup_lsn).Msg("first backup LSN")
+	ylogger.Zero.Debug().Uint64("lsn", first_backup_lsn).Msg("first backup LSN")
 	conn, err := dh.GetConnectToDatabase(msg.Port, msg.DBName)
 	if err != nil {
 		ylogger.Zero.Error().Err(err).Msg("ProcessDeleteObsolete: get connection")
@@ -685,10 +684,10 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 	defer func() { _ = conn.Close() }()
 
 	for str, v := range ei {
-		ylogger.Zero.Info().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if v >= first_backup_lsn {
 			continue
 		}
+		ylogger.Zero.Debug().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if vi[str] {
 			ylogger.Zero.Error().Str("delete candidate", str).Msg("path in both expire and virtual index")
 
@@ -710,17 +709,17 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 		}
 		err = dh.DeleteFromExpireIndex(conn, msg.Port, msg.DBName, str)
 		if err != nil {
-			ylogger.Zero.Debug().Err(err).Str("delete candidate", str).Msg("not deleted from expire hint")
+			ylogger.Zero.Warn().Err(err).Str("delete candidate", str).Msg("not deleted from expire hint")
 			continue
 		}
 
 		// TODO make deletion if crazy_drop
 		err = s.MoveObject(s.DefaultBucket(), str, "/trash"+str)
 		if err != nil {
-			ylogger.Zero.Debug().Err(err).Str("delete candidate", str).Msg("not moved to trash")
+			ylogger.Zero.Warn().Err(err).Str("delete candidate", str).Msg("not moved to trash")
 			continue
 		}
-		ylogger.Zero.Info().Str("delete candidate", str).Msg("deleted successfully")
+		ylogger.Zero.Debug().Str("delete candidate", str).Msg("deleted successfully")
 	}
 	return nil
 }
@@ -922,7 +921,7 @@ func ProcMotion(s storage.StorageInteractor, cr crypt.Crypter, ycl client.Yproxy
 	msg := message.GoolMessage{}
 	msg.Decode(body)
 
-	ylogger.Zero.Info().Msg("received client gool success")
+	ylogger.Zero.Debug().Msg("received client gool success")
 
 	_, err = ycl.GetRW().Write(message.NewReadyForQueryMessage().Encode())
 	if err != nil {
@@ -962,7 +961,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 			skipCopy := config.InstanceConfig().StorageCnf.StorageOptimizeCopy
 			skipped = append(skipped, objectMetas[i])
 
-			ylogger.Zero.Info().Int("index", i).Str("reworked name", reworked).Str("object path", objectMetas[i].Path).Bool("skipping", skipCopy).Msg("not in virtual index")
+			ylogger.Zero.Debug().Int("index", i).Str("reworked name", reworked).Str("object path", objectMetas[i].Path).Bool("skipping", skipCopy).Msg("not in virtual index")
 
 			if skipCopy {
 				continue
@@ -980,7 +979,7 @@ func ListFilesToCopy(prefix string, port uint64, cfg config.Storage, src storage
 			continue
 		}
 
-		ylogger.Zero.Info().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("will be copied")
+		ylogger.Zero.Debug().Str("object path", objectMetas[i].Path).Int64("object size", objectMetas[i].Size).Msg("will be copied")
 
 		toCopy = append(toCopy, objectMetas[i])
 	}

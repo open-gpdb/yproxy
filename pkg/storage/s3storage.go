@@ -72,7 +72,7 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
-		ylogger.Zero.Err(err)
+		ylogger.Zero.Err(err).Str("tablespace", tableSpace).Msg("failed to match tablespace to s3 bucket")
 		return nil, err
 	}
 
@@ -123,7 +123,7 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
-		ylogger.Zero.Err(err)
+		ylogger.Zero.Err(err).Str("tablespace", tableSpace).Msg("failed to match tablespace to s3 bucket")
 		return err
 	}
 
@@ -216,7 +216,7 @@ func (s *S3StorageInteractor) ListPath(prefix string, useCache bool, settings []
 	bucket, ok := s.TSToBucketMap[tableSpace]
 	if !ok {
 		err := fmt.Errorf("failed to match tablespace %s to s3 bucket", tableSpace)
-		ylogger.Zero.Err(err)
+		ylogger.Zero.Err(err).Str("tablespace", tableSpace).Msg("failed to match tablespace to s3 bucket")
 		return nil, err
 	}
 
@@ -251,7 +251,7 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 
 		out, err := sess.ListObjectsV2(input)
 		if err != nil {
-			ylogger.Zero.Debug().Err(err).Msg("failed to list prefix")
+			ylogger.Zero.Warn().Err(err).Msg("failed to list prefix")
 			return nil, err
 		}
 
@@ -285,7 +285,7 @@ func (s *S3StorageInteractor) ListBucketPath(bucket, prefix string, useCache boo
 	if useCache {
 		err = putInCache(s.cnf.ID(), metas)
 		if err != nil {
-			ylogger.Zero.Debug().Err(err).Msg("failed to put objects in cache")
+			ylogger.Zero.Warn().Err(err).Msg("failed to put objects in cache")
 		}
 	}
 
