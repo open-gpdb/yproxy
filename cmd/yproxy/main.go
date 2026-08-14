@@ -49,6 +49,6 @@ func init() {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		ylogger.Zero.Fatal().Err(err).Msg("")
+		ylogger.Zero.Fatal().Err(err).Msg("failed to execute root command")
 	}
 }

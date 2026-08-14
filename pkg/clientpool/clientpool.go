@@ -109,27 +109,31 @@ func (c *PoolImpl) Shutdown() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	var retError error
 	for _, cl := range c.pool {
 		go func(cl client.YproxyClient) {
 			if err := cl.Close(); err != nil {
-				ylogger.Zero.Error().Err(err).Msg("")
+				ylogger.Zero.Error().Err(err).Msg("failed to close client connection")
+				retError = err
 			}
 		}(cl)
 	}
 
-	return nil
+	return retError
 }
 func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	var retError error
 	for _, cl := range c.pool {
 		if err := cb(cl); err != nil {
-			ylogger.Zero.Error().Err(err).Msg("")
+			ylogger.Zero.Error().Err(err).Msg("failed to write to connection")
+			retError = err
 		}
 	}
 
-	return nil
+	return retError
 }
 
 func NewClientPool() Pool {

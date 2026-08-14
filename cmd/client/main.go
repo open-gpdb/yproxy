@@ -123,7 +123,7 @@ func copyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 
 	ansType, body, err = protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while answer")
+		ylogger.Zero.Warn().Err(err).Msg("error while answer")
 		return err
 	}
 
@@ -267,7 +267,6 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 // Request to delete a specific storage object
 func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete command")
-
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
 	msg := message.NewDeleteMessage(args[0], segmentPort, segmentNum, confirm, garbage).Encode()
 	_, err := con.Write(msg)
@@ -282,7 +281,7 @@ func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []s
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
+		ylogger.Zero.Warn().Err(err).Msg("error while receiving answer")
 		return err
 	}
 
@@ -296,7 +295,6 @@ func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []s
 // Request to delete a set of trash objects by prefix
 func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete2 command")
-
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete2")
 	msg := message.NewDelete2Message(args[0], confirm, garbage).Encode()
 	_, err := con.Write(msg) // Send message with socket to server
@@ -311,7 +309,7 @@ func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []s
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
+		ylogger.Zero.Warn().Err(err).Msg("error while receiving answer")
 		return err
 	}
 
@@ -324,7 +322,6 @@ func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []s
 
 func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute untrashify command")
-
 	ylogger.Zero.Info().Str("name", args[0]).Msg("untrash")
 	msg := message.NewUntrashifyMessage(args[0], segmentNum, confirm).Encode()
 	_, err := con.Write(msg)
@@ -339,7 +336,7 @@ func untrashifyFunc(con net.Conn, instanceCnf *config.Instance, args []string) e
 
 	ansType, body, err := protoReader.ReadPacket()
 	if err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("error while receiving answer")
+		ylogger.Zero.Warn().Err(err).Msg("error while receiving answer")
 		return err
 	}
 
@@ -487,6 +484,6 @@ func init() {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		ylogger.Zero.Fatal().Err(err).Msg("")
+		ylogger.Zero.Fatal().Err(err).Msg("failed to execute root command")
 	}
 }

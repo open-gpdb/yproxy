@@ -75,7 +75,7 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	ylogger.Zero.Info().Str("bucket", bucket).Str("path", msg.Name).Int("amount", len(objectMetas)).Msg("untrashify started")
 
 	for _, file := range objectMetas {
-		ylogger.Zero.Info().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
+		ylogger.Zero.Debug().Str("file", file.Path).Str("dest-path", RegPathFromTrasnPath(file.Path, int(msg.Segnum))).Msg("file will be untrashified")
 	}
 
 	if !msg.Confirm { // Do not delete files if no confirmation flag provided
@@ -128,7 +128,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	ylogger.Zero.Info().Str("bucket", bucket).Int("files", len(fileList)).Int("uploads", len(uploads)).Msg("garbage delete started")
 
 	for _, file := range fileList {
-		ylogger.Zero.Info().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
+		ylogger.Zero.Debug().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
 		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
@@ -188,7 +188,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		deleted += len(batch) - len(fileList)
 		t.SetRemaining(len(fileList))
 		if err != nil {
-			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err)
+			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg(failedActionMsg)
 		}
 	}
 
@@ -430,7 +430,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 			ylogger.Zero.Error().AnErr("err", err).Msg("failed to get first lsn") // Return or just assume there are no backups?
 			return nil, err
 		}
-		ylogger.Zero.Info().Uint64("lsn", firstBackupLSN).Msg("first backup LSN")
+		ylogger.Zero.Debug().Uint64("lsn", firstBackupLSN).Msg("first backup LSN")
 	} else {
 		firstBackupLSN = ^uint64(0)
 		ylogger.Zero.Info().Uint64("lsn", firstBackupLSN).Msg("omit first backup LSN")
@@ -450,7 +450,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 		ylogger.Zero.Error().AnErr("err", err).Msg("failed to get indexes")
 		return nil, errors.Wrap(err, "could not get virtual and expire indexes")
 	}
-	ylogger.Zero.Info().Int("virtual", len(vi)).Int("expire", len(ei)).Msg("received virtual index and expire index")
+	ylogger.Zero.Debug().Int("virtual", len(vi)).Int("expire", len(ei)).Msg("received virtual index and expire index")
 
 	filesToDelete := make([]*object.ObjectInfo, 0)
 	for i := range objectMetas {

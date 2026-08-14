@@ -26,19 +26,18 @@ init:
 	for {
 		msg, err := conn.ReceiveStartupMessage()
 		if err != nil {
-			ylogger.Zero.Error().Err(err)
+			ylogger.Zero.Error().Err(err).Msg("failed to receive startup message")
 			return
 		}
 
 		switch q := msg.(type) {
 		case *pgproto3.SSLRequest:
-			/* negotiate */
-			ylogger.Zero.Info().Msg("negotiate ssl proto version")
+			ylogger.Zero.Debug().Msg("negotiate ssl proto version")
 			if _, err := cl.Write([]byte{'N'}); err != nil {
 				ylogger.Zero.Error().Err(err).Msg("proto mess up")
 			}
 		case *pgproto3.StartupMessage:
-			ylogger.Zero.Info().Uint32("proto", q.ProtocolVersion).Msg("accept psql proto version")
+			ylogger.Zero.Debug().Uint32("proto", q.ProtocolVersion).Msg("accept psql proto version")
 			break init
 		default:
 			ylogger.Zero.Error().Msg("proto mess up")
@@ -73,7 +72,7 @@ init:
 
 		switch q := msg.(type) {
 		case *pgproto3.Query:
-			ylogger.Zero.Info().Str("query", q.String).Msg("serving request")
+			ylogger.Zero.Debug().Str("query", q.String).Msg("serving request")
 
 			node, err := parser.Parse(q.String)
 
@@ -86,7 +85,7 @@ init:
 				continue
 			}
 
-			ylogger.Zero.Info().Interface("node", node).Msg("parsed nodetree")
+			ylogger.Zero.Debug().Interface("node", node).Msg("parsed nodetree")
 
 			switch q := node.(type) {
 			case *parser.SayHelloCommand:

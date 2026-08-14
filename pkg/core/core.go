@@ -214,14 +214,14 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 			// This check is useless, but it's need to avoid violating the contract
 			// and making a mistake the below.
 			// Error return value of `instance.pool.Put` is not checked
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
+			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
 		}
 
 		if err := proc.ProcConn(&proc.ProtoMgrImpl{}, s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
+			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
 		if _, err := instance.pool.Pop(ycl.ID()); err != nil {
-			ylogger.Zero.Debug().Uint("id", ycl.ID()).Err(err).Msg("error erasing client from pool")
+			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error erasing client from pool")
 		}
 	})
 

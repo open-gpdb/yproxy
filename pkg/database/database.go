@@ -69,7 +69,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 
 	/* Todo: check that yezzey version >= 1.8.4 */
 	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
-		ylogger.Zero.Debug().Err(err).Msg("GetVirtualExpireIndex: failed")
+		ylogger.Zero.Warn().Err(err).Msg("GetVirtualExpireIndex: failed")
 		return err
 	} else if ch {
 		rows, err := conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
@@ -109,7 +109,7 @@ func (database *DatabaseHandler) GetVirtualExpireIndex(port uint64, db DB, virtu
 		}
 		(*virtualIndex)[xpath] = true
 		if config.InstanceConfig().YezzeyCleanupParanoid {
-			ylogger.Zero.Info().Str("x_path", xpath).Msg("added to virtual index")
+			ylogger.Zero.Debug().Str("x_path", xpath).Msg("added to virtual index")
 		}
 	}
 	ylogger.Zero.Debug().Msg("fetched virtual index info")
