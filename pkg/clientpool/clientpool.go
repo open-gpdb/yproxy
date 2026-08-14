@@ -109,15 +109,23 @@ func (c *PoolImpl) Shutdown() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var retError error
+	var (
+		retError error
+		wg       sync.WaitGroup
+	)
+
 	for _, cl := range c.pool {
+		wg.Add(1)
 		go func(cl client.YproxyClient) {
+			defer wg.Done()
+
 			if err := cl.Close(); err != nil {
 				ylogger.Zero.Error().Err(err).Msg("failed to close client connection")
 				retError = err
 			}
 		}(cl)
 	}
+	wg.Wait()
 
 	return retError
 }
