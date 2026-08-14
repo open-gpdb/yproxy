@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.6
 
 require (
-	github.com/BurntSushi/toml v1.3.2
+	github.com/BurntSushi/toml v1.6.0
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jarcoal/httpmock v1.4.2
