@@ -10,6 +10,7 @@ build:
 	mkdir -p devbin
 	go build -pgo=auto -o devbin/yproxy $(LDFLAGS) ./cmd/yproxy
 	go build -o devbin/yp-client ./cmd/client
+	go build -pgo=auto -o devbin/yfuzzer $(LDFLAGS) ./cmd/yfuzzer
 
 ####################### TESTS #######################
 
