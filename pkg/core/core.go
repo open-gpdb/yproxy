@@ -23,6 +23,7 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/metrics"
 	"github.com/yezzey-gp/yproxy/pkg/proc"
+	"github.com/yezzey-gp/yproxy/pkg/proto"
 	"github.com/yezzey-gp/yproxy/pkg/sdnotifier"
 	"github.com/yezzey-gp/yproxy/pkg/storage"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
@@ -32,12 +33,15 @@ type Instance struct {
 	pool clientpool.Pool
 
 	startTs time.Time
+
+	ProtoMgr proto.ProtoMgr
 }
 
 func NewInstance() *Instance {
 	return &Instance{
-		pool:    clientpool.NewClientPool(),
-		startTs: time.Now(),
+		pool:     clientpool.NewClientPool(),
+		startTs:  time.Now(),
+		ProtoMgr: &proc.ProtoMgrImpl{},
 	}
 }
 
@@ -217,7 +221,7 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
 		}
 
-		if err := proc.ProcConn(&proc.ProtoMgrImpl{}, s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
+		if err := proc.ProcConn(instance.ProtoMgr, s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
 		if _, err := instance.pool.Pop(ycl.ID()); err != nil {
