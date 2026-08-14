@@ -1,9 +1,12 @@
 package clientpool
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/caio/go-tdigest"
 	"github.com/yezzey-gp/yproxy/pkg/client"
@@ -106,34 +109,30 @@ func (c *PoolImpl) Pop(id uint) (bool, error) {
 }
 
 func (c *PoolImpl) Shutdown() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	var retError error
-	for _, cl := range c.pool {
-		go func(cl client.YproxyClient) {
-			if err := cl.Close(); err != nil {
-				ylogger.Zero.Error().Err(err).Msg("failed to close client connection")
-				retError = err
-			}
-		}(cl)
-	}
-
-	return retError
+	return c.ClientPoolForeach(func(cl client.YproxyClient) error {
+		return cl.Close()
+	})
 }
+
 func (c *PoolImpl) ClientPoolForeach(cb func(client client.YproxyClient) error) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var retError error
+	wg, _ := errgroup.WithContext(context.Background())
+
 	for _, cl := range c.pool {
-		if err := cb(cl); err != nil {
-			ylogger.Zero.Error().Err(err).Msg("failed to write to connection")
-			retError = err
-		}
+		clCp := cl
+		wg.Go(func() error {
+			err := cb(clCp)
+			if err != nil {
+				ylogger.Zero.Error().Err(err).Msg("failed to run callback on client connection")
+
+			}
+			return err
+		})
 	}
 
-	return retError
+	return wg.Wait()
 }
 
 func NewClientPool() Pool {
