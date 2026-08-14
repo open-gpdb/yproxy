@@ -131,7 +131,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		ylogger.Zero.Debug().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
-		ylogger.Zero.Debug().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
 	}
 
 	if !msg.Confirm { // Do not delete files if no confirmation flag provided
@@ -154,7 +154,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		defaultWorkerCount = config.DefaultTrashDeleteWorkers
 
 		operate = func(file *object.ObjectInfo) error {
-			ylogger.Zero.Debug().
+			ylogger.Zero.Info().
 				Str("bucket", bucket).
 				Str("path", file.Path).
 				Msg("immediately delete garbage file")
@@ -339,7 +339,7 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		ylogger.Zero.Debug().Str("bucket", bucket).Str("file", file.Path).Msg("file will be deleted")
 	}
 	for _, upload := range uploads {
-		ylogger.Zero.Debug().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
+		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
 	}
 
 	if !msg.Confirm { // Do not delete files if no confirmation flag provided
@@ -433,7 +433,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 		ylogger.Zero.Debug().Uint64("lsn", firstBackupLSN).Msg("first backup LSN")
 	} else {
 		firstBackupLSN = ^uint64(0)
-		ylogger.Zero.Debug().Uint64("lsn", firstBackupLSN).Msg("omit first backup LSN")
+		ylogger.Zero.Info().Uint64("lsn", firstBackupLSN).Msg("omit first backup LSN")
 	}
 
 	// List files in storage
