@@ -43,6 +43,7 @@ Errflag
 Errorf
 Exca
 expvar
+errgroup
 Fatalf
 fbreak
 fileinfo

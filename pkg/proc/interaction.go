@@ -684,10 +684,10 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 	defer func() { _ = conn.Close() }()
 
 	for str, v := range ei {
+		ylogger.Zero.Debug().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if v >= first_backup_lsn {
 			continue
 		}
-		ylogger.Zero.Debug().Str("delete candidate", str).Uint64("expire lsn", v).Uint64("first backup lsn", first_backup_lsn).Msg("checking lsn")
 		if vi[str] {
 			ylogger.Zero.Error().Str("delete candidate", str).Msg("path in both expire and virtual index")
 
