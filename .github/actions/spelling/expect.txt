@@ -215,6 +215,7 @@ yio
 ylogger
 yml
 yproxy
+yfuzzer
 YPROXYHELLO
 YRestart
 YRetry
