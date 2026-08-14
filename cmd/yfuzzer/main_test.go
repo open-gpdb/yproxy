@@ -93,9 +93,9 @@ func TestProcessListExtended_EndsWithReadyForQuery(t *testing.T) {
 
 		fuzz(cl)
 
-		pkts := parsePackets(t, rw.buf.Bytes())
-		assert.NotEmpty(t, pkts, "should send at least one packet")
-		assert.Equal(t, message.MessageTypeReadyForQuery, pkts[len(pkts)-1].msgType,
+		packets := parsePackets(t, rw.buf.Bytes())
+		assert.NotEmpty(t, packets, "should send at least one packet")
+		assert.Equal(t, message.MessageTypeReadyForQuery, packets[len(packets)-1].msgType,
 			"last packet must be ReadyForQuery")
 	}
 }
