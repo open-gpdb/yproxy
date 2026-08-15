@@ -449,6 +449,22 @@ func TestDeleteMsg(t *testing.T) {
 	assert.True(msg2.Garbage)
 }
 
+func TestDelete2Msg(t *testing.T) {
+	assert := assert.New(t)
+
+	msg := message.NewDelete2Message("trash/prefix", true, false)
+	body := msg.Encode()
+
+	assert.Equal(body[8], byte(message.MessageTypeDelete2))
+
+	msg2 := message.Delete2Message{}
+	msg2.Decode(body[8:])
+
+	assert.Equal("trash/prefix", msg2.Prefix)
+	assert.True(msg2.Confirm)
+	assert.False(msg2.Garbage)
+}
+
 func TestUntrashifyMsg(t *testing.T) {
 	assert := assert.New(t)
 
