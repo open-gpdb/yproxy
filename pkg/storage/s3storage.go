@@ -86,7 +86,7 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 		return nil, err
 	}
 	input := &s3.GetObjectInput{
-		Bucket: &bucket,
+		Bucket: aws.String(bucket),
 		Key:    aws.String(objectPath),
 		Range:  aws.String(fmt.Sprintf("bytes=%d-", offset)),
 	}
@@ -350,10 +350,20 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 
 	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
+	sourceInput := &s3.GetObjectInput{
+		Bucket: aws.String(fromStorageBucket),
+		Key:    aws.String(from),
+	}
+	sourceObject, err := sess.GetObject(sourceInput)
+	if err != nil {
+		return err
+	}
+
 	inp := s3.CopyObjectInput{
-		Bucket:     &toStorageBucket,
-		CopySource: aws.String(from),
-		Key:        aws.String(to),
+		Bucket:       &toStorageBucket,
+		CopySource:   aws.String(from),
+		Key:          aws.String(to),
+		StorageClass: sourceObject.StorageClass,
 	}
 
 	_, err = sess.CopyObject(&inp)
