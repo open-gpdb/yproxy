@@ -38,6 +38,7 @@ var (
 	segmentNum  uint64
 	confirm     bool
 	garbage     bool
+	crazyDrop   bool
 )
 
 func Runner(f func(net.Conn, *config.Instance, []string) error) func(*cobra.Command, []string) error {
@@ -268,7 +269,9 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete command")
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
-	msg := message.NewDeleteMessage(args[0], segmentPort, segmentNum, confirm, garbage).Encode()
+	dmsg := message.NewDeleteMessage(args[0], segmentPort, segmentNum, confirm, garbage)
+	dmsg.CrazyDrop = crazyDrop
+	msg := dmsg.Encode()
 	_, err := con.Write(msg)
 	if err != nil {
 		return err
@@ -471,6 +474,7 @@ func init() {
 	deleteCmd.PersistentFlags().Uint64VarP(&segmentNum, "segnum", "s", 0, "logical number of a segment")
 	deleteCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
 	deleteCmd.PersistentFlags().BoolVarP(&garbage, "garbage", "g", false, "delete garbage")
+	deleteCmd.PersistentFlags().BoolVarP(&crazyDrop, "crazy-drop", "", false, "delete garbage files immediately instead of moving to trash")
 	rootCmd.AddCommand(deleteCmd)
 
 	untrashifyCmd.PersistentFlags().Uint64VarP(&segmentNum, "segnum", "s", 0, "logical number of a segment")
