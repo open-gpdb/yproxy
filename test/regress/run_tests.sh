@@ -19,5 +19,6 @@ for test in $(ls test/regress/tests | awk '{print(substr($1, 1, length($1)-3))}'
         do s3cmd --access_key some_key --secret_key some_key --host minio:9000 --host-bucket "" --no-ssl rm $file 
     done
     [ $(s3cmd --access_key some_key --secret_key some_key --host minio:9000 --host-bucket "" --no-ssl la -r | grep "\S" | wc -l ) -eq 0 ] || ( echo s3 not empty; exit 2 )
+    # Ugh. TODO: drop/create extension
     psql -h pg -U postgres -d test -c "DELETE FROM yezzey.yezzey_virtual_index"
 done
