@@ -1,0 +1,4 @@
+1
+Object: {Name: "/red_red_file", size: 13}
+Object: {Name: "/trash/segments_005/seg0/basebackups_005/yezzey/red_red_file", size: 13}
+   Storage:   REDUCED_REDUNDANCY
