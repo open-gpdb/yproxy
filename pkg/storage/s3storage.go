@@ -346,9 +346,6 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 		to = path.Join(s.cnf.StoragePrefix, to)
 	}
 	to = strings.TrimLeft(to, "/")
-	from = path.Join(fromStorageBucket, from)
-
-	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
 	sourceInput := &s3.HeadObjectInput{
 		Bucket: aws.String(fromStorageBucket),
@@ -358,6 +355,10 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 	if err != nil {
 		return err
 	}
+
+	from = path.Join(fromStorageBucket, from)
+
+	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
 	inp := s3.CopyObjectInput{
 		Bucket:       &toStorageBucket,
