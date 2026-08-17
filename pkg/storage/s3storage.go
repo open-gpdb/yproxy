@@ -350,11 +350,11 @@ func (s *S3StorageInteractor) SScopyObject(from, to, fromStoragePrefix, fromStor
 
 	ylogger.Zero.Debug().Str("to", to).Str("from", from).Msg("requesting server-side copy")
 
-	sourceInput := &s3.GetObjectInput{
+	sourceInput := &s3.HeadObjectInput{
 		Bucket: aws.String(fromStorageBucket),
 		Key:    aws.String(from),
 	}
-	sourceObject, err := sess.GetObject(sourceInput)
+	sourceObject, err := sess.HeadObject(sourceInput)
 	if err != nil {
 		return err
 	}
