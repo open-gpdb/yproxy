@@ -266,10 +266,10 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 }
 
 // Request to delete a specific storage object
-func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
+func sendDisposalRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete command")
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
-	dmsg := message.NewDeleteMessage(args[0], segmentPort, segmentNum, confirm, garbage)
+	dmsg := message.BuildDisposalMessage(args[0], segmentPort, segmentNum, confirm, garbage)
 	dmsg.CrazyDrop = crazyDrop
 	msg := dmsg.Encode()
 	_, err := con.Write(msg)
@@ -296,16 +296,16 @@ func sendDeleteChunkRequest(con net.Conn, instanceCnf *config.Instance, args []s
 }
 
 // Request to delete a set of trash objects by prefix
-func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
-	ylogger.Zero.Info().Msg("Execute delete2 command")
-	ylogger.Zero.Info().Str("name", args[0]).Msg("delete2")
-	msg := message.NewDelete2Message(args[0], confirm, garbage).Encode()
+func sendDisposalPrefixRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
+	ylogger.Zero.Info().Msg("Execute deletePrefix command")
+	ylogger.Zero.Info().Str("name", args[0]).Msg("deletePrefix")
+	msg := message.BuildDisposalPrefixMessage(args[0], confirm, garbage).Encode()
 	_, err := con.Write(msg) // Send message with socket to server
 	if err != nil {
 		return err
 	}
 
-	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete2 msg")
+	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed deletePrefix msg")
 
 	client := client.NewYClient(con)
 	protoReader := pio.NewProtoReader(client)
@@ -317,7 +317,7 @@ func sendDeleteTrashRequest(con net.Conn, instanceCnf *config.Instance, args []s
 	}
 
 	if ansType != message.MessageTypeReadyForQuery {
-		return fmt.Errorf("failed to delete2, msg: %v", body)
+		return fmt.Errorf("failed to deletePrefix, msg: %v", body)
 	}
 
 	return nil
@@ -404,7 +404,7 @@ var copyCmd = &cobra.Command{
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete",
-	RunE:  Runner(sendDeleteChunkRequest),
+	RunE:  Runner(sendDisposalRequest),
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -435,9 +435,9 @@ var goolCmd = &cobra.Command{
 }
 
 var delete2Cmd = &cobra.Command{
-	Use:   "deleteTrash",
-	Short: "deleteTrash",
-	RunE:  Runner(sendDeleteTrashRequest),
+	Use:   "deletePrefix",
+	Short: "deletePrefix",
+	RunE:  Runner(sendDisposalPrefixRequest),
 	Args:  cobra.ExactArgs(1), // name_prefix
 }
 

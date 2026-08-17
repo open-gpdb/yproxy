@@ -4,23 +4,24 @@ import (
 	"encoding/binary"
 )
 
-type Delete2Message struct { //seg port
-	Prefix  string
-	Confirm bool
-	Garbage bool
+// Requests deletion of all objects under a given prefix.
+type DisposalPrefixMessage struct { // Seg port
+	Prefix  string // Object key prefix to delete under
+	Confirm bool   // Execute deletion; false means dry-run
+	Garbage bool   // Restrict deletion to garbage (trash) objects past retention
 }
 
-var _ ProtoMessage = &Delete2Message{}
+var _ ProtoMessage = &DisposalPrefixMessage{}
 
-func NewDelete2Message(prefix string, confirm bool, garbage bool) *Delete2Message {
-	return &Delete2Message{
+func BuildDisposalPrefixMessage(prefix string, confirm bool, garbage bool) *DisposalPrefixMessage {
+	return &DisposalPrefixMessage{
 		Prefix:  prefix,
 		Confirm: confirm,
 		Garbage: garbage,
 	}
 }
 
-func (c *Delete2Message) Encode() []byte {
+func (c *DisposalPrefixMessage) Encode() []byte {
 	bt := []byte{
 		byte(MessageTypeDelete2),
 		0,
@@ -44,7 +45,7 @@ func (c *Delete2Message) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *Delete2Message) Decode(body []byte) {
+func (c *DisposalPrefixMessage) Decode(body []byte) {
 	if body[1] == 1 {
 		c.Confirm = true
 	}

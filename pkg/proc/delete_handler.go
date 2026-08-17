@@ -20,8 +20,8 @@ import (
 
 //go:generate mockgen -destination=../../../test/mocks/mock_object.go -package mocks -build_flags -mod=readonly github.com/wal-g/wal-g/pkg/storages/storage Object
 type GarbageMgr interface {
-	HandleDeleteGarbage(message.DeleteMessage) error
-	HandleDeleteFile(message.DeleteMessage) error
+	HandleDisposalGarbage(message.DisposalMessage) error
+	HandleDeleteFile(message.DisposalMessage) error
 	HandleUntrashifyFile(message.UntrashifyMessage) error
 }
 
@@ -104,16 +104,75 @@ func (dh *BasicGarbageMgr) HandleUntrashifyFile(msg message.UntrashifyMessage) e
 	return nil
 }
 
-/*
- * The design looks an awkward,
- * because the function depends on two different vacuum config:
- * 	- the local dh.Cnf
- * 	- the global config.InstanceConfig()
- * Example: TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled
- */
-func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.DeleteMessage) error {
+type fileDisposal struct {
+	workerCount        int
+	defaultWorkerCount int
+	failedActionMsg    string
+	failedFilesMsg     string
+	logCandidate       func(bucket string, file *object.ObjectInfo)
+	execute            func(bucket string, file *object.ObjectInfo) error
+}
+
+// Deletes garbage files immediately (hard delete, CrazyDrop).
+func (dh *BasicGarbageMgr) deleteDisposal() fileDisposal {
+	s := dh.StorageInterractor
+	return fileDisposal{
+		workerCount:        dh.Cnf.TrashDeleteWorkers,
+		defaultWorkerCount: config.DefaultTrashDeleteWorkers,
+		failedActionMsg:    "failed to delete some files",
+		failedFilesMsg:     "some files were not deleted",
+		logCandidate: func(bucket string, file *object.ObjectInfo) {
+			ylogger.Zero.Debug().Str("bucket", bucket).Str("file", file.Path).Msg("file will be deleted")
+		},
+		execute: func(bucket string, file *object.ObjectInfo) error {
+			ylogger.Zero.Info().
+				Str("bucket", bucket).
+				Str("path", file.Path).
+				Msg("immediately delete garbage file")
+			return s.DeleteObject(bucket, file.Path)
+		},
+	}
+}
+
+// Moves garbage files to the trash prefix (soft delete).
+func (dh *BasicGarbageMgr) moveDisposal(segnum int) fileDisposal {
+	s := dh.StorageInterractor
+	return fileDisposal{
+		workerCount:        dh.Cnf.TrashMoveWorkers,
+		defaultWorkerCount: config.DefaultTrashMoveWorkers,
+		failedActionMsg:    "failed to move some files",
+		failedFilesMsg:     "some files were not moved",
+		logCandidate: func(bucket string, file *object.ObjectInfo) {
+			ylogger.Zero.Debug().
+				Str("bucket", bucket).
+				Str("file", file.Path).
+				Str("trash_path", TrashPathFromRegPath(file.Path, segnum)).
+				Msg("file will be moved to trash")
+		},
+		execute: func(bucket string, file *object.ObjectInfo) error {
+			trashPath := TrashPathFromRegPath(file.Path, segnum)
+			ylogger.Zero.Debug().
+				Str("bucket", bucket).
+				Str("path", file.Path).
+				Str("trash_path", trashPath).
+				Msg("move garbage file to trash")
+			return s.MoveObject(bucket, file.Path, trashPath)
+		},
+	}
+}
+
+// chooseDisposal picks how garbage files should be disposed of for this request.
+func (dh *BasicGarbageMgr) chooseDisposal(msg message.DisposalMessage) fileDisposal {
+	if msg.CrazyDrop {
+		return dh.deleteDisposal()
+	}
+	return dh.moveDisposal(int(msg.Segnum))
+}
+
+func (dh *BasicGarbageMgr) DisposalGarbageInBucket(bucket string, msg message.DisposalMessage) error {
 	start := time.Now()
 	t := metrics.NewDeleteOpTracker(bucket, "DELETE_GARBAGE")
+	disposal := dh.chooseDisposal(msg)
 
 	fileList, err := dh.ListGarbageFiles(bucket, msg)
 	if err != nil {
@@ -128,7 +187,7 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	ylogger.Zero.Info().Str("bucket", bucket).Int("files", len(fileList)).Int("uploads", len(uploads)).Msg("garbage delete started")
 
 	for _, file := range fileList {
-		ylogger.Zero.Debug().Str("bucket", bucket).Bool("crazy mode", msg.CrazyDrop).Str("file", file.Path).Msg("file will be deleted")
+		disposal.logCandidate(bucket, file)
 	}
 	for _, upload := range uploads {
 		ylogger.Zero.Info().Str("bucket", bucket).Str("uploadId", upload).Msg("upload will be aborted")
@@ -139,64 +198,33 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		return nil
 	}
 
-	var (
-		failedActionMsg    string
-		failedFilesMsg     string
-		workerCount        int
-		defaultWorkerCount int
-		operate            func(file *object.ObjectInfo) error
-	)
-
-	if msg.CrazyDrop {
-		failedActionMsg = "failed to delete some files"
-		failedFilesMsg = "some files were not deleted"
-		workerCount = dh.Cnf.TrashDeleteWorkers
-		defaultWorkerCount = config.DefaultTrashDeleteWorkers
-
-		operate = func(file *object.ObjectInfo) error {
-			ylogger.Zero.Info().
-				Str("bucket", bucket).
-				Str("path", file.Path).
-				Msg("immediately delete garbage file")
-
-			return dh.StorageInterractor.DeleteObject(bucket, file.Path)
-		}
-	} else {
-		failedActionMsg = "failed to move some files"
-		failedFilesMsg = "some files were not moved"
-		workerCount = dh.Cnf.TrashMoveWorkers
-		defaultWorkerCount = config.DefaultTrashMoveWorkers
-
-		operate = func(file *object.ObjectInfo) error {
-			trashPath := TrashPathFromRegPath(file.Path, int(msg.Segnum))
-
-			ylogger.Zero.Debug().
-				Str("bucket", bucket).
-				Str("path", file.Path).
-				Str("trash_path", trashPath).
-				Msg("move garbage file to trash")
-
-			return dh.StorageInterractor.MoveObject(bucket, file.Path, trashPath)
-		}
-	}
-
 	deleted := 0
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
 		batch := fileList
-		fileList, err = dh.garbageFilesParallel(bucket, batch, workerCount, defaultWorkerCount, operate, failedActionMsg, t)
+		fileList, err = dh.OperateFilesParallel(
+			bucket,
+			batch,
+			disposal.workerCount,
+			disposal.defaultWorkerCount,
+			func(file *object.ObjectInfo) error {
+				return disposal.execute(bucket, file)
+			},
+			disposal.failedActionMsg,
+			t,
+		)
 		deleted += len(batch) - len(fileList)
 		t.SetRemaining(len(fileList))
 		if err != nil {
-			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg(failedActionMsg)
+			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg(disposal.failedActionMsg)
 		}
 	}
 
 	if len(fileList) > 0 {
 		t.AddKept(len(fileList))
-		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(failedFilesMsg)
-		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(failedActionMsg)
-		return errors.Wrap(err, failedActionMsg)
+		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(disposal.failedFilesMsg)
+		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(disposal.failedActionMsg)
+		return errors.Wrap(err, disposal.failedActionMsg)
 	}
 
 	for key, uploadId := range uploads {
@@ -210,15 +238,16 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	return nil
 }
 
-func (dh *BasicGarbageMgr) HandleDeleteGarbage(msg message.DeleteMessage) error {
+func (dh *BasicGarbageMgr) HandleDisposalGarbage(msg message.DisposalMessage) error {
 	for _, b := range dh.StorageInterractor.ListBuckets() {
-		if err := dh.DeleteGarbageInBucket(b, msg); err != nil {
+		if err := dh.DisposalGarbageInBucket(b, msg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Message) ([]*object.ObjectInfo, error) {
+
+func (dh *BasicGarbageMgr) ListDeletePrefixFiles(bucket string, msg message.DisposalPrefixMessage) ([]*object.ObjectInfo, error) {
 	// Get first backup lsn
 	var err error
 
@@ -243,7 +272,7 @@ func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Me
 	return filesToDelete, nil
 }
 
-func (dh *BasicGarbageMgr) garbageFilesParallel(
+func (dh *BasicGarbageMgr) OperateFilesParallel(
 	bucket string,
 	fileList []*object.ObjectInfo,
 	workerCount int,
@@ -307,8 +336,8 @@ func (dh *BasicGarbageMgr) garbageFilesParallel(
 	return nil, nil
 }
 
-func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*object.ObjectInfo, t *metrics.DeleteOpTracker) ([]*object.ObjectInfo, error) {
-	return dh.garbageFilesParallel(
+func (dh *BasicGarbageMgr) DeleteGarbageParallel(bucket string, fileList []*object.ObjectInfo, t *metrics.DeleteOpTracker) ([]*object.ObjectInfo, error) {
+	return dh.OperateFilesParallel(
 		bucket,
 		fileList,
 		dh.Cnf.TrashDeleteWorkers,
@@ -321,11 +350,11 @@ func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*objec
 	)
 }
 
-func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delete2Message) error {
+func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.DisposalPrefixMessage) error {
 	start := time.Now()
 	t := metrics.NewDeleteOpTracker(bucket, "DELETE_PREFIX")
 
-	fileList, err := dh.ListDelete2Files(bucket, msg) // Return the list of files to be deleted
+	fileList, err := dh.ListDeletePrefixFiles(bucket, msg) // Return the list of files to be deleted
 	if err != nil {
 		return errors.Wrap(err, "failed to delete file")
 	}
@@ -370,7 +399,7 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 	t.SetRemaining(toDelete)
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
-		fileList, err = dh.garbageTrashParallel(bucket, fileList, t)
+		fileList, err = dh.DeleteGarbageParallel(bucket, fileList, t)
 		t.SetRemaining(len(fileList))
 		if err != nil {
 			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg("failed to delete garbage file")
@@ -395,7 +424,7 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 	return nil
 }
 
-func (dh *BasicGarbageMgr) HandleDelete2Prefix(msg message.Delete2Message) error {
+func (dh *BasicGarbageMgr) HandleDeletePrefix(msg message.DisposalPrefixMessage) error {
 	for _, b := range dh.StorageInterractor.ListBuckets() {
 		if err := dh.DeletePrefixInBucket(b, msg); err != nil {
 			return err
@@ -403,7 +432,9 @@ func (dh *BasicGarbageMgr) HandleDelete2Prefix(msg message.Delete2Message) error
 	}
 	return nil
 }
-func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
+
+// Delete a single external object by exact name.
+func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DisposalMessage) error {
 	if !msg.Confirm {
 		return nil
 	}
@@ -417,7 +448,7 @@ func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 	return nil
 }
 
-func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMessage) ([]*object.ObjectInfo, error) {
+func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DisposalMessage) ([]*object.ObjectInfo, error) {
 	procStartTime := time.Now()
 
 	// Get first backup lsn

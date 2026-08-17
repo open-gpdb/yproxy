@@ -54,15 +54,15 @@ type ProtoMgr interface {
 		ycl client.YproxyClient) error
 
 	/* TODO: merge these two */
-	ProcessDeleteExtended(
-		msg message.DeleteMessage,
+	ProcessDisposalExtended(
+		msg message.DisposalMessage,
 		s storage.StorageInteractor,
 		bs storage.StorageInteractor,
 		ycl client.YproxyClient,
 		cnf *config.Vacuum) error
 
-	ProcessDelete2Extended(
-		msg message.Delete2Message,
+	ProcessDisposalPrefixExtended(
+		msg message.DisposalPrefixMessage,
 		s storage.StorageInteractor,
 		bs storage.StorageInteractor,
 		ycl client.YproxyClient,

@@ -44,7 +44,7 @@ func histogramSampleCount(t *testing.T, vec *prometheus.HistogramVec, labels pro
 func TestFilesToDeletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:    "path",
 		Port:    6000,
 		Segnum:  0,
@@ -95,7 +95,7 @@ func TestFilesToDeletion(t *testing.T) {
 func TestFilesToDeletionSkipsRecentlyCreatedFiles(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:    "path",
 		Port:    6000,
 		Segnum:  0,
@@ -143,7 +143,7 @@ func TestFilesToDeletionSkipsRecentlyCreatedFiles(t *testing.T) {
 func TestFilesToDeletionRespectsProtectionSecondsWindow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:    "path",
 		Port:    6000,
 		Segnum:  0,
@@ -196,7 +196,7 @@ func TestFilesToDeletionRespectsProtectionSecondsWindow(t *testing.T) {
 func TestFilesToDeletionClampsNegativeProtectionSeconds(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:    "path",
 		Port:    6000,
 		Segnum:  0,
@@ -269,10 +269,10 @@ func TestTrashPathConversion(t *testing.T) {
 	}
 }
 
-func TestListDelete2Files(t *testing.T) {
+func TestListDeletePrefixFiles(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -295,7 +295,7 @@ func TestListDelete2Files(t *testing.T) {
 		Cnf:                &config.Vacuum{CheckBackup: true},
 	}
 
-	actualFilesToDelete, err := handler.ListDelete2Files("", msg)
+	actualFilesToDelete, err := handler.ListDeletePrefixFiles("", msg)
 	assert.NoError(t, err)
 	assert.Equal(t, len(filesInStorage), len(actualFilesToDelete))
 	assert.Equal(t, filesInStorage, actualFilesToDelete)
@@ -304,7 +304,7 @@ func TestListDelete2Files(t *testing.T) {
 func TestDeletePrefixInBucketDeletesAllFilesOnceInParallelGarbagePass(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -345,7 +345,7 @@ func TestDeletePrefixInBucketDeletesAllFilesOnceInParallelGarbagePass(t *testing
 func TestDeletePrefixInBucketRetriesFailedGarbageDeletes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -388,7 +388,7 @@ func TestDeletePrefixInBucketRetriesFailedGarbageDeletes(t *testing.T) {
 func TestDeletePrefixInBucketReturnsFailedGarbageDeletesAfterRetries(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -422,7 +422,7 @@ func TestDeletePrefixInBucketReturnsFailedGarbageDeletesAfterRetries(t *testing.
 func TestDeletePrefixInBucketCapsWorkerCountToFileCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -460,7 +460,7 @@ func TestDeletePrefixInBucketCapsWorkerCountToFileCount(t *testing.T) {
 func TestDeletePrefixInBucketUsesDefaultWorkerCountWhenConfiguredZero(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -500,7 +500,7 @@ func TestDeletePrefixInBucketUsesDefaultWorkerCountWhenConfiguredZero(t *testing
 func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:      "path",
 		Port:      6000,
 		Segnum:    0,
@@ -538,7 +538,7 @@ func TestDeleteGarbageInBucketMovesObjectsWhenCrazyDropDisabled(t *testing.T) {
 		Cnf:                &config.InstanceConfig().VacuumCnf,
 	}
 
-	err := handler.DeleteGarbageInBucket("trash", msg)
+	err := handler.DisposalGarbageInBucket("trash", msg)
 	assert.NoError(t, err)
 }
 
@@ -663,7 +663,7 @@ func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {
 
 	const bucket = "garbage-metrics-bucket"
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:      "path",
 		Port:      6000,
 		Segnum:    0,
@@ -700,7 +700,7 @@ func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {
 		Cnf:                &config.InstanceConfig().VacuumCnf,
 	}
 
-	err := handler.DeleteGarbageInBucket(bucket, msg)
+	err := handler.DisposalGarbageInBucket(bucket, msg)
 	assert.NoError(t, err)
 
 	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE"}
@@ -720,7 +720,7 @@ func TestDeletePrefixInBucketRecordsMetrics(t *testing.T) {
 
 	const bucket = "prefix-metrics-bucket"
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -764,7 +764,7 @@ func TestDeletePrefixInBucketRecordsKeptAfterRetriesExhausted(t *testing.T) {
 
 	const bucket = "prefix-metrics-retry-bucket"
 
-	msg := message.Delete2Message{
+	msg := message.DisposalPrefixMessage{
 		Prefix:  "trash",
 		Garbage: true,
 		Confirm: true,
@@ -803,7 +803,7 @@ func TestDeletePrefixInBucketRecordsKeptAfterRetriesExhausted(t *testing.T) {
 func TestDeleteGarbageInBucketRetriesFailedTrashMoves(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	msg := message.DeleteMessage{
+	msg := message.DisposalMessage{
 		Name:      "path",
 		Port:      6000,
 		Segnum:    0,
@@ -857,7 +857,7 @@ func TestDeleteGarbageInBucketRetriesFailedTrashMoves(t *testing.T) {
 		Cnf:                &config.InstanceConfig().VacuumCnf,
 	}
 
-	err := handler.DeleteGarbageInBucket("trash", msg)
+	err := handler.DisposalGarbageInBucket("trash", msg)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, attempts[filesInStorage[0].Path])
 	assert.Equal(t, 2, attempts[filesInStorage[1].Path])
