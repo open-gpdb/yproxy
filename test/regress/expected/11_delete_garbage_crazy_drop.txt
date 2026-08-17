@@ -1,0 +1,2 @@
+1
+Object: {Name: "/some_file", size: 13}
