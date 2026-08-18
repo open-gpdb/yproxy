@@ -283,3 +283,5 @@ fuzz
 Intn
 dryrun
 dmsg
+untrash
+untrashify
