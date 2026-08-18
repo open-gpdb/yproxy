@@ -16,7 +16,7 @@ set -x
 yp-client --config test/regress/conf/yproxy.yaml -l fatal list ''
 
 set +x
-[ $value -eq $value_cat ] || exit 1
+[[ $value == $value_cat ]] || exit 1
 set -x
 
 echo ok
