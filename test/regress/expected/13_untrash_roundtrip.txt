@@ -1,7 +1,7 @@
 1
-Object: {Name: "/untrash_file", size: 12}
+Object: {Name: "/untrash_file", size: 13}
 1
-Object: {Name: "/trash/segments_005/seg0/basebackups_005/yezzey/untrash_file", size: 12}
+Object: {Name: "/trash/segments_005/seg0/basebackups_005/yezzey/untrash_file", size: 13}
 1
-Object: {Name: "/segments_005/seg0/basebackups_005/yezzey/untrash_file", size: 12}
+Object: {Name: "/segments_005/seg0/basebackups_005/yezzey/untrash_file", size: 13}
 untrash data
