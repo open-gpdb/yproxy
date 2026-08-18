@@ -104,7 +104,7 @@ DELETE OBSOLETE
 Delete/garbage-collection metrics are labeled per `bucket` (since yproxy can
 manage multiple storage buckets) and per `operation`, one of:
 ```
-DELETE_GARBAGE  # DeleteGarbageInBucket
+DELETE_GARBAGE  # DisposalGarbageInBucket
 DELETE_PREFIX   # DeletePrefixInBucket
 ```
 `delete_request_latency_seconds` is additionally labeled by `stage`
