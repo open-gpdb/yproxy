@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/yezzey-gp/aws-sdk-go/aws/awserr"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/client"
 	"github.com/yezzey-gp/yproxy/pkg/metrics"
@@ -14,6 +15,20 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 	"golang.org/x/time/rate"
 )
+
+// Check for (non-)retryable storage error
+// such as "no such object" (404) or basically all other 4xx responses.
+// Exception is 429 Too Many Requests, which is transient.
+func isPermanentError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if reqErr, ok := err.(awserr.RequestFailure); ok {
+		code := reqErr.StatusCode()
+		return code >= 400 && code < 500 && code != 429
+	}
+	return false
+}
 
 type RestartReader interface {
 	io.ReadCloser
@@ -115,9 +130,13 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			err := y.underlying.Restart(y.offsetReached)
 
 			if err != nil {
+				if isPermanentError(err) {
+					ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Msg("permanent storage error, not retrying")
+					return -1, err
+				}
 				// log error and continue.
 				// Try to mitigate overload problems with random sleep
-				ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
+				ylogger.Zero.Error().Err(err).Int64("offset reached", int64(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
 				lastErr = err
 
 				time.Sleep(time.Second)
