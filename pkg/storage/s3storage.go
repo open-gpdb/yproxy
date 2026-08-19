@@ -94,6 +94,9 @@ func (s *S3StorageInteractor) CatFileFromStorage(name string, offset int64, sett
 	ylogger.Zero.Debug().Str("key", objectPath).Int64("offset", offset).Str("bucket", bucket).Msg("requesting external storage")
 
 	object, err := sess.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
 	getTime := time.Since(timeStart).Nanoseconds()
 	objLen := 1.0
 	if object.ContentLength != nil {
