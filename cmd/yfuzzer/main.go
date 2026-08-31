@@ -34,11 +34,6 @@ func (f *FuzzerProtoMgr) ProcessListExtended(
 
 	ylogger.Zero.Info().Str("prefix", prefix).Msg("yfuzzer: processing list request")
 
-	/* XXX: move to config or something */
-	const maxIterations = 100
-	const maxBatchSize = 500
-	const maxPathLen = 256
-
 	iterations := rand.Intn(maxIterations) + 1
 	ylogger.Zero.Info().Int("iterations", iterations).Msg("yfuzzer: sending random listing messages")
 
@@ -92,6 +87,12 @@ var cfgPath string
 
 var logLevel string
 
+var (
+	maxIterations = 100
+	maxBatchSize  = 500
+	maxPathLen    = 256
+)
+
 var rootCmd = &cobra.Command{
 	Use: "yfuzzer",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -125,6 +126,12 @@ func init() {
 	/* For regular storage config, use this until we (if ever) proxy r-w calls.  */
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "/etc/yproxy/yproxy.yaml", "path to yproxy config file")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "", "log level")
+
+	/* Fuzzer tuning knobs. Bumping --max-path-len into the kilobyte range
+	 * exercises handling of very long listing paths. */
+	rootCmd.PersistentFlags().IntVar(&maxIterations, "max-iterations", maxIterations, "upper bound (exclusive) for number of listing batches")
+	rootCmd.PersistentFlags().IntVar(&maxBatchSize, "max-batch-size", maxBatchSize, "upper bound (exclusive) for objects per batch")
+	rootCmd.PersistentFlags().IntVar(&maxPathLen, "max-path-len", maxPathLen, "upper bound (exclusive) for generated path length in bytes")
 }
 
 func main() {
