@@ -612,7 +612,7 @@ func (*ProtoMgrImpl) ProcessCollectObsolete(msg message.CollectObsoleteMessage,
 		return err
 	}
 	// maybe get lock on moment
-	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	vi, ei, err := dh.GetVirtualExpireIndexesByPrefix(msg.Port, msg.Message)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed get virtual expire indexes")
 		return err
@@ -662,7 +662,7 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 	bh := &backups.StorageBackupInteractor{Storage: bs}
 
 	dh := database.DatabaseHandler{}
-	vi, ei, err := dh.GetVirtualExpireIndexes(msg.Port)
+	vi, ei, err := dh.GetVirtualExpireIndexesByPrefix(msg.Port, msg.Message)
 	if err != nil {
 		return err
 	}
@@ -702,8 +702,7 @@ func (*ProtoMgrImpl) ProcessDeleteObsolete(msg message.DeleteObsoleteMessage,
 
 		// delete file
 
-		// TODO check has prefix msg.Message
-		if !strings.Contains(str, msg.Message) {
+		if !strings.HasPrefix(str, msg.Message) {
 			ylogger.Zero.Debug().Str("delete candidate", str).Str("prefix request", msg.Message).Msg("does not have request substring")
 			continue
 		}
