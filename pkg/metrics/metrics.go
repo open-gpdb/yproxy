@@ -63,7 +63,7 @@ var (
 		Name: "read_req_errors_total",
 		Help: "The total number of errors during reads",
 	})
-	WiteReqProcessed = promauto.NewCounter(prometheus.CounterOpts{
+	WriteReqProcessed = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "write_req_processed_total",
 		Help: "The total number of processed writes",
 	})

@@ -33,7 +33,7 @@ func (y *YproxyWriter) Write(p []byte) (n int, err error) {
 	start := time.Now()
 	n, err = y.underlying.Write(p)
 	writeTime := time.Since(start).Nanoseconds()
-	metrics.WiteReqProcessed.Inc()
+	metrics.WriteReqProcessed.Inc()
 	metrics.StoreLatencyAndSizeInfo("WRITE", float64(n), float64(writeTime))
 	y.offsetReached += int64(n)
 	y.selfCl.SetByteOffset(y.offsetReached)

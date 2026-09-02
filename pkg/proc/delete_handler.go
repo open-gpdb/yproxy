@@ -123,8 +123,6 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 	if err != nil {
 		return err
 	}
-	t.SetTotal(len(fileList))
-	t.SetRemaining(len(fileList))
 	ylogger.Zero.Info().Str("bucket", bucket).Int("files", len(fileList)).Int("uploads", len(uploads)).Msg("garbage delete started")
 
 	for _, file := range fileList {
@@ -159,7 +157,12 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 				Str("path", file.Path).
 				Msg("immediately delete garbage file")
 
-			return dh.StorageInterractor.DeleteObject(bucket, file.Path)
+			opErr := dh.StorageInterractor.DeleteObject(bucket, file.Path)
+			if opErr == nil {
+				t.CompleteDeleted(file.Size)
+			}
+
+			return opErr
 		}
 	} else {
 		failedActionMsg = "failed to move some files"
@@ -176,7 +179,12 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 				Str("trash_path", trashPath).
 				Msg("move garbage file to trash")
 
-			return dh.StorageInterractor.MoveObject(bucket, file.Path, trashPath)
+			opErr := dh.StorageInterractor.MoveObject(bucket, file.Path, trashPath)
+			if opErr == nil {
+				t.CompleteMoved(file.Size)
+			}
+
+			return opErr
 		}
 	}
 
@@ -186,14 +194,15 @@ func (dh *BasicGarbageMgr) DeleteGarbageInBucket(bucket string, msg message.Dele
 		batch := fileList
 		fileList, err = dh.garbageFilesParallel(bucket, batch, workerCount, defaultWorkerCount, operate, failedActionMsg, t)
 		deleted += len(batch) - len(fileList)
-		t.SetRemaining(len(fileList))
 		if err != nil {
 			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg(failedActionMsg)
 		}
 	}
 
 	if len(fileList) > 0 {
-		t.AddKept(len(fileList))
+		for _, file := range fileList {
+			t.RecordFailed(file.Size)
+		}
 		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(failedFilesMsg)
 		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(failedActionMsg)
 		return errors.Wrap(err, failedActionMsg)
@@ -228,16 +237,18 @@ func (dh *BasicGarbageMgr) ListDelete2Files(bucket string, msg message.Delete2Me
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list objects")
 	}
-	metrics.NewDeleteOpTracker(bucket, "DELETE_PREFIX").ObserveList(time.Since(listStart), len(objectMetas))
+	t := metrics.NewDeleteOpTracker(bucket, "DELETE_PREFIX")
+	t.ObserveList(time.Since(listStart), len(objectMetas))
 	ylogger.Zero.Debug().Str("path", msg.Prefix).Int("amount", len(objectMetas)).Msg("objects listed")
 
+	t.BeginScan()
 	filesToDelete := make([]*object.ObjectInfo, 0)
-	for i := range objectMetas {
-		ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
+	for _, objMeta := range objectMetas {
+		ylogger.Zero.Debug().Str("file", objMeta.Path).
 			Str("will be deleted", msg.Prefix)
 
-		filesToDelete = append(filesToDelete, objectMetas[i])
-
+		filesToDelete = append(filesToDelete, objMeta)
+		t.Discover(objMeta.Size)
 	}
 
 	return filesToDelete, nil
@@ -281,8 +292,6 @@ func (dh *BasicGarbageMgr) garbageFilesParallel(
 				if err != nil {
 					ylogger.Zero.Warn().AnErr("err", err).Str("bucket", bucket).Str("file", file.Path).Msg(failedActionMsg)
 					failedCh <- file
-				} else {
-					t.AddDeleted(1)
 				}
 			}
 		})
@@ -314,7 +323,11 @@ func (dh *BasicGarbageMgr) garbageTrashParallel(bucket string, fileList []*objec
 		dh.Cnf.TrashDeleteWorkers,
 		config.DefaultTrashDeleteWorkers,
 		func(file *object.ObjectInfo) error {
-			return dh.StorageInterractor.DeleteObject(bucket, file.Path)
+			err := dh.StorageInterractor.DeleteObject(bucket, file.Path)
+			if err == nil {
+				t.CompleteDeleted(file.Size)
+			}
+			return err
 		},
 		"failed to delete garbage file",
 		t,
@@ -351,7 +364,6 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 		return nil
 	}
 
-	t.SetTotal(len(fileList))
 	trashRetention := time.Hour * 24 * time.Duration(dh.Cnf.TrashRetentionDays)
 	filtered := fileList[:0]
 	skipped := 0
@@ -360,25 +372,23 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Delet
 			filtered = append(filtered, file)
 		} else {
 			skipped++
+			t.CompleteSkipped(file.Size)
 		}
 	}
 	fileList = filtered
-	if skipped > 0 {
-		t.AddKept(skipped)
-	}
 	toDelete := len(fileList)
-	t.SetRemaining(toDelete)
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
 		fileList, err = dh.garbageTrashParallel(bucket, fileList, t)
-		t.SetRemaining(len(fileList))
 		if err != nil {
 			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg("failed to delete garbage file")
 		}
 	}
 
 	if len(fileList) > 0 {
-		t.AddKept(len(fileList))
+		for _, file := range fileList {
+			t.RecordFailed(file.Size)
+		}
 		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg("some files were not deleted")
 		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg("failed to delete some files")
 		return errors.Wrap(err, "failed to delete some files")
@@ -419,6 +429,7 @@ func (dh *BasicGarbageMgr) HandleDeleteFile(msg message.DeleteMessage) error {
 
 func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMessage) ([]*object.ObjectInfo, error) {
 	procStartTime := time.Now()
+	t := metrics.NewDeleteOpTracker(bucket, "DELETE_GARBAGE")
 
 	// Get first backup lsn
 	var firstBackupLSN uint64
@@ -442,7 +453,7 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list objects")
 	}
-	metrics.NewDeleteOpTracker(bucket, "DELETE_GARBAGE").ObserveList(time.Since(listStart), len(objectMetas))
+	t.ObserveList(time.Since(listStart), len(objectMetas))
 	ylogger.Zero.Debug().Str("path", msg.Name).Int("amount", len(objectMetas)).Msg("objects listed")
 
 	vi, ei, err := dh.DbInterractor.GetVirtualExpireIndexes(msg.Port)
@@ -452,9 +463,10 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 	}
 	ylogger.Zero.Debug().Int("virtual", len(vi)).Int("expire", len(ei)).Msg("received virtual index and expire index")
 
+	t.BeginScan()
 	filesToDelete := make([]*object.ObjectInfo, 0)
-	for i := range objectMetas {
-		reworkedName := objectMetas[i].Path
+	for _, objMeta := range objectMetas {
+		reworkedName := objMeta.Path
 		ylogger.Zero.Debug().Str("reworked name", reworkedName).Msg("lookup chunk")
 
 		if vi[reworkedName] {
@@ -465,9 +477,9 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 		if protectionWindow < 0 {
 			protectionWindow = 0
 		}
-		if objectMetas[i].LastMod.After(procStartTime.Add(-protectionWindow)) {
-			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
-				Time("last modified", objectMetas[i].LastMod).
+		if objMeta.LastMod.After(procStartTime.Add(-protectionWindow)) {
+			ylogger.Zero.Debug().Str("file", objMeta.Path).
+				Time("last modified", objMeta.LastMod).
 				Time("proc start", procStartTime).
 				Dur("protection window", protectionWindow).
 				Msg("file is within the protection window, skipping")
@@ -475,13 +487,14 @@ func (dh *BasicGarbageMgr) ListGarbageFiles(bucket string, msg message.DeleteMes
 		}
 
 		lsn, ok := ei[reworkedName]
-		ylogger.Zero.Debug().Uint64("lsn", lsn).Uint64("backup lsn", firstBackupLSN).Str("path", objectMetas[i].Path).Msg("comparing lsn")
+		ylogger.Zero.Debug().Uint64("lsn", lsn).Uint64("backup lsn", firstBackupLSN).Str("path", objMeta.Path).Msg("comparing lsn")
 		if !ok || lsn < firstBackupLSN {
-			ylogger.Zero.Debug().Str("file", objectMetas[i].Path).
+			ylogger.Zero.Debug().Str("file", objMeta.Path).
 				Bool("file in expire index", ok).
 				Bool("lsn is less than in first backup", lsn < firstBackupLSN).
 				Msg("file does not persist in virtual index, nor needed for PITR, so will be deleted")
-			filesToDelete = append(filesToDelete, objectMetas[i])
+			filesToDelete = append(filesToDelete, objMeta)
+			t.Discover(objMeta.Size)
 		}
 	}
 
