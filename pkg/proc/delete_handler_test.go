@@ -672,8 +672,8 @@ func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {
 	}
 
 	filesInStorage := []*object.ObjectInfo{
-		{Path: "segments_005/seg0/basebackups_005/yezzey/file1"},
-		{Path: "segments_005/seg0/basebackups_005/yezzey/file2"},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file1", Size: 1024},
+		{Path: "segments_005/seg0/basebackups_005/yezzey/file2", Size: 2048},
 	}
 
 	storage := mock.NewMockStorageInteractor(ctrl)
@@ -705,10 +705,16 @@ func TestDeleteGarbageInBucketRecordsMetrics(t *testing.T) {
 
 	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE"}
 	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(3072), testutil.ToFloat64(metrics.DeleteProcessBytes.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemainingBytes.With(labels)))
 	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
-	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessMoved.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+	assert.Equal(t, float64(3072), testutil.ToFloat64(metrics.DeleteProcessMovedBytes.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessDeletedBytes.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessKeptBytes.With(labels)))
 
 	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE", "stage": "list"}))
 	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_GARBAGE", "stage": "delete"}))
@@ -729,9 +735,9 @@ func TestDeletePrefixInBucketRecordsMetrics(t *testing.T) {
 	// "other/x" does not contain "trash" and must be skipped (counted as kept)
 	// before any delete attempt, unlike "trash/a" and "trash/b" which get deleted.
 	filesInStorage := []*object.ObjectInfo{
-		{Path: "trash/a"},
-		{Path: "trash/b"},
-		{Path: "other/x"},
+		{Path: "trash/a", Size: 100},
+		{Path: "trash/b", Size: 200},
+		{Path: "other/x", Size: 300},
 	}
 
 	storage := mock.NewMockStorageInteractor(ctrl)
@@ -749,10 +755,16 @@ func TestDeletePrefixInBucketRecordsMetrics(t *testing.T) {
 
 	labels := prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX"}
 	assert.Equal(t, float64(3), testutil.ToFloat64(metrics.DeleteProcessTotal.With(labels)))
+	assert.Equal(t, float64(600), testutil.ToFloat64(metrics.DeleteProcessBytes.With(labels)))
 	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemaining.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessRemainingBytes.With(labels)))
 	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessProcessed.With(labels)))
 	assert.Equal(t, float64(2), testutil.ToFloat64(metrics.DeleteProcessDeleted.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessMoved.With(labels)))
 	assert.Equal(t, float64(1), testutil.ToFloat64(metrics.DeleteProcessKept.With(labels)))
+	assert.Equal(t, float64(0), testutil.ToFloat64(metrics.DeleteProcessMovedBytes.With(labels)))
+	assert.Equal(t, float64(300), testutil.ToFloat64(metrics.DeleteProcessDeletedBytes.With(labels)))
+	assert.Equal(t, float64(300), testutil.ToFloat64(metrics.DeleteProcessKeptBytes.With(labels)))
 
 	assert.EqualValues(t, 1, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX", "stage": "list"}))
 	assert.EqualValues(t, 2, histogramSampleCount(t, metrics.DeleteRequestLatency, prometheus.Labels{"bucket": bucket, "operation": "DELETE_PREFIX", "stage": "delete"}))
