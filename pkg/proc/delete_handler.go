@@ -111,6 +111,7 @@ type fileDisposal struct {
 	failedFilesMsg     string
 	logCandidate       func(bucket string, file *object.ObjectInfo)
 	execute            func(bucket string, file *object.ObjectInfo) error
+	complete           func(t *metrics.DeleteOpTracker, size int64)
 }
 
 // Deletes garbage files immediately (hard delete, CrazyDrop).
@@ -130,6 +131,9 @@ func (dh *BasicGarbageMgr) deleteDisposal() fileDisposal {
 				Str("path", file.Path).
 				Msg("immediately delete garbage file")
 			return s.DeleteObject(bucket, file.Path)
+		},
+		complete: func(t *metrics.DeleteOpTracker, size int64) {
+			t.CompleteDeleted(size)
 		},
 	}
 }
@@ -157,6 +161,9 @@ func (dh *BasicGarbageMgr) moveDisposal(segnum int) fileDisposal {
 				Str("trash_path", trashPath).
 				Msg("move garbage file to trash")
 			return s.MoveObject(bucket, file.Path, trashPath)
+		},
+		complete: func(t *metrics.DeleteOpTracker, size int64) {
+			t.CompleteMoved(size)
 		},
 	}
 }
@@ -196,57 +203,6 @@ func (dh *BasicGarbageMgr) DisposalGarbageInBucket(bucket string, msg message.Di
 		return nil
 	}
 
-	var (
-		failedActionMsg    string
-		failedFilesMsg     string
-		workerCount        int
-		defaultWorkerCount int
-		operate            func(file *object.ObjectInfo) error
-	)
-
-	if msg.CrazyDrop {
-		failedActionMsg = "failed to delete some files"
-		failedFilesMsg = "some files were not deleted"
-		workerCount = dh.Cnf.TrashDeleteWorkers
-		defaultWorkerCount = config.DefaultTrashDeleteWorkers
-
-		operate = func(file *object.ObjectInfo) error {
-			ylogger.Zero.Info().
-				Str("bucket", bucket).
-				Str("path", file.Path).
-				Msg("immediately delete garbage file")
-
-			opErr := dh.StorageInterractor.DeleteObject(bucket, file.Path)
-			if opErr == nil {
-				t.CompleteDeleted(file.Size)
-			}
-
-			return opErr
-		}
-	} else {
-		failedActionMsg = "failed to move some files"
-		failedFilesMsg = "some files were not moved"
-		workerCount = dh.Cnf.TrashMoveWorkers
-		defaultWorkerCount = config.DefaultTrashMoveWorkers
-
-		operate = func(file *object.ObjectInfo) error {
-			trashPath := TrashPathFromRegPath(file.Path, int(msg.Segnum))
-
-			ylogger.Zero.Debug().
-				Str("bucket", bucket).
-				Str("path", file.Path).
-				Str("trash_path", trashPath).
-				Msg("move garbage file to trash")
-
-			opErr := dh.StorageInterractor.MoveObject(bucket, file.Path, trashPath)
-			if opErr == nil {
-				t.CompleteMoved(file.Size)
-			}
-
-			return opErr
-		}
-	}
-
 	deleted := 0
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
@@ -257,7 +213,11 @@ func (dh *BasicGarbageMgr) DisposalGarbageInBucket(bucket string, msg message.Di
 			disposal.workerCount,
 			disposal.defaultWorkerCount,
 			func(file *object.ObjectInfo) error {
-				return disposal.execute(bucket, file)
+				opErr := disposal.execute(bucket, file)
+				if opErr == nil {
+					disposal.complete(t, file.Size)
+				}
+				return opErr
 			},
 			disposal.failedActionMsg,
 			t,
@@ -272,9 +232,9 @@ func (dh *BasicGarbageMgr) DisposalGarbageInBucket(bucket string, msg message.Di
 		for _, file := range fileList {
 			t.RecordFailed(file.Size)
 		}
-		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(failedFilesMsg)
-		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(failedActionMsg)
-		return errors.Wrap(err, failedActionMsg)
+		ylogger.Zero.Error().Str("bucket", bucket).Int("failed files count", len(fileList)).Msg(disposal.failedFilesMsg)
+		ylogger.Zero.Error().Str("bucket", bucket).Any("failed files", fileList).Msg(disposal.failedActionMsg)
+		return errors.Wrap(err, disposal.failedActionMsg)
 	}
 
 	for key, uploadId := range uploads {
@@ -449,7 +409,7 @@ func (dh *BasicGarbageMgr) DeletePrefixInBucket(bucket string, msg message.Dispo
 	toDelete := len(fileList)
 
 	for retryCount := 0; len(fileList) > 0 && retryCount < 10; retryCount++ {
-		fileList, err = dh.garbageTrashParallel(bucket, fileList, t)
+		fileList, err = dh.DeleteGarbageParallel(bucket, fileList, t)
 		if err != nil {
 			ylogger.Zero.Error().Str("bucket", bucket).AnErr("err", err).Msg("failed to delete garbage file")
 		}
