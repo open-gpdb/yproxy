@@ -265,11 +265,11 @@ func listFunc(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	return nil
 }
 
-// Request to delete a specific storage object
-func sendDisposalRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
+// Request to remove a storage object or collect garbage.
+func sendCleanupRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
 	ylogger.Zero.Info().Msg("Execute delete command")
 	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
-	dmsg := message.BuildDisposalMessage(args[0], segmentPort, segmentNum, confirm, garbage)
+	dmsg := message.BuildCleanupMessage(args[0], segmentPort, segmentNum, confirm, garbage)
 	dmsg.CrazyDrop = crazyDrop
 	msg := dmsg.Encode()
 	_, err := con.Write(msg)
@@ -295,17 +295,17 @@ func sendDisposalRequest(con net.Conn, instanceCnf *config.Instance, args []stri
 	return nil
 }
 
-// Request to delete a set of trash objects by prefix
-func sendDisposalPrefixRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
-	ylogger.Zero.Info().Msg("Execute deletePrefix command")
-	ylogger.Zero.Info().Str("name", args[0]).Msg("deletePrefix")
-	msg := message.BuildDisposalPrefixMessage(args[0], confirm, garbage).Encode()
+// Request to drop a set of trash objects by prefix
+func sendDropRequest(con net.Conn, instanceCnf *config.Instance, args []string) error {
+	ylogger.Zero.Info().Msg("Execute delete command")
+	ylogger.Zero.Info().Str("name", args[0]).Msg("delete")
+	msg := message.BuildDropMessage(args[0], confirm, garbage).Encode()
 	_, err := con.Write(msg) // Send message with socket to server
 	if err != nil {
 		return err
 	}
 
-	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed deletePrefix msg")
+	ylogger.Zero.Debug().Bytes("msg", msg).Msg("constructed delete msg")
 
 	client := client.NewYClient(con)
 	protoReader := pio.NewProtoReader(client)
@@ -317,7 +317,7 @@ func sendDisposalPrefixRequest(con net.Conn, instanceCnf *config.Instance, args 
 	}
 
 	if ansType != message.MessageTypeReadyForQuery {
-		return fmt.Errorf("failed to deletePrefix, msg: %v", body)
+		return fmt.Errorf("failed to delete, msg: %v", body)
 	}
 
 	return nil
@@ -403,8 +403,8 @@ var copyCmd = &cobra.Command{
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "delete",
-	RunE:  Runner(sendDisposalRequest),
+	Short: "remove an object or collect garbage",
+		RunE:  Runner(sendCleanupRequest),
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -434,10 +434,10 @@ var goolCmd = &cobra.Command{
 	RunE:  Runner(goolFunc),
 }
 
-var delete2Cmd = &cobra.Command{
+var deletePrefixCmd = &cobra.Command{
 	Use:   "deletePrefix",
-	Short: "deletePrefix",
-	RunE:  Runner(sendDisposalPrefixRequest),
+	Short: "physically delete objects by prefix",
+		RunE:  Runner(sendDropRequest),
 	Args:  cobra.ExactArgs(1), // name_prefix
 }
 
@@ -481,9 +481,9 @@ func init() {
 	untrashifyCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
 	rootCmd.AddCommand(untrashifyCmd)
 
-	delete2Cmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
-	delete2Cmd.PersistentFlags().BoolVarP(&garbage, "garbage", "g", false, "delete garbage")
-	rootCmd.AddCommand(delete2Cmd)
+	deletePrefixCmd.PersistentFlags().BoolVarP(&confirm, "confirm", "", false, "confirm deletion")
+	deletePrefixCmd.PersistentFlags().BoolVarP(&garbage, "garbage", "g", false, "delete garbage")
+	rootCmd.AddCommand(deletePrefixCmd)
 }
 
 func main() {

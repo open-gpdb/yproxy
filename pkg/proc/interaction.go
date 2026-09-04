@@ -452,8 +452,8 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 	return nil
 }
 
-func (*ProtoMgrImpl) ProcessDisposalExtended(
-	msg message.DisposalMessage,
+func (*ProtoMgrImpl) ProcessCleanupExtended(
+	msg message.CleanupMessage,
 	s storage.StorageInteractor,
 	bs storage.StorageInteractor,
 	ycl client.YproxyClient,
@@ -473,17 +473,17 @@ func (*ProtoMgrImpl) ProcessDisposalExtended(
 	var (
 		logMsg       string
 		successMsg   string
-		handleDelete func(msg message.DisposalMessage) error
+		handleDelete func(msg message.CleanupMessage) error
 	)
 
 	if msg.Garbage {
 		logMsg = "requested to perform external storage VACUUM"
 		successMsg = "Deleted garbage successfully"
-		handleDelete = dh.HandleDisposalGarbage
+		handleDelete = dh.HandleGarbageCleanup
 	} else {
 		logMsg = "requested to remove external chunk"
 		successMsg = "Deleted chunk successfully"
-		handleDelete = dh.HandleDeleteFile
+		handleDelete = dh.HandleFileDeletion
 	}
 
 	ylogger.Zero.Debug().
@@ -511,8 +511,8 @@ func (*ProtoMgrImpl) ProcessDisposalExtended(
 	return nil
 }
 
-func (*ProtoMgrImpl) ProcessDisposalPrefixExtended(
-	msg message.DisposalPrefixMessage,
+func (*ProtoMgrImpl) ProcessDropExtended(
+	msg message.DropMessage,
 	s storage.StorageInteractor,
 	bs storage.StorageInteractor,
 	ycl client.YproxyClient,
@@ -854,16 +854,16 @@ func ProcConn(
 
 	case message.MessageTypeDelete:
 		// receive message
-		msg := message.DisposalMessage{}
+		msg := message.CleanupMessage{}
 		msg.Decode(body)
-		err := m.ProcessDisposalExtended(msg, s, bs, ycl, cnf)
+		err := m.ProcessCleanupExtended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}
 	case message.MessageTypeDelete2:
-		msg := message.DisposalPrefixMessage{}
+		msg := message.DropMessage{}
 		msg.Decode(body)
-		err := m.ProcessDisposalPrefixExtended(msg, s, bs, ycl, cnf)
+		err := m.ProcessDropExtended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}
