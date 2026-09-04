@@ -434,12 +434,12 @@ func TestCopyMsg(t *testing.T) {
 func TestDeleteMsg(t *testing.T) {
 	assert := assert.New(t)
 
-	msg := message.NewDeleteMessage("myname/mynextname", 5432, 42, true, true)
+	msg := message.BuildCleanupMessage("myname/mynextname", 5432, 42, true, true)
 	body := msg.Encode()
 
 	assert.Equal(body[8], byte(message.MessageTypeDelete))
 
-	msg2 := message.DeleteMessage{}
+	msg2 := message.CleanupMessage{}
 	msg2.Decode(body[8:])
 
 	assert.Equal("myname/mynextname", msg2.Name)
@@ -449,15 +449,15 @@ func TestDeleteMsg(t *testing.T) {
 	assert.True(msg2.Garbage)
 }
 
-func TestDelete2Msg(t *testing.T) {
+func TestDeleteMessage(t *testing.T) {
 	assert := assert.New(t)
 
-	msg := message.NewDelete2Message("trash/prefix", true, false)
+	msg := message.BuildDropMessage("trash/prefix", true, false)
 	body := msg.Encode()
 
 	assert.Equal(body[8], byte(message.MessageTypeDelete2))
 
-	msg2 := message.Delete2Message{}
+	msg2 := message.DropMessage{}
 	msg2.Decode(body[8:])
 
 	assert.Equal("trash/prefix", msg2.Prefix)

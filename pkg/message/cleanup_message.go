@@ -4,7 +4,10 @@ import (
 	"encoding/binary"
 )
 
-type DeleteMessage struct { // Seg port
+// CleanupMessage requests removal of an object or garbage collection.
+// Garbage collection uses soft deletion by default; CrazyDrop switches it to
+// hard deletion. A single-file request is handled by the storage deleter.
+type CleanupMessage struct { // Seg port
 	Name      string // File path
 	Port      uint64 // Port segment/instance DB
 	Segnum    uint64 // Segment number
@@ -13,10 +16,10 @@ type DeleteMessage struct { // Seg port
 	CrazyDrop bool   // For garbage mode: delete immediately instead of moving to trash
 }
 
-var _ ProtoMessage = &DeleteMessage{}
+var _ ProtoMessage = &CleanupMessage{}
 
-func NewDeleteMessage(name string, port uint64, seg uint64, confirm bool, garbage bool) *DeleteMessage {
-	return &DeleteMessage{
+func BuildCleanupMessage(name string, port uint64, seg uint64, confirm bool, garbage bool) *CleanupMessage {
+	return &CleanupMessage{
 		Name:    name,
 		Port:    port,
 		Segnum:  seg,
@@ -25,7 +28,7 @@ func NewDeleteMessage(name string, port uint64, seg uint64, confirm bool, garbag
 	}
 }
 
-func (c *DeleteMessage) Encode() []byte {
+func (c *CleanupMessage) Encode() []byte {
 	bt := []byte{
 		byte(MessageTypeDelete),
 		0,
@@ -60,7 +63,7 @@ func (c *DeleteMessage) Encode() []byte {
 	return append(bs, bt...)
 }
 
-func (c *DeleteMessage) Decode(body []byte) {
+func (c *CleanupMessage) Decode(body []byte) {
 	if body[1] == 1 {
 		c.Confirm = true
 	}
