@@ -404,7 +404,7 @@ var copyCmd = &cobra.Command{
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "remove an object or collect garbage",
-		RunE:  Runner(sendCleanupRequest),
+	RunE:  Runner(sendCleanupRequest),
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -437,7 +437,7 @@ var goolCmd = &cobra.Command{
 var deletePrefixCmd = &cobra.Command{
 	Use:   "deletePrefix",
 	Short: "physically delete objects by prefix",
-		RunE:  Runner(sendDropRequest),
+	RunE:  Runner(sendDropRequest),
 	Args:  cobra.ExactArgs(1), // name_prefix
 }
 
