@@ -4,7 +4,6 @@ import "time"
 
 const (
 	DefaultCheckBackup        = true
-	DefaultFileChunkPerSec    = 1000
 	DefaultTrashRetentionDays = 7
 	DefaultTrashMoveWorkers   = 1
 	DefaultTrashDeleteWorkers = 1
@@ -13,7 +12,6 @@ const (
 
 type Vacuum struct {
 	CheckBackup        bool          `json:"check_backup" toml:"check_backup" yaml:"check_backup"`
-	FileChunkPerSec    int           `json:"file_chunk_per_sec" toml:"file_chunk_per_sec" yaml:"file_chunk_per_sec"`
 	TrashRetentionDays int           `json:"trash_retention_days" toml:"trash_retention_days" yaml:"trash_retention_days"`
 	TrashMoveWorkers   int           `json:"trash_move_workers" toml:"trash_move_workers" yaml:"trash_move_workers"`
 	TrashDeleteWorkers int           `json:"trash_delete_workers" toml:"trash_delete_workers" yaml:"trash_delete_workers"`
@@ -25,12 +23,6 @@ type VacuumOption func(*Vacuum)
 func WithCheckBackup(checkBackup bool) VacuumOption {
 	return func(v *Vacuum) {
 		v.CheckBackup = checkBackup
-	}
-}
-
-func WithFileChunkPerSec(fileChunkPerSec int) VacuumOption {
-	return func(v *Vacuum) {
-		v.FileChunkPerSec = fileChunkPerSec
 	}
 }
 
@@ -63,7 +55,6 @@ func BuildVacuum(opts ...VacuumOption) *Vacuum {
 
 	ApplyVacuumOptions(v,
 		WithCheckBackup(DefaultCheckBackup),
-		WithFileChunkPerSec(DefaultFileChunkPerSec),
 		WithTrashRetentionDays(DefaultTrashRetentionDays),
 		WithTrashMoveWorkers(DefaultTrashMoveWorkers),
 		WithTrashDeleteWorkers(DefaultTrashDeleteWorkers),
