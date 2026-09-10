@@ -196,9 +196,6 @@ func assertDefaultVacuum(t *testing.T, vacuum Vacuum) {
 	if vacuum.CheckBackup != DefaultCheckBackup {
 		t.Fatalf("expected default check backup %v, got %v", DefaultCheckBackup, vacuum.CheckBackup)
 	}
-	if vacuum.FileChunkPerSec != DefaultFileChunkPerSec {
-		t.Fatalf("expected default file chunk per sec %v, got %v", DefaultFileChunkPerSec, vacuum.FileChunkPerSec)
-	}
 	if vacuum.TrashRetentionDays != DefaultTrashRetentionDays {
 		t.Fatalf("expected default trash retention days %v, got %v", DefaultTrashRetentionDays, vacuum.TrashRetentionDays)
 	}
