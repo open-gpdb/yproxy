@@ -452,8 +452,8 @@ func (*ProtoMgrImpl) ProcessCopyExtended(
 	return nil
 }
 
-func (*ProtoMgrImpl) ProcessDeleteExtended(
-	msg message.DeleteMessage,
+func (*ProtoMgrImpl) ProcessCleanupExtended(
+	msg message.CleanupMessage,
 	s storage.StorageInteractor,
 	bs storage.StorageInteractor,
 	ycl client.YproxyClient,
@@ -472,15 +472,18 @@ func (*ProtoMgrImpl) ProcessDeleteExtended(
 
 	var (
 		logMsg       string
-		handleDelete func(msg message.DeleteMessage) error
+		successMsg   string
+		handleDelete func(msg message.CleanupMessage) error
 	)
 
 	if msg.Garbage {
 		logMsg = "requested to perform external storage VACUUM"
-		handleDelete = dh.HandleDeleteGarbage
+		successMsg = "Deleted garbage successfully"
+		handleDelete = dh.HandleGarbageCleanup
 	} else {
 		logMsg = "requested to remove external chunk"
-		handleDelete = dh.HandleDeleteFile
+		successMsg = "Deleted chunk successfully"
+		handleDelete = dh.HandleFileDeletion
 	}
 
 	ylogger.Zero.Debug().
@@ -501,17 +504,15 @@ func (*ProtoMgrImpl) ProcessDeleteExtended(
 	}
 	if !msg.Confirm {
 		ylogger.Zero.Warn().Msg("It was a dry-run, nothing was deleted")
-	} else if msg.Garbage {
-		ylogger.Zero.Info().Msg("Deleted garbage successfully")
 	} else {
-		ylogger.Zero.Info().Msg("Deleted chunk successfully")
+		ylogger.Zero.Info().Msg(successMsg)
 	}
 
 	return nil
 }
 
-func (*ProtoMgrImpl) ProcessDelete2Extended(
-	msg message.Delete2Message,
+func (*ProtoMgrImpl) ProcessDropExtended(
+	msg message.DropMessage,
 	s storage.StorageInteractor,
 	bs storage.StorageInteractor,
 	ycl client.YproxyClient,
@@ -537,7 +538,7 @@ func (*ProtoMgrImpl) ProcessDelete2Extended(
 			Str("Name", msg.Prefix).
 			Bool("confirm", msg.Confirm).Msg("requested to delete any files")
 	}
-	err := dh.HandleDelete2Prefix(msg)
+	err := dh.HandleDeletePrefix(msg)
 	if err != nil {
 		_ = ycl.ReplyError(err, "failed to finish operation")
 		return err
@@ -853,16 +854,16 @@ func ProcConn(
 
 	case message.MessageTypeDelete:
 		// receive message
-		msg := message.DeleteMessage{}
+		msg := message.CleanupMessage{}
 		msg.Decode(body)
-		err := m.ProcessDeleteExtended(msg, s, bs, ycl, cnf)
+		err := m.ProcessCleanupExtended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}
 	case message.MessageTypeDelete2:
-		msg := message.Delete2Message{}
+		msg := message.DropMessage{}
 		msg.Decode(body)
-		err := m.ProcessDelete2Extended(msg, s, bs, ycl, cnf)
+		err := m.ProcessDropExtended(msg, s, bs, ycl, cnf)
 		if err != nil {
 			return err
 		}

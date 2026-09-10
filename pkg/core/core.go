@@ -220,7 +220,6 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 			// Error return value of `instance.pool.Put` is not checked
 			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error putting client to pool")
 		}
-
 		if err := proc.ProcConn(instance.ProtoMgr, s, bs, cr, ycl, &instanceCnf.VacuumCnf); err != nil {
 			ylogger.Zero.Warn().Uint("id", ycl.ID()).Err(err).Msg("error serving client")
 		}
