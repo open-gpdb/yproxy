@@ -120,6 +120,12 @@ func (*ProtoMgrImpl) ProcessPutExtended(
 		ww := w
 		if encrypt {
 			if cr == nil {
+
+				if err := w.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close connection")
+					return
+				}
+
 				ylogger.Zero.Error().Err(fmt.Errorf("failed to encrypt, crypter not configured")).Str("path", name).Msg("connection aborted")
 				return
 			}
@@ -127,6 +133,12 @@ func (*ProtoMgrImpl) ProcessPutExtended(
 			var err error
 			ww, err = cr.Encrypt(w)
 			if err != nil {
+
+				if err := w.Close(); err != nil {
+					ylogger.Zero.Error().Err(err).Msg("failed to close connection")
+					return
+				}
+
 				ylogger.Zero.Error().Err(err).Msg("failed to encrypt")
 				return
 			}
