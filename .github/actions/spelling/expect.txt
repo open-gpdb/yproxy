@@ -39,6 +39,7 @@ djewikdeowp
 dpkg
 dws
 EADDRINUSE
+ECONNREFUSED
 Errflag
 Errorf
 Exca

@@ -64,6 +64,35 @@ func (*Instance) DispatchServer(listener net.Listener, server func(net.Conn)) {
 	}()
 }
 
+// listenUnix binds the unix socket, removing the stale socket file left
+// by a crashed previous instance.
+func listenUnix(path string) (net.Listener, error) {
+	listener, err := net.Listen("unix", path)
+	if err == nil || !errors.Is(err, syscall.EADDRINUSE) {
+		return listener, err
+	}
+	listenErr := err
+
+	probe, err := net.DialTimeout("unix", path, time.Second)
+	if err == nil {
+		// someone is alive on the other end: the path is not stale
+		_ = probe.Close()
+		return nil, listenErr
+	}
+	/* XXX: there can be some rare cases when an alive instance refuses to accept connections,
+	 * but this case does not seem worth worrying about. */
+	if !errors.Is(err, syscall.ECONNREFUSED) && !errors.Is(err, os.ErrNotExist) {
+		return nil, listenErr
+	}
+
+	ylogger.Zero.Warn().Str("path", path).Msg("removing stale unix socket file")
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		ylogger.Zero.Error().Err(err).Str("path", path).Msg("failed to remove stale unix socket file")
+		return nil, listenErr
+	}
+	return net.Listen("unix", path)
+}
+
 func (instance *Instance) Run(instanceCnf *config.Instance) error {
 
 	sigs := make(chan os.Signal, 1)
@@ -190,7 +219,7 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 	for listener == nil {
 		select {
 		case <-retryTicker.C:
-			listener, err = net.Listen("unix", instanceCnf.SocketPath)
+			listener, err = listenUnix(instanceCnf.SocketPath)
 			if err != nil {
 				if errors.Is(err, syscall.EADDRINUSE) {
 					continue
@@ -231,7 +260,7 @@ func (instance *Instance) Run(instanceCnf *config.Instance) error {
 	for iclistener == nil {
 		select {
 		case <-retryTicker.C:
-			iclistener, err = net.Listen("unix", instanceCnf.InterconnectSocketPath)
+			iclistener, err = listenUnix(instanceCnf.InterconnectSocketPath)
 			if err != nil {
 				if errors.Is(err, syscall.EADDRINUSE) {
 					continue
