@@ -15,6 +15,7 @@ caio
 cdsdsd
 cfg
 Chk
+chrislusf
 Cleartext
 clientpid
 clientpool
@@ -142,6 +143,7 @@ rfq
 rowsdb
 sconst
 sdnotifier
+seaweedfs
 segnum
 sessionpool
 Setsockopt
