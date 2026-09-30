@@ -15,7 +15,6 @@ import (
 
 	"github.com/yezzey-gp/aws-sdk-go/aws"
 	"github.com/yezzey-gp/aws-sdk-go/service/s3"
-	"github.com/yezzey-gp/aws-sdk-go/service/s3/s3manager"
 	"github.com/yezzey-gp/yproxy/config"
 	"github.com/yezzey-gp/yproxy/pkg/message"
 	"github.com/yezzey-gp/yproxy/pkg/metrics"
@@ -24,6 +23,15 @@ import (
 	"github.com/yezzey-gp/yproxy/pkg/tablespace"
 	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
+
+type mpuState struct {
+	uploadId string
+	partNum  int64
+	parts    []*s3.CompletedPart
+	buf      []byte
+}
+
+const defaultRetryLimit = 100
 
 type S3StorageInteractor struct {
 	pool SessionPool
@@ -137,22 +145,9 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 		return err
 	}
 
-	up := s3manager.NewUploaderWithClient(sess, func(uploader *s3manager.Uploader) {
-		uploader.PartSize = int64(multipartChunkSize)
-		uploader.Concurrency = 1
-	})
 	putLen := int(multipartChunkSize)
 	if multipartUpload {
-		s.multipartUploads.Store(objectPath, true)
-		_, err = up.Upload(
-			&s3manager.UploadInput{
-				Bucket:       aws.String(bucket),
-				Key:          aws.String(objectPath),
-				Body:         r,
-				StorageClass: aws.String(storageClass),
-			},
-		)
-		s.multipartUploads.Delete(objectPath)
+		err = s.multipartPut(sess, bucket, objectPath, storageClass, r, multipartChunkSize)
 	} else {
 		var body []byte
 		body, err = io.ReadAll(r)
@@ -171,6 +166,79 @@ func (s *S3StorageInteractor) PutFileToDest(name string, r io.Reader, settings [
 	putTime := time.Since(timeStart).Nanoseconds()
 	metrics.StoreLatencyAndSizeInfo("S3_PUT", float64(putLen), float64(putTime))
 	return err
+}
+
+func (s *S3StorageInteractor) multipartPut(sess *s3.S3, bucket, objectPath, storageClass string, r io.Reader, partSize int64) error {
+	var st *mpuState
+	if v, ok := s.multipartUploads.Load(objectPath); ok {
+		st = v.(*mpuState)
+	} else {
+		out, err := sess.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+			Bucket:       aws.String(bucket),
+			Key:          aws.String(objectPath),
+			StorageClass: aws.String(storageClass),
+		})
+		if err != nil {
+			return err
+		}
+		st = &mpuState{uploadId: *out.UploadId, buf: make([]byte, partSize)}
+		s.multipartUploads.Store(objectPath, st)
+	}
+
+	for {
+		n, rerr := io.ReadFull(r, st.buf)
+		if rerr != nil && rerr != io.EOF && rerr != io.ErrUnexpectedEOF {
+			return rerr
+		}
+
+		cp, err := s.uploadPart(sess, bucket, objectPath, st, st.buf[:n])
+		if err != nil {
+			return err
+		}
+		st.parts = append(st.parts, cp)
+		st.partNum++
+
+		if rerr != nil {
+			var cerr error
+			for retry := 0; retry < defaultRetryLimit; retry++ {
+				_, cerr = sess.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+					Bucket:          aws.String(bucket),
+					Key:             aws.String(objectPath),
+					UploadId:        aws.String(st.uploadId),
+					MultipartUpload: &s3.CompletedMultipartUpload{Parts: st.parts},
+				})
+				if cerr == nil {
+					break
+				}
+				ylogger.Zero.Error().Err(cerr).Str("object-path", objectPath).Int("retry", retry).Msg("failed to complete multipart upload, will retry")
+				time.Sleep(time.Second)
+			}
+			if cerr == nil {
+				s.multipartUploads.Delete(objectPath)
+			}
+			return cerr
+		}
+	}
+}
+
+func (s *S3StorageInteractor) uploadPart(sess *s3.S3, bucket, objectPath string, st *mpuState, body []byte) (*s3.CompletedPart, error) {
+	var lastErr error
+	for retry := 0; retry < defaultRetryLimit; retry++ {
+		out, err := sess.UploadPart(&s3.UploadPartInput{
+			Bucket:     aws.String(bucket),
+			Key:        aws.String(objectPath),
+			UploadId:   aws.String(st.uploadId),
+			PartNumber: aws.Int64(st.partNum + 1),
+			Body:       bytes.NewReader(body),
+		})
+		if err == nil {
+			return &s3.CompletedPart{ETag: out.ETag, PartNumber: aws.Int64(st.partNum + 1)}, nil
+		}
+		lastErr = err
+		ylogger.Zero.Error().Err(err).Str("object-path", objectPath).Int64("part", st.partNum+1).Int("retry", retry).Msg("failed to upload part, will retry")
+		time.Sleep(time.Second)
+	}
+	return nil, lastErr
 }
 
 func (s *S3StorageInteractor) PatchFile(name string, r io.ReadSeeker, startOffset int64) error {
