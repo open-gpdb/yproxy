@@ -438,7 +438,7 @@ var deletePrefixCmd = &cobra.Command{
 	Use:   "deletePrefix",
 	Short: "physically delete objects by prefix",
 	RunE:  Runner(sendDropRequest),
-	Args:  cobra.ExactArgs(1), // name_prefix
+	Args:  cobra.ExactArgs(1),
 }
 
 func init() {
