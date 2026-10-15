@@ -135,3 +135,38 @@ func TestYproxyRetryReaderSimpleReadRetry(t *testing.T) {
 
 	assert.Nil(t, yr.Close())
 }
+
+func TestYproxyRetryReaderReturnsPartialReadBeforeRetry(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	rr := mockio.NewMockRestartReader(ctrl)
+	ycl := mockcl.NewMockYproxyClient(ctrl)
+	yr := yio.NewYRetryReader(rr, ycl)
+
+	rr.EXPECT().Restart(int64(0)).Return(nil)
+	rr.EXPECT().Read(gomock.Any()).Do(func(buf []byte) {
+		copy(buf, "ab")
+	}).Return(2, fmt.Errorf("unexpected EOF"))
+	rr.EXPECT().Close().Return(nil)
+	ycl.EXPECT().SetByteOffset(int64(2))
+
+	first := make([]byte, 2)
+	n, err := yr.Read(first)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, n)
+	assert.Equal(t, []byte("ab"), first)
+
+	rr.EXPECT().Restart(int64(2)).Return(nil)
+	rr.EXPECT().Read(gomock.Any()).Do(func(buf []byte) {
+		copy(buf, []byte{3, 4, 5})
+	}).Return(3, nil)
+	ycl.EXPECT().SetByteOffset(int64(5))
+
+	second := make([]byte, 3)
+	n, err = yr.Read(second)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, []byte{3, 4, 5}, second)
+
+	rr.EXPECT().Close().Return(nil)
+	assert.NoError(t, yr.Close())
+}

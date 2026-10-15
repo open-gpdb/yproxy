@@ -90,9 +90,10 @@ type YproxyRetryReader struct {
 
 	selfCl client.YproxyClient
 
-	offsetReached int64
-	retryLimit    int
-	needReacquire bool
+	offsetReached   int64
+	retryLimit      int
+	needReacquire   bool
+	returnReadError bool
 }
 
 // Close implements io.ReadCloser.
@@ -115,6 +116,9 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			err := y.underlying.Restart(y.offsetReached)
 
 			if err != nil {
+				if y.returnReadError {
+					return 0, err
+				}
 				// log error and continue.
 				// Try to mitigate overload problems with random sleep
 				ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
@@ -143,6 +147,7 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 
 			if n > 0 {
 				y.offsetReached += int64(n)
+				y.selfCl.SetByteOffset(y.offsetReached)
 			}
 
 			// what if close failed?
@@ -152,6 +157,12 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			// from previously reached point
 
 			y.needReacquire = true
+			if y.returnReadError {
+				return n, err
+			}
+			if n > 0 {
+				return n, nil
+			}
 			continue
 		} else {
 			y.offsetReached += int64(n)
@@ -165,6 +176,13 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 		return -1, lastErr
 	}
 	return -1, fmt.Errorf("failed to read within retries: no error captured")
+}
+
+// NewYproxyErrorReader returns storage errors to the caller instead of resuming
+// from a Range offset. It is used when the whole content stream is retried.
+func NewYproxyErrorReader(r RestartReader, selfCl client.YproxyClient) io.ReadCloser {
+	return &YproxyRetryReader{underlying: r, retryLimit: 1, selfCl: selfCl,
+		needReacquire: true, returnReadError: true}
 }
 
 const (

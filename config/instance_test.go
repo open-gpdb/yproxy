@@ -168,6 +168,12 @@ func assertDefaultStorage(t *testing.T, storage Storage) {
 	if storage.EndpointSourceScheme != DefaultEndpointSourceScheme {
 		t.Fatalf("expected default endpoint source scheme %q, got %q", DefaultEndpointSourceScheme, storage.EndpointSourceScheme)
 	}
+	if storage.ReadRetryMode != DefaultReadRetryMode {
+		t.Fatalf("expected default read retry mode %q, got %q", DefaultReadRetryMode, storage.ReadRetryMode)
+	}
+	if storage.ReadRetryAttempts != DefaultReadRetryAttempts {
+		t.Fatalf("expected default read retry attempts %v, got %v", DefaultReadRetryAttempts, storage.ReadRetryAttempts)
+	}
 }
 
 func assertDefaultBackupStorage(t *testing.T, storage Storage) {

@@ -2,6 +2,16 @@
 
 yproxy - a service for efficient transfer data external storages.
 
+## Retrying interrupted reads
+
+The `storage.read_retry_mode` setting controls how yproxy resumes an S3 read
+after a transient error. The default `resume` retries with an S3 Range request.
+Set `restart_from_beginning` to reopen the object at offset zero, recreate the
+decryption reader, and discard plaintext already sent to the client. This mode is
+slower after an error but avoids relying on a nonzero Range response.
+
+`storage.read_retry_attempts` limits full restarts and defaults to `3`.
+
 ## vacuum / garbage collection configuration
 
 The `vacuum` section of the yproxy configuration file controls the

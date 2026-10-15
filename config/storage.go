@@ -36,6 +36,9 @@ type Storage struct {
 	// copy behaviour control option
 	StorageOptimizeCopy bool `json:"storage_optimize_copy" toml:"storage_optimize_copy" yaml:"storage_optimize_copy"`
 
+	ReadRetryMode     string `json:"read_retry_mode" toml:"read_retry_mode" yaml:"read_retry_mode"`
+	ReadRetryAttempts int    `json:"read_retry_attempts" toml:"read_retry_attempts" yaml:"read_retry_attempts"`
+
 	// File storage default s3. Available: s3, fs
 	StorageType string `json:"storage_type" toml:"storage_type" yaml:"storage_type"`
 
@@ -52,7 +55,9 @@ const (
 	DefaultEndpointSourceScheme = "https"
 
 	/* 1 GB per  second */
-	DefaultStorageRateLimit = 1024 * 1024 * 1024
+	DefaultStorageRateLimit  = 1024 * 1024 * 1024
+	DefaultReadRetryMode     = "resume"
+	DefaultReadRetryAttempts = 3
 )
 
 type StorageOption func(*Storage)
@@ -61,6 +66,11 @@ func WithStorageType(storageType string) StorageOption {
 	return func(s *Storage) {
 		s.StorageType = storageType
 	}
+}
+
+func WithReadRetryMode(mode string) StorageOption { return func(s *Storage) { s.ReadRetryMode = mode } }
+func WithReadRetryAttempts(attempts int) StorageOption {
+	return func(s *Storage) { s.ReadRetryAttempts = attempts }
 }
 
 func WithStorageConcurrency(storageConcurrency int64) StorageOption {
@@ -95,6 +105,8 @@ func BuildStorage(opts ...StorageOption) *Storage {
 		WithStorageConcurrency(DefaultStorageConcurrency),
 		WithCopyStorageConcurrency(DefaultCopyStorageConcurrency),
 		WithStorageRateLimit(DefaultStorageRateLimit),
+		WithReadRetryMode(DefaultReadRetryMode),
+		WithReadRetryAttempts(DefaultReadRetryAttempts),
 		WithEndpointSourceScheme(DefaultEndpointSourceScheme),
 	)
 	ApplyStorageOptions(s, opts...)

@@ -42,6 +42,33 @@ func (*ProtoMgrImpl) ProcessCatExtended(
 	ycl client.YproxyClient) error {
 
 	ycl.SetExternalFilePath(name)
+	if decrypt && cr == nil {
+		err := fmt.Errorf("failed to decrypt object, decrypter not configured")
+		ylogger.Zero.Error().Err(err).Msg("cat failed")
+		return err
+	}
+	if config.InstanceConfig().StorageCnf.ReadRetryMode == "restart_from_beginning" {
+		attempts := config.InstanceConfig().StorageCnf.ReadRetryAttempts
+		if attempts <= 0 {
+			attempts = config.DefaultReadRetryAttempts
+		}
+		open := func() (io.Reader, io.Closer, error) {
+			rawReader := yio.NewYproxyErrorReader(
+				yio.NewRestartReader(s, name, settings), ycl)
+			contentReader := io.Reader(rawReader)
+			if decrypt {
+				var err error
+				contentReader, err = cr.Decrypt(rawReader)
+				if err != nil {
+					_ = rawReader.Close()
+					return nil, nil, err
+				}
+			}
+			return contentReader, rawReader, nil
+		}
+		_, err := copyWithFullRestart(ycl.GetRW(), open, int64(startOffset), attempts)
+		return err
+	}
 
 	yr := yio.NewYRetryReader(yio.NewRestartReader(s, name, settings), ycl)
 
@@ -51,12 +78,6 @@ func (*ProtoMgrImpl) ProcessCatExtended(
 	var err error
 
 	if decrypt {
-		if cr == nil {
-			err := fmt.Errorf("failed to decrypt object, decrypter not configured")
-
-			ylogger.Zero.Error().Err(err).Msg("cat failed")
-			return err
-		}
 		ylogger.Zero.Debug().Str("object-path", name).Msg("decrypt object")
 		contentReader, err = cr.Decrypt(yr)
 		if err != nil {
