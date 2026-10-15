@@ -141,17 +141,23 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 				lastErr = err
 			}
 
-			if n > 0 {
-				y.offsetReached += int64(n)
-			}
-
 			// what if close failed?
 			_ = y.underlying.Close()
 
 			// try to reacquire connection to external storage and continue read
 			// from previously reached point
-
 			y.needReacquire = true
+
+			if n > 0 {
+				// Partial bytes were read from S3 but not yet delivered to caller.
+				// Advance the offset and return these bytes now; the reconnect will
+				// happen at the start of the next Read call (needReacquire=true).
+				// Without this, the n bytes are discarded while offsetReached is
+				// advanced past them, creating a gap that corrupts block checksums.
+				y.offsetReached += int64(n)
+				y.selfCl.SetByteOffset(y.offsetReached)
+				return n, nil
+			}
 			continue
 		} else {
 			y.offsetReached += int64(n)
