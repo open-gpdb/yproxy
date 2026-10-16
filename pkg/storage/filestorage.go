@@ -53,31 +53,33 @@ func (s *FileStorageInteractor) CatFileFromStorage(name string, offset int64, _ 
 }
 func (s *FileStorageInteractor) ListPath(prefix string, _ bool, _ []settings.StorageSettings) ([]*object.ObjectInfo, error) {
 	var data []*object.ObjectInfo
-	err := filepath.WalkDir(s.cnf.StoragePrefix, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		fileinfo, err := file.Stat()
-		if err != nil {
-			return err
-		}
 
-		cuttedPrefix, _ := strings.CutPrefix(prefix, "/")
-		neededPrefix := s.cnf.StoragePrefix + cuttedPrefix
-		if !strings.HasPrefix(path, neededPrefix) {
+	cuttedPrefix, _ := strings.CutPrefix(prefix, "/")
+	neededPrefix := s.cnf.StoragePrefix + cuttedPrefix
+
+	err := filepath.WalkDir(s.cnf.StoragePrefix, func(path string, d fs.DirEntry, err error) error {
+		// Object storage listings never fail on entries that vanish mid-walk:
+		// another worker may have just deleted or moved the file (concurrent
+		// garbage collection). Mirror s3 semantics and skip such entries.
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if d.IsDir() || !strings.HasPrefix(path, neededPrefix) {
 			return nil
+		}
+		fileinfo, err := d.Info()
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
 		}
 		cPath, ok := strings.CutPrefix(path, s.cnf.StoragePrefix)
-
 		if !ok {
-			return err
+			return nil
 		}
 		data = append(data, &object.ObjectInfo{Path: "/" + cPath, Size: fileinfo.Size(), LastMod: fileinfo.ModTime()})
 		return nil
@@ -137,7 +139,12 @@ func (s *FileStorageInteractor) CopyObject(from, to, fromStoragePrefix, _, _ str
 }
 
 func (s *FileStorageInteractor) DeleteObject(_ /*bucket*/, key string) error {
-	return os.Remove(path.Join(s.cnf.StoragePrefix, key))
+	err := os.Remove(path.Join(s.cnf.StoragePrefix, key))
+	// s3 deletes are idempotent: a missing object deletes silently.
+	if err != nil && os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 func (s *FileStorageInteractor) AbortMultipartUploads() error {
