@@ -115,6 +115,10 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			err := y.underlying.Restart(y.offsetReached)
 
 			if err != nil {
+				if storage.IsNonRetryableError(err) {
+					ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Msg("object does not exist in external storage, giving up")
+					return -1, err
+				}
 				// log error and continue.
 				// Try to mitigate overload problems with random sleep
 				ylogger.Zero.Error().Err(err).Int("offset reached", int(y.offsetReached)).Int("retry count", int(retry)).Msg("failed to reacquire external storage connection, wait and retry")
@@ -138,6 +142,10 @@ func (y *YproxyRetryReader) Read(p []byte) (int, error) {
 			metrics.ReadReqErrors.Inc()
 			ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Int("bytes half-read", n).Int("retry count", int(retry)).Msg("encounter read error")
 			if err != nil {
+				if storage.IsNonRetryableError(err) {
+					ylogger.Zero.Error().Err(err).Int64("offset reached", y.offsetReached).Msg("object does not exist in external storage, giving up")
+					return -1, err
+				}
 				lastErr = err
 			}
 
