@@ -32,22 +32,6 @@ jobs:
         if: ${{github.event_name == 'push'}}
         run: echo "GITHUB_REF=${{github.ref_name}}" >> $GITHUB_ENV
 
-      - name: Configure buckets for vacuum test tablespaces
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          path = "yezzey_test/yproxy.conf"
-          with open(path) as source:
-              config = source.read()
-          marker = "  tablespace_map:\n"
-          assert config.count(marker) == 1, "Expected one tablespace map"
-          config = config.replace(marker, marker +
-              '    "vacuum_garbage_tab1": "gpyezzey2"\n' +
-              '    "vacuum_garbage_tab2": "gpyezzey3"\n')
-          with open(path, "w") as output:
-              output.write(config)
-          PY
-
       - name: Build
         run: docker compose -f docker/yezzey/docker-compose.yaml build
 
