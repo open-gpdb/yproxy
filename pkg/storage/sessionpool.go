@@ -62,6 +62,8 @@ func NewSessionPool(cnf *config.Storage, poolName string) SessionPool {
 // TODO : unit tests
 func (sp *S3SessionPool) createSession(cr *config.StorageCredentials) (*session.Session, error) {
 	s, err := session.NewSession(&aws.Config{
+		// Avoid signing a retained Expect header on retries through S3 proxies.
+		S3Disable100Continue: aws.Bool(true),
 		Retryer: client.DefaultRetryer{
 			NumMaxRetries: 20,
 			MinRetryDelay: time.Second,
