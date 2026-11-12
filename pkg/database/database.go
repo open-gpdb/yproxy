@@ -2,8 +2,6 @@ package database
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
@@ -35,60 +33,6 @@ type LSN struct {
 	lsn string
 }
 
-// versionAtLeast compares numeric extension versions component by component.
-func versionAtLeast(version, minimum string) (bool, error) {
-	actual, required := strings.Split(version, "."), strings.Split(minimum, ".")
-	if len(actual) > 3 || len(required) > 3 {
-		return false, fmt.Errorf("invalid yezzey version: %q or %q", version, minimum)
-	}
-	for len(actual) < 3 {
-		actual = append(actual, "0")
-	}
-	for len(required) < 3 {
-		required = append(required, "0")
-	}
-	var a, b [3]uint64
-	for i := range a {
-		var err error
-		if a[i], err = strconv.ParseUint(actual[i], 10, 64); err != nil {
-			return false, fmt.Errorf("invalid yezzey version %q: %w", version, err)
-		}
-		if b[i], err = strconv.ParseUint(required[i], 10, 64); err != nil {
-			return false, fmt.Errorf("invalid yezzey version %q: %w", minimum, err)
-		}
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return a[i] > b[i], nil
-		}
-	}
-	return true, nil
-}
-
-func checkVersion(c *pgx.Conn, exp string) (bool, error) {
-	rows, err := c.Query(`SELECT extversion FROM pg_catalog.pg_extension WHERE extname OPERATOR(pg_catalog.=) 'yezzey';`)
-	if err != nil {
-		return false, fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
-	}
-
-	defer rows.Close()
-	ylogger.Zero.Debug().Msg("executed select")
-
-	if rows.Next() {
-		var ver string
-		if err := rows.Scan(&ver); err != nil {
-			return false, fmt.Errorf("unable to parse query output %v", err)
-		}
-		if rows.Next() {
-			return false, fmt.Errorf("unable to get yezzey extension version: duplicate output")
-		}
-
-		return versionAtLeast(ver, exp)
-	}
-
-	return false, fmt.Errorf("unable to get yezzey extension version")
-}
-
 func nextPrefix(prefix string) string {
 	b := []byte(prefix)
 	for i := len(b) - 1; i >= 0; i-- {
@@ -113,38 +57,33 @@ func (database *DatabaseHandler) GetVirtualExpireIndexByPrefix(port uint64, db D
 	upper := nextPrefix(prefix)
 	usePrefix := lower != "" && upper != ""
 
-	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
-		ylogger.Zero.Warn().Err(err).Msg("GetVirtualExpireIndexByPrefix: failed")
-		return err
-	} else if ch {
-		var rows *pgx.Rows
-		if usePrefix {
-			rows, err = conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint WHERE x_path COLLATE "C" OPERATOR(pg_catalog.>=) $1 COLLATE "C" AND x_path COLLATE "C" OPERATOR(pg_catalog.<) $2 COLLATE "C";`, lower, upper)
-		} else {
-			rows, err = conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
-		}
-		if err != nil {
-			return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
-		}
-		defer rows.Close()
-		ylogger.Zero.Debug().Bool("prefix filtered", usePrefix).Msg("executed select")
-
-		for rows.Next() {
-			row := ExpireHint{}
-			if err := rows.Scan(&row.x_path, &row.expireLsn); err != nil {
-				return fmt.Errorf("unable to parse query output %v", err)
-			}
-
-			lsn, err := pgx.ParseLSN(row.expireLsn)
-			if err != nil {
-				return fmt.Errorf("unable to parse query output %v", err)
-			}
-
-			ylogger.Zero.Debug().Str("x_path", row.x_path).Str("lsn", row.expireLsn).Msg("added file to expire hint")
-			(*expireIndex)[row.x_path] = lsn
-		}
-		ylogger.Zero.Debug().Msg("fetched expire hint info")
+	var rows *pgx.Rows
+	if usePrefix {
+		rows, err = conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint WHERE x_path COLLATE "C" OPERATOR(pg_catalog.>=) $1 COLLATE "C" AND x_path COLLATE "C" OPERATOR(pg_catalog.<) $2 COLLATE "C";`, lower, upper)
+	} else {
+		rows, err = conn.Query(`SELECT x_path, lsn FROM yezzey.yezzey_expire_hint;`)
 	}
+	if err != nil {
+		return fmt.Errorf("unable to get ao/aocs tables %v", err) //fix
+	}
+	defer rows.Close()
+	ylogger.Zero.Debug().Bool("prefix filtered", usePrefix).Msg("executed select")
+
+	for rows.Next() {
+		row := ExpireHint{}
+		if err := rows.Scan(&row.x_path, &row.expireLsn); err != nil {
+			return fmt.Errorf("unable to parse query output %v", err)
+		}
+
+		lsn, err := pgx.ParseLSN(row.expireLsn)
+		if err != nil {
+			return fmt.Errorf("unable to parse query output %v", err)
+		}
+
+		ylogger.Zero.Debug().Str("x_path", row.x_path).Str("lsn", row.expireLsn).Msg("added file to expire hint")
+		(*expireIndex)[row.x_path] = lsn
+	}
+	ylogger.Zero.Debug().Msg("fetched expire hint info")
 
 	var viRows *pgx.Rows
 	if usePrefix {
