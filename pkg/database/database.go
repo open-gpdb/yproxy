@@ -2,6 +2,8 @@ package database
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
@@ -33,6 +35,36 @@ type LSN struct {
 	lsn string
 }
 
+// versionAtLeast compares numeric extension versions component by component.
+func versionAtLeast(version, minimum string) (bool, error) {
+	actual, required := strings.Split(version, "."), strings.Split(minimum, ".")
+	if len(actual) > 3 || len(required) > 3 {
+		return false, fmt.Errorf("invalid yezzey version: %q or %q", version, minimum)
+	}
+	for len(actual) < 3 {
+		actual = append(actual, "0")
+	}
+	for len(required) < 3 {
+		required = append(required, "0")
+	}
+	var a, b [3]uint64
+	for i := range a {
+		var err error
+		if a[i], err = strconv.ParseUint(actual[i], 10, 64); err != nil {
+			return false, fmt.Errorf("invalid yezzey version %q: %w", version, err)
+		}
+		if b[i], err = strconv.ParseUint(required[i], 10, 64); err != nil {
+			return false, fmt.Errorf("invalid yezzey version %q: %w", minimum, err)
+		}
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return a[i] > b[i], nil
+		}
+	}
+	return true, nil
+}
+
 func checkVersion(c *pgx.Conn, exp string) (bool, error) {
 	rows, err := c.Query(`SELECT extversion FROM pg_catalog.pg_extension WHERE extname OPERATOR(pg_catalog.=) 'yezzey';`)
 	if err != nil {
@@ -51,8 +83,7 @@ func checkVersion(c *pgx.Conn, exp string) (bool, error) {
 			return false, fmt.Errorf("unable to get yezzey extension version: duplicate output")
 		}
 
-		/* we compare versions lexicographically */
-		return ver >= exp, nil
+		return versionAtLeast(ver, exp)
 	}
 
 	return false, fmt.Errorf("unable to get yezzey extension version")
@@ -82,7 +113,6 @@ func (database *DatabaseHandler) GetVirtualExpireIndexByPrefix(port uint64, db D
 	upper := nextPrefix(prefix)
 	usePrefix := lower != "" && upper != ""
 
-	/* Todo: check that yezzey version >= 1.8.4 */
 	if ch, err := checkVersion(conn, "1.8.4"); err != nil {
 		ylogger.Zero.Warn().Err(err).Msg("GetVirtualExpireIndexByPrefix: failed")
 		return err
