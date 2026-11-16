@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/object"
 	"github.com/stretchr/testify/assert"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/object"
 )
 
 func TestCache(t *testing.T) {

@@ -5,13 +5,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/metrics"
-	"github.com/yezzey-gp/yproxy/pkg/proc/yio/limiter"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/metrics"
+	"github.com/open-gpdb/yproxy/pkg/proc/yio/limiter"
+	"github.com/open-gpdb/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 	"golang.org/x/time/rate"
 )
 

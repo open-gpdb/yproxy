@@ -7,15 +7,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/backups"
+	"github.com/open-gpdb/yproxy/pkg/database"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/metrics"
+	"github.com/open-gpdb/yproxy/pkg/object"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 	"github.com/pkg/errors"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/backups"
-	"github.com/yezzey-gp/yproxy/pkg/database"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/metrics"
-	"github.com/yezzey-gp/yproxy/pkg/object"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
 //go:generate mockgen -destination=../../../test/mocks/mock_object.go -package mocks -build_flags -mod=readonly github.com/wal-g/wal-g/pkg/storages/storage Object

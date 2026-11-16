@@ -1,13 +1,13 @@
 package proto
 
 import (
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/crypt"
-	pio "github.com/yezzey-gp/yproxy/pkg/io"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/crypt"
+	pio "github.com/open-gpdb/yproxy/pkg/io"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/storage"
 )
 
 type ProtoMgr interface {

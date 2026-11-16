@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 type YproxyClient interface {

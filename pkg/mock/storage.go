@@ -13,8 +13,8 @@ import (
 	io "io"
 	reflect "reflect"
 
-	object "github.com/yezzey-gp/yproxy/pkg/object"
-	settings "github.com/yezzey-gp/yproxy/pkg/settings"
+	object "github.com/open-gpdb/yproxy/pkg/object"
+	settings "github.com/open-gpdb/yproxy/pkg/settings"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	message "github.com/yezzey-gp/yproxy/pkg/message"
+	message "github.com/open-gpdb/yproxy/pkg/message"
 	gomock "go.uber.org/mock/gomock"
 )
 

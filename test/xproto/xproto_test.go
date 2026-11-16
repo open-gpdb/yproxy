@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yezzey-gp/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/message"
 )
 
 func copyData(b []byte) *message.CopyDataMessage {

@@ -5,10 +5,10 @@ import (
 
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/testutils"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 	"github.com/pkg/errors"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/testutils"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
 //go:generate mockgen -destination=../mock/mock_database_interractor.go -package mock

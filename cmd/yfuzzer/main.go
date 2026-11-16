@@ -5,17 +5,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/core"
-	"github.com/yezzey-gp/yproxy/pkg/crypt"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/object"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/core"
+	"github.com/open-gpdb/yproxy/pkg/crypt"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/object"
+	"github.com/open-gpdb/yproxy/pkg/proc"
+	"github.com/open-gpdb/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 type FuzzerProtoMgr struct {

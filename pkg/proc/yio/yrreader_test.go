@@ -5,10 +5,10 @@ import (
 	"io"
 	"testing"
 
+	mockcl "github.com/open-gpdb/yproxy/pkg/mock/client"
+	mockio "github.com/open-gpdb/yproxy/pkg/mock/proc/yio"
+	"github.com/open-gpdb/yproxy/pkg/proc/yio"
 	"github.com/stretchr/testify/assert"
-	mockcl "github.com/yezzey-gp/yproxy/pkg/mock/client"
-	mockio "github.com/yezzey-gp/yproxy/pkg/mock/proc/yio"
-	"github.com/yezzey-gp/yproxy/pkg/proc/yio"
 	"go.uber.org/mock/gomock"
 )
 

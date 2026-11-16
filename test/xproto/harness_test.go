@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	pio "github.com/yezzey-gp/yproxy/pkg/io"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	pio "github.com/open-gpdb/yproxy/pkg/io"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/proc"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 func TestMain(m *testing.M) {

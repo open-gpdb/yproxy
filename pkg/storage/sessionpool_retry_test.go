@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yezzey-gp/aws-sdk-go/aws"
-	"github.com/yezzey-gp/aws-sdk-go/aws/client"
-	"github.com/yezzey-gp/aws-sdk-go/service/s3"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/aws-sdk-go/aws"
+	"github.com/open-gpdb/aws-sdk-go/aws/client"
+	"github.com/open-gpdb/aws-sdk-go/service/s3"
 )
 
 type retryTransportFunc func(*http.Request) (*http.Response, error)

@@ -3,8 +3,8 @@ package parser_test
 import (
 	"testing"
 
+	"github.com/open-gpdb/yproxy/pkg/core/parser"
 	"github.com/stretchr/testify/assert"
-	"github.com/yezzey-gp/yproxy/pkg/core/parser"
 )
 
 func TestParse(t *testing.T) {

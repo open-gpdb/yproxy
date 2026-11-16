@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 type StorageBackupInteractor struct {

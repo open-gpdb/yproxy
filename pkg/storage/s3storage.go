@@ -13,16 +13,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yezzey-gp/aws-sdk-go/aws"
-	"github.com/yezzey-gp/aws-sdk-go/service/s3"
-	"github.com/yezzey-gp/aws-sdk-go/service/s3/s3manager"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/metrics"
-	"github.com/yezzey-gp/yproxy/pkg/object"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
-	"github.com/yezzey-gp/yproxy/pkg/tablespace"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/metrics"
+	"github.com/open-gpdb/yproxy/pkg/object"
+	"github.com/open-gpdb/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/tablespace"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/aws-sdk-go/aws"
+	"github.com/open-gpdb/aws-sdk-go/service/s3"
+	"github.com/open-gpdb/aws-sdk-go/service/s3/s3manager"
 )
 
 type S3StorageInteractor struct {

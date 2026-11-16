@@ -6,15 +6,15 @@ import (
 	"net"
 	"os"
 
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	pio "github.com/open-gpdb/yproxy/pkg/io"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/object"
+	"github.com/open-gpdb/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/tablespace"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 	"github.com/spf13/cobra"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	pio "github.com/yezzey-gp/yproxy/pkg/io"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/object"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
-	"github.com/yezzey-gp/yproxy/pkg/tablespace"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 )
 
 var (

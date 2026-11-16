@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/settings"
 	"github.com/stretchr/testify/assert"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/settings"
 )
 
 func TestCatMsg(t *testing.T) {
