@@ -1,8 +1,6 @@
 module github.com/open-gpdb/yproxy
 
-go 1.25.0
-
-toolchain go1.25.6
+go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
@@ -18,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/mock v0.6.0
 	golang.org/x/sync v0.22.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.48.0
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v2 v2.4.0
 )
