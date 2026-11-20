@@ -14,19 +14,19 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/clientpool"
-	"github.com/yezzey-gp/yproxy/pkg/core/pg"
-	"github.com/yezzey-gp/yproxy/pkg/crypt"
-	pio "github.com/yezzey-gp/yproxy/pkg/io"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/metrics"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
-	"github.com/yezzey-gp/yproxy/pkg/proto"
-	"github.com/yezzey-gp/yproxy/pkg/sdnotifier"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/clientpool"
+	"github.com/open-gpdb/yproxy/pkg/core/pg"
+	"github.com/open-gpdb/yproxy/pkg/crypt"
+	pio "github.com/open-gpdb/yproxy/pkg/io"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/metrics"
+	"github.com/open-gpdb/yproxy/pkg/proc"
+	"github.com/open-gpdb/yproxy/pkg/proto"
+	"github.com/open-gpdb/yproxy/pkg/sdnotifier"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 type Instance struct {

@@ -5,9 +5,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 	"github.com/pkg/errors"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 )

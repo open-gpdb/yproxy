@@ -1,4 +1,4 @@
-module github.com/yezzey-gp/yproxy
+module github.com/open-gpdb/yproxy
 
 go 1.25.0
 
@@ -9,13 +9,13 @@ require (
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jarcoal/httpmock v1.4.2
+	github.com/open-gpdb/aws-sdk-go v0.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.2
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	github.com/yezzey-gp/aws-sdk-go v0.1.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0

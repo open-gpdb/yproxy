@@ -1,7 +1,7 @@
 
 GIT_REVISION=`git rev-parse --short HEAD`
 YPROXY_VERSION=`git describe --tags --abbrev=0`
-LDFLAGS=-ldflags "-X github.com/yezzey-gp/yproxy/pkg.GitRevision=${GIT_REVISION} -X github.com/yezzey-gp/yproxy/pkg.YproxyVersion=${YPROXY_VERSION}"
+LDFLAGS=-ldflags "-X github.com/open-gpdb/yproxy/pkg.GitRevision=${GIT_REVISION} -X github.com/open-gpdb/yproxy/pkg.YproxyVersion=${YPROXY_VERSION}"
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v .git | grep -v parser | grep -v vendor)
 
 ####################### BUILD #######################

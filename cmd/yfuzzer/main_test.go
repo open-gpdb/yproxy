@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/crypt"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	mockcl "github.com/yezzey-gp/yproxy/pkg/mock/client"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/crypt"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	mockcl "github.com/open-gpdb/yproxy/pkg/mock/client"
+	"github.com/open-gpdb/yproxy/pkg/storage"
 )
 
 type captureRW struct {

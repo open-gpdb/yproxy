@@ -3,11 +3,11 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg"
-	"github.com/yezzey-gp/yproxy/pkg/core"
-	"github.com/yezzey-gp/yproxy/pkg/testutils"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg"
+	"github.com/open-gpdb/yproxy/pkg/core"
+	"github.com/open-gpdb/yproxy/pkg/testutils"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 var cfgPath string

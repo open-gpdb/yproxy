@@ -9,9 +9,9 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/caio/go-tdigest"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/metrics"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/metrics"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"

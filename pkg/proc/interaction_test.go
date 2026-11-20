@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/proc"
 	"github.com/stretchr/testify/require"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
 )
 
 type procConnTestClient struct {

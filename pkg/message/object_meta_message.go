@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/yezzey-gp/yproxy/pkg/object"
+	"github.com/open-gpdb/yproxy/pkg/object"
 )
 
 type ObjectInfoMessage struct {

@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
-	"github.com/yezzey-gp/yproxy/config"
-	"github.com/yezzey-gp/yproxy/pkg/client"
-	"github.com/yezzey-gp/yproxy/pkg/clientpool"
-	"github.com/yezzey-gp/yproxy/pkg/core/parser"
-	"github.com/yezzey-gp/yproxy/pkg/proc"
-	"github.com/yezzey-gp/yproxy/pkg/storage"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/clientpool"
+	"github.com/open-gpdb/yproxy/pkg/core/parser"
+	"github.com/open-gpdb/yproxy/pkg/proc"
+	"github.com/open-gpdb/yproxy/pkg/storage"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 func PostgresIface(cl net.Conn, p clientpool.Pool, instanceStart time.Time, s storage.StorageInteractor) {

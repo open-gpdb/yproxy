@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 func NewDebugWebServer(httpAddr string) *DebugWebServer {

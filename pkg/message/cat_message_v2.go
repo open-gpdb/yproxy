@@ -3,7 +3,7 @@ package message
 import (
 	"encoding/binary"
 
-	"github.com/yezzey-gp/yproxy/pkg/settings"
+	"github.com/open-gpdb/yproxy/pkg/settings"
 )
 
 type CatMessageV2 struct {

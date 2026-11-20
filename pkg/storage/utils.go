@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/yezzey-gp/yproxy/pkg/settings"
+import "github.com/open-gpdb/yproxy/pkg/settings"
 
 func ResolveStorageSetting(settings []settings.StorageSettings, name, defaultVal string) string {
 

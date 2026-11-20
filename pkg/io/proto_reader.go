@@ -6,10 +6,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/yezzey-gp/yproxy/pkg/client"
+	"github.com/open-gpdb/yproxy/pkg/client"
 
-	"github.com/yezzey-gp/yproxy/pkg/message"
-	"github.com/yezzey-gp/yproxy/pkg/ylogger"
+	"github.com/open-gpdb/yproxy/pkg/message"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
 )
 
 type ProtoReader struct {
