@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/open-gpdb/aws-sdk-go/aws"
+	"github.com/open-gpdb/aws-sdk-go/service/s3"
 	"github.com/open-gpdb/yproxy/config"
 	"github.com/open-gpdb/yproxy/pkg/storage"
 	"github.com/stretchr/testify/assert"
-	"github.com/open-gpdb/aws-sdk-go/aws"
-	"github.com/open-gpdb/aws-sdk-go/service/s3"
 )
 
 func TestEndpointSourceHTTP(t *testing.T) {

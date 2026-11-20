@@ -13,6 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/open-gpdb/aws-sdk-go/aws"
+	"github.com/open-gpdb/aws-sdk-go/service/s3"
+	"github.com/open-gpdb/aws-sdk-go/service/s3/s3manager"
 	"github.com/open-gpdb/yproxy/config"
 	"github.com/open-gpdb/yproxy/pkg/message"
 	"github.com/open-gpdb/yproxy/pkg/metrics"
@@ -20,9 +23,6 @@ import (
 	"github.com/open-gpdb/yproxy/pkg/settings"
 	"github.com/open-gpdb/yproxy/pkg/tablespace"
 	"github.com/open-gpdb/yproxy/pkg/ylogger"
-	"github.com/open-gpdb/aws-sdk-go/aws"
-	"github.com/open-gpdb/aws-sdk-go/service/s3"
-	"github.com/open-gpdb/aws-sdk-go/service/s3/s3manager"
 )
 
 type S3StorageInteractor struct {

@@ -10,9 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/open-gpdb/yproxy/config"
-	"github.com/open-gpdb/yproxy/pkg/ylogger"
-	"github.com/pkg/errors"
 	"github.com/open-gpdb/aws-sdk-go/aws"
 	"github.com/open-gpdb/aws-sdk-go/aws/client"
 	"github.com/open-gpdb/aws-sdk-go/aws/credentials"
@@ -20,6 +17,9 @@ import (
 	"github.com/open-gpdb/aws-sdk-go/aws/request"
 	"github.com/open-gpdb/aws-sdk-go/aws/session"
 	"github.com/open-gpdb/aws-sdk-go/service/s3"
+	"github.com/open-gpdb/yproxy/config"
+	"github.com/open-gpdb/yproxy/pkg/ylogger"
+	"github.com/pkg/errors"
 
 	"golang.org/x/sync/semaphore"
 
